@@ -1,0 +1,28 @@
+﻿# Virtual environment
+.venv/
+
+# Databases (too big + personal data)
+data/transport.db
+data/hdb.duckdb
+data/hdb.duckdb.wal
+data/*.db
+data/*.duckdb
+data/*.wal
+
+# ML models (recreatable from seed)
+data/models/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# VS Code
+.vscode/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.crdownload

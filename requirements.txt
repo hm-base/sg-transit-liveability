@@ -1,0 +1,30 @@
+# SG Transport Evaluator — merged requirements
+# Install: uv pip install -r requirements.txt
+
+# Geospatial
+geopandas>=0.14.0
+shapely>=2.0.0
+pyproj>=3.6.0
+
+# Data
+pandas>=2.0.0
+numpy>=1.26.0
+
+# ML
+scikit-learn>=1.4.0
+
+# HTTP
+requests>=2.31.0
+urllib3>=2.0.0
+
+# API
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.0.0
+
+# Scheduling
+APScheduler>=3.10.0
+
+# Dashboard
+streamlit>=1.33.0
+plotly>=5.20.0
