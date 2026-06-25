@@ -63,6 +63,6 @@ def get_paginated(endpoint):
         time.sleep(0.2)
     return records
 
-def get_bus_arrival(stop_code):
-    payload = _get("BusArrivalv2", params={"BusStopCode": stop_code})
+def get_bus_arrival(stop_code: str) -> list[dict]:
+    payload = _get("v3/BusArrival", params={"BusStopCode": stop_code})
     return payload.get("Services", [])

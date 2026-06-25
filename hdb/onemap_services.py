@@ -25,6 +25,10 @@ import requests
 
 log = logging.getLogger(__name__)
 
+# Singapore bounding box
+SG_LAT_MIN, SG_LAT_MAX = 1.15, 1.48
+SG_LNG_MIN, SG_LNG_MAX = 103.6, 104.1
+
 ONEMAP_BASE  = "https://www.onemap.gov.sg/api"
 CACHE_TTL_S  = 300   # 5 minutes
 
@@ -63,6 +67,144 @@ def _cached_get(url: str, params: dict) -> dict | list | None:
     except Exception as e:
         log.warning("OneMap API error: %s", e)
         return None
+
+
+# ── Postal code search ───────────────────────────────────────────────────────
+
+def postal_to_coordinates(postal_code: str) -> dict | None:
+    """
+    Convert Singapore postal code to coordinates + address.
+    Returns: {lat, lng, address, block, road, postal_code}
+    """
+    data = _cached_get(
+        f"{ONEMAP_BASE}/common/elastic/search",
+        {
+            "searchVal":      postal_code,
+            "returnGeom":     "Y",
+            "getAddrDetails": "Y",
+        },
+    )
+    if not data:
+        return None
+
+    results = data.get("results", [])
+    for r in results:
+        lat = float(r.get("LATITUDE", 0))
+        lng = float(r.get("LONGITUDE", 0))
+        if SG_LAT_MIN <= lat <= SG_LAT_MAX and SG_LNG_MIN <= lng <= SG_LNG_MAX:
+            return {
+                "lat":         lat,
+                "lng":         lng,
+                "address":     r.get("ADDRESS", ""),
+                "block":       r.get("BLK_NO", ""),
+                "road":        r.get("ROAD_NAME", ""),
+                "postal_code": r.get("POSTAL", postal_code),
+                "building":    r.get("BUILDING", ""),
+            }
+    return None
+
+
+def get_live_bus_arrivals(stop_code: str, lta_api_key: str) -> list[dict]:
+    """
+    Get live bus arrivals for a specific stop from LTA API.
+    Returns list of services with arrival times.
+    """
+    try:
+        import requests as _req
+        resp = _req.get(
+            "https://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2",
+            headers={"AccountKey": lta_api_key, "accept": "application/json"},
+            params={"BusStopCode": stop_code},
+            timeout=10,
+        ).json()
+
+        services = resp.get("Services", [])
+        results  = []
+
+        for svc in services:
+            def parse_bus(bus_info):
+                if not bus_info:
+                    return None
+                eta = bus_info.get("EstimatedArrival", "")
+                if not eta:
+                    return None
+                from datetime import datetime, timezone
+                try:
+                    arr_time = datetime.fromisoformat(eta)
+                    now      = datetime.now(tz=timezone.utc)
+                    mins     = max(0, int((arr_time - now).total_seconds() / 60))
+                    load     = bus_info.get("Load", "")
+                    load_label = {"SEA": "🟢 Seated", "SDA": "🟡 Standing", "LSD": "🔴 Crowded"}.get(load, load)
+                    return {"mins": mins, "load": load_label}
+                except Exception:
+                    return None
+
+            next1 = parse_bus(svc.get("NextBus"))
+            next2 = parse_bus(svc.get("NextBus2"))
+
+            if next1:
+                results.append({
+                    "service":  svc.get("ServiceNo", ""),
+                    "next1_min": next1["mins"],
+                    "next2_min": next2["mins"] if next2 else None,
+                    "load":     next1["load"],
+                })
+
+        results.sort(key=lambda x: x["next1_min"])
+        return results
+
+    except Exception as e:
+        log.warning("Bus arrival fetch failed: %s", e)
+        return []
+
+
+def get_area_transport_profile(
+    postal_code: str,
+    radius_m: int = 500,
+    lta_api_key: str = "",
+) -> dict:
+    """
+    Full transport profile for a postal code within a given radius.
+    
+    Returns:
+        address info, nearby bus stops + live arrivals, 
+        nearest MRT, taxi count estimate, CBD commute time
+    """
+    # 1. Geocode postal code
+    location = postal_to_coordinates(postal_code)
+    if not location:
+        return {"error": f"Could not find postal code {postal_code}"}
+
+    lat, lng = location["lat"], location["lng"]
+
+    # 2. Nearest MRT
+    mrt = get_nearest_mrt_summary(lat, lng)
+
+    # 3. Nearby bus stops
+    bus_stops = get_nearest_bus_stops(lat, lng, radius_m=radius_m)
+
+    # 4. Live bus arrivals for each stop
+    bus_arrivals = []
+    for stop in bus_stops[:5]:   # limit to 5 closest stops
+        arrivals = get_live_bus_arrivals(stop["stop_code"], lta_api_key) if lta_api_key else []
+        bus_arrivals.append({
+            "stop_code":   stop["stop_code"],
+            "description": stop["description"],
+            "distance_m":  stop["distance_m"],
+            "services":    arrivals[:4],   # top 4 services
+        })
+
+    # 5. CBD commute
+    commute = get_pt_commute_time(lat, lng)
+
+    return {
+        "location":    location,
+        "nearest_mrt": mrt,
+        "bus_stops":   bus_arrivals,
+        "num_stops":   len(bus_stops),
+        "cbd_commute": commute,
+        "radius_m":    radius_m,
+    }
 
 
 # ── Nearest MRT ───────────────────────────────────────────────────────────────

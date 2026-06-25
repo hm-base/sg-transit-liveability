@@ -66,7 +66,15 @@ class DataStore:
         # Persist to SQLite for ML training (outside lock — DB has its own safety)
         try:
             from storage.database import insert_snapshot
-            insert_snapshot("_raw", len(records))
+            from processing.spatial import filter_taxis_by_bbox
+            DISTRICT_BBOXES = {
+                "marine_parade": (103.893, 103.935, 1.295, 1.316),
+                "downtown_cbd":  (103.845, 103.865, 1.277, 1.295),
+                "tengah":        (103.720, 103.760, 1.360, 1.390),
+            }
+            for district, bbox in DISTRICT_BBOXES.items():
+                count = len(filter_taxis_by_bbox(records, bbox))
+                insert_snapshot(district, count)            
         except Exception:
             pass   # don't crash the worker if DB write fails
 
