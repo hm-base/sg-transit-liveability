@@ -1,4 +1,4 @@
-# SG Transport Evaluator — merged requirements
+﻿# SG Transit Liveability -- merged requirements
 # Install: uv pip install -r requirements.txt
 
 # Geospatial
@@ -9,9 +9,11 @@ pyproj>=3.6.0
 # Data
 pandas>=2.0.0
 numpy>=1.26.0
+duckdb>=0.10.0
 
 # ML
 scikit-learn>=1.4.0
+prophet>=1.1.5
 
 # HTTP
 requests>=2.31.0
@@ -29,9 +31,5 @@ APScheduler>=3.10.0
 streamlit>=1.33.0
 plotly>=5.20.0
 
-# Extended ML
-prophet>=1.1.5
-duckdb>=0.10.0
-
-# Airflow (install separately - see README)
+# Airflow (install separately via Docker)
 # apache-airflow>=2.9.0
