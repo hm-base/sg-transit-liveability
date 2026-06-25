@@ -28,3 +28,10 @@ APScheduler>=3.10.0
 # Dashboard
 streamlit>=1.33.0
 plotly>=5.20.0
+
+# Extended ML
+prophet>=1.1.5
+duckdb>=0.10.0
+
+# Airflow (install separately - see README)
+# apache-airflow>=2.9.0

@@ -26,11 +26,31 @@ st.set_page_config(
 )
 init_db()
 
+# Fallback districts
 DISTRICTS = {
     "Marine Parade (non-MRT)": "marine_parade",
     "Downtown / CBD":           "downtown_cbd",
     "Tengah (non-MRT)":         "tengah",
 }
+
+# Load all 55 planning areas for the dropdown
+def _load_all_districts() -> dict:
+    try:
+        from hdb.planning_areas import load_all_planning_areas
+        areas = load_all_planning_areas()
+        if areas:
+            # Convert to slug format for DB lookups
+            result = {}
+            for a in areas:
+                label = a["name"].title()
+                slug  = a["name"].lower().replace(" ", "_").replace("/", "_")
+                result[label] = slug
+            return result
+    except Exception:
+        pass
+    return DISTRICTS
+
+ALL_DISTRICTS = _load_all_districts()
 
 # ── Navigation ─────────────────────────────────────────────────────────────────
 st.sidebar.title("🚕 SG Transport Monitor")
@@ -41,8 +61,8 @@ page = st.sidebar.radio("Navigate", ["📊 Dashboard", "🗺️ Singapore Map", 
 # ══════════════════════════════════════════════════════════════════════════════
 if page == "📊 Dashboard":
 
-    label    = st.sidebar.selectbox("District", list(DISTRICTS.keys()))
-    district = DISTRICTS[label]
+    label    = st.sidebar.selectbox("District", list(ALL_DISTRICTS.keys()))
+    district = ALL_DISTRICTS[label]
     lookback = st.sidebar.slider("History (minutes)", 30, 180, 60, step=15)
     auto_ref = st.sidebar.checkbox("Auto-refresh every 60s", value=True)
     if auto_ref:
@@ -330,6 +350,105 @@ if page == "📊 Dashboard":
     ])
     st.dataframe(verdict_df, use_container_width=True, hide_index=True)
 
+    # ── Extended forecasts ────────────────────────────────────────────────────
+    st.markdown("---")
+    st.subheader("🔮 Extended Forecasts")
+
+    ext_tab1, ext_tab2, ext_tab3 = st.tabs([
+        "📈 24-Hour Forecast",
+        "⏰ Peak Hour Ratings",
+        "📅 Day Pattern Heatmap"
+    ])
+
+    with ext_tab1:
+        st.caption("Predicted taxi availability for the next 24 hours")
+        try:
+            from ml.extended_forecaster import HourlyForecaster
+            hf   = HourlyForecaster(district)
+            df24 = hf.predict_24h()
+            if not df24.empty:
+                df24["predicted_at"] = pd.to_datetime(df24["predicted_at"])
+                fig24 = go.Figure()
+                fig24.add_trace(go.Scatter(
+                    x=df24["predicted_at"],
+                    y=df24["predicted_count"],
+                    mode="lines+markers",
+                    name="Predicted taxis",
+                    line=dict(color="#FF7043", width=2),
+                    marker=dict(size=6),
+                ))
+                # Add peak hour bands
+                for hour in [7, 8, 17, 18, 19]:
+                    fig24.add_vrect(
+                        x0=df24["predicted_at"].min().replace(hour=hour, minute=0),
+                        x1=df24["predicted_at"].min().replace(hour=hour, minute=59),
+                        fillcolor="red", opacity=0.1,
+                        annotation_text="Peak" if hour == 7 else "",
+                    )
+                fig24.update_layout(
+                    height=300, template="plotly_white",
+                    margin=dict(l=0,r=0,t=10,b=0),
+                    xaxis_title="Time", yaxis_title="Predicted taxi count",
+                )
+                st.plotly_chart(fig24, use_container_width=True)
+                st.caption("🔴 Shaded areas = peak hours (7-9am, 5-7pm)")
+            else:
+                st.info("Training models... run `python main.py --seed` first!")
+        except Exception as e:
+            st.error(f"24hr forecast error: {e}")
+
+    with ext_tab2:
+        st.caption("How good is taxi availability during peak hours tomorrow?")
+        try:
+            from ml.extended_forecaster import PeakHourPredictor
+            ph    = PeakHourPredictor(district)
+            peaks = ph.predict_peaks()
+            if peaks:
+                for p in peaks:
+                    col1, col2, col3 = st.columns([1, 2, 2])
+                    col1.markdown(f"**{p['time_label']}**")
+                    col2.markdown(f"{p['rating']}")
+                    col3.caption(p["advice"])
+            else:
+                st.info("Need more historical data — run pipeline for a few days!")
+        except Exception as e:
+            st.error(f"Peak hour error: {e}")
+
+    with ext_tab3:
+        st.caption("Average taxi availability by day and hour (historical pattern)")
+        try:
+            from ml.extended_forecaster import DayPatternAnalyser
+            import plotly.express as px
+            da      = DayPatternAnalyser(district)
+            pattern = da.get_pattern()
+            if not pattern.empty:
+                pivot = pattern.pivot(index="day_name", columns="hour", values="avg_count")
+                day_order = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
+                pivot = pivot.reindex([d for d in day_order if d in pivot.index])
+                fig_heat = px.imshow(
+                    pivot,
+                    color_continuous_scale="RdYlGn",
+                    aspect="auto",
+                    title="Avg taxi count by day × hour",
+                    labels={"x":"Hour of day","y":"Day","color":"Avg taxis"},
+                )
+                fig_heat.update_layout(height=300, margin=dict(l=0,r=0,t=40,b=0))
+                st.plotly_chart(fig_heat, use_container_width=True)
+
+                bc1, bc2 = st.columns(2)
+                with bc1:
+                    st.markdown("**🟢 Best times for taxis:**")
+                    for t in da.best_times(3):
+                        st.caption(f"{t['day']} {t['hour']} — avg {t['avg_count']:.1f} taxis")
+                with bc2:
+                    st.markdown("**🔴 Worst times for taxis:**")
+                    for t in da.worst_times(3):
+                        st.caption(f"{t['day']} {t['hour']} — avg {t['avg_count']:.1f} taxis")
+            else:
+                st.info("Need more historical data!")
+        except Exception as e:
+            st.error(f"Pattern error: {e}")
+
     if auto_ref:
         st.markdown('<meta http-equiv="refresh" content="60">', unsafe_allow_html=True)
 
@@ -338,8 +457,14 @@ if page == "📊 Dashboard":
 # PAGE 2: MAP
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🗺️ Singapore Map":
-    from hdb.map_page import render_map_page
-    render_map_page()
+    try:
+        from hdb.map_page import render_map_page
+        render_map_page()
+    except Exception as e:
+        st.title("🗺️ Singapore Map")
+        st.warning("⚠️ HDB data not available on this machine.")
+        st.info("The map requires `data/hdb.duckdb` — copy it from your main machine or run the geocoder first.")
+        st.caption(f"Error: {e}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════

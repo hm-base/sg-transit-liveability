@@ -147,6 +147,47 @@ def create_app(store: DataStore) -> FastAPI:
         from storage.database import fetch_alerts
         return fetch_alerts(district, limit=limit)
 
+    @app.get("/forecast/24h/{district}")
+    def forecast_24h(district: str):
+        """24-hour hourly taxi forecast for a district."""
+        from ml.extended_forecaster import HourlyForecaster
+        hf  = HourlyForecaster(district)
+        df  = hf.predict_24h()
+        if df.empty:
+            return {"error": "No data available"}
+        return df.to_dict(orient="records")
+
+    @app.get("/forecast/peaks/{district}")
+    def forecast_peaks(district: str, days_ahead: int = 1):
+        """Peak hour predictions for tomorrow."""
+        from ml.extended_forecaster import PeakHourPredictor
+        ph = PeakHourPredictor(district)
+        return ph.predict_peaks(days_ahead=days_ahead)
+
+    @app.get("/forecast/pattern/{district}")
+    def day_pattern(district: str):
+        """Day of week × hour heatmap pattern."""
+        from ml.extended_forecaster import DayPatternAnalyser
+        da = DayPatternAnalyser(district)
+        df = da.get_pattern()
+        if df.empty:
+            return {"error": "No data available"}
+        return {
+            "pattern": df.to_dict(orient="records"),
+            "best_times":  da.best_times(),
+            "worst_times": da.worst_times(),
+        }
+
+    @app.get("/forecast/price/{town}")
+    def price_forecast(town: str, flat_type: str = "4 ROOM", months: int = 6):
+        """HDB resale price forecast using Prophet/linear regression."""
+        from ml.extended_forecaster import HDBPriceForecaster
+        hpf     = HDBPriceForecaster(town, flat_type)
+        summary = hpf.summary()
+        if not summary:
+            return {"error": "Insufficient price history"}
+        return summary
+
     @app.get("/health")
     def health():
         return {"status": "ok", "snapshots": len(store.taxi_snapshots)}

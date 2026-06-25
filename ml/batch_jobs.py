@@ -16,6 +16,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from ml.forecaster import TaxiForecaster
+from ml.extended_forecaster import HourlyForecaster, PeakHourPredictor, DayPatternAnalyser, HDBPriceForecaster
 from ml.anomaly import AnomalyDetector
 from storage.database import fetch_snapshots
 
@@ -61,6 +62,36 @@ def job_predict_and_check():
             log.exception("[%s] Predict/check failed: %s", district, exc)
 
 
+def job_extended_predictions():
+    """Every hour — run extended predictions for all districts."""
+    log.info("=== Batch: EXTENDED PREDICTIONS (%s) ===", datetime.utcnow().isoformat())
+    for district in DISTRICTS:
+        try:
+            # 24-hour hourly forecast
+            hf   = HourlyForecaster(district)
+            df24 = hf.predict_24h()
+            log.info("[%s] 24hr forecast: %d hours", district, len(df24))
+
+            # Peak hour prediction
+            ph     = PeakHourPredictor(district)
+            peaks  = ph.predict_peaks()
+            log.info("[%s] Peak predictions: %d slots", district, len(peaks))
+
+        except Exception as exc:
+            log.exception("[%s] Extended prediction failed: %s", district, exc)
+
+    # HDB price forecasts (once daily is enough)
+    try:
+        for town in ["MARINE PARADE", "TAMPINES", "PUNGGOL", "TENGAH", "WOODLANDS"]:
+            for flat_type in ["4 ROOM", "5 ROOM"]:
+                hpf = HDBPriceForecaster(town, flat_type)
+                summary = hpf.summary()
+                if summary:
+                    log.info("[%s %s] Price forecast: %s", town, flat_type, summary["trend"])
+    except Exception as exc:
+        log.exception("HDB price forecast failed: %s", exc)
+
+
 def create_batch_scheduler() -> BackgroundScheduler:
     sched = BackgroundScheduler(timezone="Asia/Singapore")
     sched.add_job(job_train_all,       CronTrigger(hour=8, minute=0),
@@ -69,5 +100,9 @@ def create_batch_scheduler() -> BackgroundScheduler:
                   id="evaluate", misfire_grace_time=300, replace_existing=True)
     sched.add_job(job_predict_and_check, IntervalTrigger(minutes=30),
                   id="predict",  replace_existing=True)
+    # Extended predictions every hour
+    sched.add_job(job_extended_predictions, IntervalTrigger(minutes=60),
+                  id="extended_predict", replace_existing=True)
+
     log.info("Batch scheduler configured: %d jobs", len(sched.get_jobs()))
     return sched

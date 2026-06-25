@@ -1,0 +1,105 @@
+version: "3.9"
+
+# SG Transit Liveability — Docker Compose
+# =========================================
+# Services:
+#   pipeline  — FastAPI + ingestion workers + batch scheduler
+#   dashboard — Streamlit live dashboard
+#   airflow   — Workflow orchestration (replaces APScheduler)
+#
+# Usage:
+#   cp .env.example .env          # add your API keys
+#   docker-compose up             # start all services
+#   docker-compose up pipeline dashboard  # without airflow
+#   docker-compose down           # stop all
+#   docker-compose logs -f pipeline  # follow logs
+#
+# Access:
+#   Dashboard : http://localhost:8501
+#   FastAPI   : http://localhost:8000
+#   Airflow   : http://localhost:8080  (admin/admin)
+
+x-common-env: &common-env
+  LTA_API_KEY: ${LTA_API_KEY}
+  ONEMAP_TOKEN: ${ONEMAP_TOKEN}
+  PYTHONUNBUFFERED: "1"
+
+services:
+
+  # ── Main pipeline + FastAPI ──────────────────────────────────────────────────
+  pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sg_transit_pipeline
+    ports:
+      - "8000:8000"
+    environment:
+      <<: *common-env
+    volumes:
+      - sg_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ── Streamlit dashboard ──────────────────────────────────────────────────────
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: sg_transit_dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      <<: *common-env
+    volumes:
+      - sg_data:/app/data
+    depends_on:
+      pipeline:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Apache Airflow ───────────────────────────────────────────────────────────
+  airflow:
+    image: apache/airflow:2.9.0-python3.11
+    container_name: sg_transit_airflow
+    ports:
+      - "8080:8080"
+    environment:
+      <<: *common-env
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
+      AIRFLOW__WEBSERVER__SECRET_KEY: sg_transit_secret_2026
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      AIRFLOW_HOME: /opt/airflow
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags    # our DAG files
+      - sg_data:/app/data                   # shared data
+      - airflow_logs:/opt/airflow/logs
+    command: >
+      bash -c "
+        airflow db init &&
+        airflow users create
+          --username admin
+          --password admin
+          --firstname SG
+          --lastname Transit
+          --role Admin
+          --email admin@sg-transit.local &&
+        airflow webserver --port 8080 &
+        airflow scheduler
+      "
+    depends_on:
+      - pipeline
+    restart: unless-stopped
+
+volumes:
+  sg_data:
+    driver: local
+  airflow_logs:
+    driver: local
