@@ -209,6 +209,13 @@ def run_server(host: str = "127.0.0.1", port: int = 8000) -> None:
     except Exception as e:
         log.warning("Could not seed planning areas: %s", e)
 
+    # Run system sanity check
+    try:
+        from sanity_check import run_checks
+        run_checks()
+    except Exception as e:
+        log.warning("Sanity check failed: %s", e)
+
     store        = DataStore()
     batch_sched  = create_batch_scheduler()
 

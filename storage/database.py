@@ -12,7 +12,9 @@ from __future__ import annotations
 import sqlite3
 import logging
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+SGT = timezone(timedelta(hours=8))
 from pathlib import Path
 
 from config import cfg
@@ -93,7 +95,7 @@ def insert_snapshot(district: str, taxi_count: int,
         conn.execute(
             "INSERT INTO taxi_snapshots (fetched_at,district,taxi_count,flux,friction) "
             "VALUES (?,?,?,?,?)",
-            (datetime.utcnow().isoformat(), district, taxi_count, flux, friction),
+            (datetime.now(SGT).isoformat(), district, taxi_count, flux, friction),
         )
 
 
@@ -103,7 +105,7 @@ def insert_prediction(district: str, horizon: int, predicted: float,
         conn.execute(
             "INSERT INTO predictions (created_at,district,horizon_minutes,predicted_count,model_version) "
             "VALUES (?,?,?,?,?)",
-            (datetime.utcnow().isoformat(), district, horizon, predicted, version),
+            (datetime.now(SGT).isoformat(), district, horizon, predicted, version),
         )
 
 
@@ -114,7 +116,7 @@ def insert_alert(district: str, alert_type: str, value: float,
         conn.execute(
             "INSERT INTO anomaly_alerts (triggered_at,district,alert_type,value,threshold,message) "
             "VALUES (?,?,?,?,?,?)",
-            (datetime.utcnow().isoformat(), district, alert_type, value, threshold, message),
+            (datetime.now(SGT).isoformat(), district, alert_type, value, threshold, message),
         )
 
 
@@ -124,7 +126,7 @@ def insert_model_metrics(district: str, mae: float, rmse: float,
         conn.execute(
             "INSERT INTO model_metrics (evaluated_at,district,mae,rmse,n_samples) "
             "VALUES (?,?,?,?,?)",
-            (datetime.utcnow().isoformat(), district, mae, rmse, n_samples),
+            (datetime.now(SGT).isoformat(), district, mae, rmse, n_samples),
         )
 
 

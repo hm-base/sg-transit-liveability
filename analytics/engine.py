@@ -158,11 +158,18 @@ def compute_metrics(store: DataStore, bbox: BBox) -> DistrictMetrics:
     arrivals_map   = store.get_bus_arrivals(stop_codes)
 
     all_headways: list[float] = []
+    unique_routes: set[str]   = set()
     for services in arrivals_map.values():
         all_headways.extend(_headways_from_services(services))
+        for svc in services:
+            route = svc.get("ServiceNo", "")
+            if route:
+                unique_routes.add(route)
 
     avg_bus_headway_min  = statistics.mean(all_headways) if all_headways else cfg.bus_wait_ceiling_min
     bus_frequency_score  = _score_bus_frequency(avg_bus_headway_min)
+    num_unique_routes    = len(unique_routes)
+    bus_redundancy_score = min(100.0, num_unique_routes * 10.0)
 
     # Composite score
     friction_100       = min(100.0, friction_ratio * 100.0)

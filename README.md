@@ -110,6 +110,42 @@ Enter any Singapore postal code to see:
 
 ---
 
+## 🩺 Sanity Check
+
+Every time the pipeline starts, it automatically runs a system health check:
+
+```
+=======================================================
+  SG Transit Liveability — System Ready Check
+  2026-06-26 20:41:00 SGT
+=======================================================
+
+🔑 Environment Variables
+  ✅ LTA_API_KEY  — configured
+  ✅ ONEMAP_TOKEN — configured
+
+💾 Storage
+  ✅ transport.db  — 34,720 rows | last write: 20:40:51 SGT
+  ✅ hdb.duckdb    — 233,479 HDB records | 9,712 geocoded
+  ✅ Planning areas — 55/55 areas loaded
+  ✅ ML predictions — 150 predictions
+
+🌐 External APIs (live ping)
+  ✅ LTA DataMall  — 3,420 taxis | 234ms | ping: 20:41:02 SGT
+  ✅ OneMap API    — responding | 156ms | ping: 20:41:03 SGT
+
+=======================================================
+  🎉 All systems go! Pipeline starting...
+=======================================================
+```
+
+Run standalone anytime:
+```bash
+python sanity_check.py
+```
+
+---
+
 ## 🚀 Quick Start
 
 ### Option 1 — Docker (recommended)
