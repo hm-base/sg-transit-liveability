@@ -167,11 +167,7 @@ def run_seed() -> None:
     print("\nSeeding 7 days of synthetic history...")
     base = {"marine_parade": 22, "downtown_cbd": 55, "tengah": 8}
     now  = datetime.utcnow()
-    
-    import sqlite3
-    conn = sqlite3.connect(cfg.db_path)
-    rows = []
-    
+    total = 0
     for district, base_count in base.items():
         prev = base_count
         for mins_ago in range(7*24*60, 0, -1):
@@ -183,26 +179,18 @@ def run_seed() -> None:
             rain  = -random.randint(5,12) if random.random() < 0.05 else 0
             count = max(0, int(base_count * mult + random.gauss(0,2) + rain))
             flux  = float(count - prev)
-            rows.append((
-                ts.isoformat(), district, count, flux,
-                round(min(1.0, abs(flux)/max(count,1)*0.3), 4)
-            ))
-            prev = count
+            insert_snapshot(district, count, flux=flux,
+                            friction=round(min(1.0, abs(flux)/max(count,1)*0.3), 4))
+            prev  = count
+            total += 1
 
-    # One bulk insert instead of 30,000 individual ones!
-    conn.executemany(
-        "INSERT INTO taxi_snapshots (fetched_at,district,taxi_count,flux,friction) "
-        "VALUES (?,?,?,?,?)", rows
-    )
-    conn.commit()
-    conn.close()
-    
-    print(f"Inserted {len(rows):,} rows.")
+    print(f"Inserted {total:,} rows.")
     print("Training models...")
     for district in base:
         res = TaxiForecaster(district).train(lookback_min=7*24*60)
-        print(f"  [{district}] {res or 'skipped'}")
+        print(f"  [{district}] {res or 'skipped (need more data)'}")
     print("✅ Seed complete!\n")
+
 
 # ── Live server ────────────────────────────────────────────────────────────────
 
@@ -212,6 +200,15 @@ def run_server(host: str = "127.0.0.1", port: int = 8000) -> None:
         sys.exit(1)
 
     init_db()
+
+    # Seed all 55 planning areas on startup
+    try:
+        from hdb.planning_areas import seed_planning_areas
+        seed_planning_areas()
+        log.info("Planning areas seeded ✅")
+    except Exception as e:
+        log.warning("Could not seed planning areas: %s", e)
+
     store        = DataStore()
     batch_sched  = create_batch_scheduler()
 

@@ -59,7 +59,7 @@ def _cached_get(url: str, params: dict) -> dict | list | None:
             return data
 
     try:
-        resp = requests.get(url, headers=_headers(), params=params, timeout=10)
+        resp = requests.get(url, headers=_headers(), params=params, timeout=30)
         resp.raise_for_status()
         data = resp.json()
         _cache[cache_key] = (now + CACHE_TTL_S, data)

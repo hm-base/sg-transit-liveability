@@ -188,8 +188,8 @@ if page == "📊 Dashboard":
                 if mae and rmse:
                     st.success("✅ Model evaluated successfully!")
                     mc1, mc2 = st.columns(2)
-                    mc1.metric("MAE",  f"{mae:.2f}"  if mae  else "—")
-                    mc2.metric("RMSE", f"{rmse:.2f}" if rmse else "—")
+                    mc1.metric("MAE",  f"{mae:.2f}")
+                    mc2.metric("RMSE", f"{rmse:.2f}")
                     st.caption(f"Evaluated: {str(r['evaluated_at'])[:16]} UTC · n={r['n_samples']}")
 
         # Show training MAE from forecaster even if no DB eval yet

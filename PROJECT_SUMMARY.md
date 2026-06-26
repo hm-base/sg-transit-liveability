@@ -228,6 +228,8 @@ Connectivity Score (0–100) =
 ## 🔜 Still TODO
 
 - [ ] Git LFS for hdb.duckdb
+- [x] All 55 planning areas collecting data automatically
+- [x] Bus route redundancy score added
 - [ ] Streamlit Cloud deployment
 - [ ] Docker testing (needs Windows restart)
 - [ ] MLflow experiment tracking
