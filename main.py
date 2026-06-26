@@ -209,12 +209,14 @@ def run_server(host: str = "127.0.0.1", port: int = 8000) -> None:
     except Exception as e:
         log.warning("Could not seed planning areas: %s", e)
 
-    # Run system sanity check
+    # Trigger initial prediction run after planning areas are seeded
     try:
-        from sanity_check import run_checks
-        run_checks()
+        from ml.batch_jobs import job_predict_and_check
+        log.info("Running initial predictions...")
+        job_predict_and_check()
+        log.info("Initial predictions done ✅")
     except Exception as e:
-        log.warning("Sanity check failed: %s", e)
+        log.warning("Initial prediction run failed: %s", e)
 
     store        = DataStore()
     batch_sched  = create_batch_scheduler()
@@ -228,6 +230,18 @@ def run_server(host: str = "127.0.0.1", port: int = 8000) -> None:
 
     app = create_app(store)
     log.info("API at http://%s:%d  |  Dashboard: streamlit run dashboard/app.py", host, port)
+
+    # Run post-startup sanity check in background after API is ready
+    import threading
+    def _post_startup_check():
+        time.sleep(5)  # wait for API to fully start
+        try:
+            from sanity_check import run_checks
+            run_checks()
+        except Exception as e:
+            log.warning("Post-startup check failed: %s", e)
+    threading.Thread(target=_post_startup_check, daemon=True).start()
+
     uvicorn.run(app, host=host, port=port, log_level="info")
 
 

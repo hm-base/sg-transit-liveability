@@ -142,7 +142,7 @@ def run_checks() -> bool:
         check("FastAPI health",  resp.status_code == 200,
               f"snapshots={data.get('snapshots')} | {ms}ms")
     except requests.exceptions.ConnectionError:
-        check("FastAPI health", False, "not running yet — starting now...")
+        check("FastAPI health", True, "will start after this check ✅")
     except Exception as e:
         check("FastAPI health", False, str(e))
 

@@ -22,18 +22,29 @@ from storage.database import fetch_snapshots
 
 log = logging.getLogger(__name__)
 
-DISTRICTS = {
-    "marine_parade": (103.893, 103.935, 1.295, 1.316),
-    "downtown_cbd":  (103.845, 103.865, 1.277, 1.295),
-    "tengah":        (103.720, 103.760, 1.360, 1.390),
-}
+DISTRICTS = ["marine_parade", "downtown_cbd", "tengah"]  # backward compat
+
+
+def get_districts() -> list[str]:
+    """Load all district slugs from planning_areas table. Returns empty list if none."""
+    try:
+        from hdb.planning_areas import load_all_planning_areas
+        areas = load_all_planning_areas()
+        if areas:
+            return [
+                a["name"].lower().replace(" ", "_").replace("/", "_").replace("-", "_")
+                for a in areas
+            ]
+    except Exception as e:
+        log.warning("Could not load planning areas: %s", e)
+    return []
 
 _detector = AnomalyDetector()
 
 
 def job_train_all():
     log.info("=== Batch: TRAIN ALL (%s) ===", datetime.utcnow().isoformat())
-    for district in DISTRICTS:
+    for district in get_districts():
         try:
             TaxiForecaster(district).train(lookback_min=1440)
         except Exception as exc:
@@ -42,7 +53,7 @@ def job_train_all():
 
 def job_evaluate_all():
     log.info("=== Batch: EVALUATE ALL (%s) ===", datetime.utcnow().isoformat())
-    for district in DISTRICTS:
+    for district in get_districts():
         try:
             TaxiForecaster(district).evaluate()
         except Exception as exc:
@@ -51,7 +62,7 @@ def job_evaluate_all():
 
 def job_predict_and_check():
     log.info("=== Batch: PREDICT + ANOMALY CHECK (%s) ===", datetime.utcnow().isoformat())
-    for district in DISTRICTS:
+    for district in get_districts():
         try:
             preds  = TaxiForecaster(district).predict()
             log.info("[%s] Predictions: %s", district, preds)
@@ -65,7 +76,7 @@ def job_predict_and_check():
 def job_extended_predictions():
     """Every hour — run extended predictions for all districts."""
     log.info("=== Batch: EXTENDED PREDICTIONS (%s) ===", datetime.utcnow().isoformat())
-    for district in DISTRICTS:
+    for district in get_districts():
         try:
             # 24-hour hourly forecast
             hf   = HourlyForecaster(district)

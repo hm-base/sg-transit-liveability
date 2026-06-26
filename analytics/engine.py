@@ -40,8 +40,10 @@ class DistrictMetrics:
     stops_in_bbox:         int
     avg_bus_headway_min:   float
     bus_frequency_score:   float
-    connectivity_score:    float
-    verdict:               str = ""
+    bus_redundancy_score:  float = 0.0
+    num_unique_routes:     int   = 0
+    connectivity_score:    float = 0.0
+    verdict:               str   = ""
 
 
 # ── Bus headway helpers ────────────────────────────────────────────────────────
