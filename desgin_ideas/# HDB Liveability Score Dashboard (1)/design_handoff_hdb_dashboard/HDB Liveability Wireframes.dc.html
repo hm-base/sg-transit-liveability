@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; }
+    * { box-sizing: border-box; }
+    @keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+  </style>
+</helmet>
+
+<!-- ====================================================== -->
+<!-- SECTION HEADER 01                                      -->
+<!-- ====================================================== -->
+<div style="position:absolute;left:80px;top:52px;font:700 11px 'Space Mono',monospace;color:#64748b;letter-spacing:.12em;text-transform:uppercase">01 — MAIN DASHBOARD · 3 LAYOUT EXPLORATIONS</div>
+<div style="position:absolute;left:80px;top:70px;font:400 10px 'Space Mono',monospace;color:#94a3b8">Addressing: weak hierarchy · formula opaque · real-time not prominent · no clear journey · generic feel</div>
+
+<!-- ====================================================== -->
+<!-- FRAME A: COMMAND CENTER                                -->
+<!-- ====================================================== -->
+<div style="position:absolute;left:80px;top:100px;width:780px">
+  <div data-drags-parent="1" style="position:absolute;top:-22px;left:0;font:700 10px 'Space Mono',monospace;color:#334155;text-transform:uppercase;letter-spacing:.08em">A — Command Center · Map Is the Hero</div>
+  <div style="background:#fff;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden">
+    <!-- Nav -->
+    <div style="height:48px;background:#0f172a;display:flex;align-items:center;padding:0 14px;gap:10px">
+      <div style="width:24px;height:24px;background:#0ea5e9;border-radius:5px;flex-shrink:0"></div>
+      <span style="font:700 12px 'Space Mono',monospace;color:#fff">SG Liveability</span>
+      <div style="flex:1"></div>
+      <div style="height:30px;width:182px;border:1.5px dashed rgba(255,255,255,.4);border-radius:4px;display:flex;align-items:center;padding:0 8px;flex-shrink:0">
+        <span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.4)">① 🔍 enter postal code</span>
+      </div>
+      <div style="height:30px;padding:0 10px;border:1.5px dashed rgba(255,255,255,.4);border-radius:4px;display:flex;align-items:center;flex-shrink:0">
+        <span style="font:400 9px 'Space Mono',monospace;color:#e2e8f0">② Punggol ▼</span>
+      </div>
+      <div style="height:30px;padding:0 10px;border:1.5px dashed #38bdf8;background:rgba(56,189,248,.12);border-radius:4px;display:flex;align-items:center;flex-shrink:0">
+        <span style="font:700 9px 'Space Mono',monospace;color:#38bdf8">Tue 7:30am ▼</span>
+      </div>
+    </div>
+    <!-- Map -->
+    <div style="position:relative;height:276px;background:linear-gradient(rgba(148,163,184,.17) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.17) 1px,transparent 1px),#e8f0f7;background-size:22px 22px">
+      <div style="position:absolute;left:14px;top:12px;width:106px;height:66px;border:1.5px solid #94a3b8;background:rgba(248,250,252,.65);border-radius:3px"><span style="font:600 9px 'Space Mono',monospace;color:#475569;display:block;padding:3px 5px">Woodlands</span><span style="font:700 11px 'Space Mono',monospace;color:#1e293b;padding:0 5px">65</span></div>
+      <div style="position:absolute;left:200px;top:86px;width:96px;height:66px;border:1.5px solid #94a3b8;background:rgba(248,250,252,.65);border-radius:3px"><span style="font:600 9px 'Space Mono',monospace;color:#475569;display:block;padding:3px 5px">Bishan</span><span style="font:700 11px 'Space Mono',monospace;color:#1e293b;padding:0 5px">88</span></div>
+      <div style="position:absolute;left:14px;top:130px;width:96px;height:66px;border:1.5px solid #94a3b8;background:rgba(248,250,252,.65);border-radius:3px"><span style="font:600 9px 'Space Mono',monospace;color:#475569;display:block;padding:3px 5px">Jurong W</span><span style="font:700 11px 'Space Mono',monospace;color:#1e293b;padding:0 5px">71</span></div>
+      <div style="position:absolute;left:150px;top:34px;width:100px;height:66px;border:1.5px solid #94a3b8;background:rgba(248,250,252,.65);border-radius:3px"><span style="font:600 9px 'Space Mono',monospace;color:#475569;display:block;padding:3px 5px">Ang Mo Kio</span><span style="font:700 11px 'Space Mono',monospace;color:#1e293b;padding:0 5px">78</span></div>
+      <!-- Active district -->
+      <div style="position:absolute;right:52px;top:22px;width:138px;height:84px;border:2px solid #0ea5e9;background:rgba(14,165,233,.09);border-radius:3px">
+        <span style="font:600 9px 'Space Mono',monospace;color:#0ea5e9;display:block;padding:3px 6px">③ Punggol ✓</span>
+        <span style="font:700 13px 'Space Mono',monospace;color:#0f172a;padding:0 6px">72 </span><span style="font:400 9px 'Space Mono',monospace;color:#64748b">/100</span>
+        <div style="position:absolute;right:6px;bottom:6px;display:flex;gap:2px">
+          <div style="width:6px;height:6px;border-radius:50%;background:#eab308"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:#eab308"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:#eab308"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:rgba(234,179,8,.35)"></div>
+        </div>
+      </div>
+      <div style="position:absolute;right:52px;top:160px;width:108px;height:66px;border:1.5px solid #ef4444;background:rgba(239,68,68,.06);border-radius:3px"><span style="font:600 9px 'Space Mono',monospace;color:#ef4444;display:block;padding:3px 5px">Marine Pde</span><span style="font:700 11px 'Space Mono',monospace;color:#ef4444;padding:0 5px">51</span></div>
+      <!-- MRT dots -->
+      <div style="position:absolute;left:308px;top:184px;width:8px;height:8px;border-radius:50%;background:#ef4444;border:1.5px solid #fff"></div>
+      <div style="position:absolute;left:280px;top:160px;width:8px;height:8px;border-radius:50%;background:#38bdf8;border:1.5px solid #fff"></div>
+      <div style="position:absolute;left:252px;top:136px;width:8px;height:8px;border-radius:50%;background:#22c55e;border:1.5px solid #fff"></div>
+      <div style="position:absolute;left:228px;top:156px;width:8px;height:8px;border-radius:50%;background:#a855f7;border:1.5px solid #fff"></div>
+      <!-- Floating score card -->
+      <div style="position:absolute;left:136px;top:12px;width:158px;background:rgba(15,23,42,.93);border-radius:8px;padding:10px;border:1px solid rgba(14,165,233,.4)">
+        <div style="font:600 7px 'Space Mono',monospace;color:rgba(255,255,255,.4);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em">Punggol · Live now</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+          <div style="width:40px;height:40px;border-radius:50%;border:3px solid #0ea5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font:700 13px 'Space Mono',monospace;color:#fff">72</span></div>
+          <div><div style="font:700 9px 'Space Mono',monospace;color:#fff;margin-bottom:1px">MODERATE</div><div style="font:400 7px 'Space Mono',monospace;color:rgba(255,255,255,.45)">Connectivity Score</div></div>
+        </div>
+        <div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.7);margin-bottom:2px">🚌 8 min avg headway</div>
+        <div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.7);margin-bottom:2px">🚕 14 taxis nearby</div>
+        <div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.7)">📍 1.2km → Punggol MRT</div>
+      </div>
+      <!-- Legends -->
+      <div style="position:absolute;left:12px;bottom:9px;background:rgba(255,255,255,.92);border-radius:3px;padding:3px 7px;display:flex;align-items:center;gap:5px">
+        <span style="font:400 7px 'Space Mono',monospace;color:#64748b">Price:</span>
+        <div style="width:36px;height:5px;background:linear-gradient(to right,#22c55e,#f59e0b,#ef4444);border-radius:2px"></div>
+        <span style="font:400 7px 'Space Mono',monospace;color:#64748b">$$$</span>
+      </div>
+      <div style="position:absolute;right:12px;bottom:9px;background:rgba(15,23,42,.85);border-radius:4px;padding:3px 7px;display:flex;align-items:center;gap:5px">
+        <div style="width:5px;height:5px;border-radius:50%;background:#22c55e;animation:blink 1.5s infinite"></div>
+        <span style="font:400 7px 'Space Mono',monospace;color:#e2e8f0">Live · 30s</span>
+      </div>
+    </div>
+    <!-- Metrics strip -->
+    <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:8px 12px;display:flex;gap:7px">
+      <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:5px;padding:6px 8px"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Live Taxis</div><div style="font:700 15px 'Space Mono',monospace;color:#0f172a">14</div><div style="font:400 7px 'Space Mono',monospace;color:#22c55e">+3 ↑</div></div>
+      <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:5px;padding:6px 8px"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Bus Headway</div><div style="font:700 15px 'Space Mono',monospace;color:#0f172a">8 min</div><div style="font:400 7px 'Space Mono',monospace;color:#0ea5e9">12 stops</div></div>
+      <div style="flex:1;background:#fff;border:2px solid #0ea5e9;border-radius:5px;padding:6px 8px"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">④ Connectivity</div><div style="font:700 15px 'Space Mono',monospace;color:#0ea5e9">72/100</div><div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">Moderate</div></div>
+      <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:5px;padding:6px 8px"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Value Score</div><div style="font:700 15px 'Space Mono',monospace;color:#16a34a">81/100</div><div style="font:400 7px 'Space Mono',monospace;color:#16a34a">Good</div></div>
+      <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:5px;padding:6px 8px"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Avg Price</div><div style="font:700 15px 'Space Mono',monospace;color:#0f172a">$580k</div><div style="font:400 7px 'Space Mono',monospace;color:#ef4444">↑ Rising</div></div>
+    </div>
+    <!-- Tabs -->
+    <div style="height:38px;background:#0f172a;display:flex;align-items:center;padding:0 14px;gap:14px">
+      <span style="font:400 9px 'Space Mono',monospace;color:#38bdf8;border-bottom:2px solid #38bdf8;padding-bottom:2px">Overview</span>
+      <span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.4)">24h Forecast</span>
+      <span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.4)">Price Trends</span>
+      <span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.4)">⑤ Compare</span>
+      <div style="flex:1"></div>
+      <span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.3)">⚙ Score Weights</span>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== -->
+<!-- FRAME B: SIDEBAR NAVIGATOR                             -->
+<!-- ====================================================== -->
+<div style="position:absolute;left:940px;top:100px;width:780px">
+  <div data-drags-parent="1" style="position:absolute;top:-22px;left:0;font:700 10px 'Space Mono',monospace;color:#334155;text-transform:uppercase;letter-spacing:.08em">B — Sidebar Navigator · Formula Always Visible</div>
+  <div style="background:#fff;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden;display:flex;height:466px">
+    <!-- Left sidebar -->
+    <div style="width:240px;background:#0f172a;padding:14px;display:flex;flex-direction:column;gap:10px;flex-shrink:0;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:22px;height:22px;background:#0ea5e9;border-radius:4px;flex-shrink:0"></div>
+        <span style="font:700 11px 'Space Mono',monospace;color:#fff">SG Liveability</span>
+      </div>
+      <div style="border:1.5px dashed rgba(255,255,255,.3);border-radius:4px;height:30px;display:flex;align-items:center;padding:0 8px">
+        <span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.4)">① 🔍 postal code</span>
+      </div>
+      <div>
+        <div style="font:600 7px 'Space Mono',monospace;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Selected District</div>
+        <div style="font:700 13px 'Space Mono',monospace;color:#fff">② Punggol</div>
+      </div>
+      <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px">
+        <div style="width:46px;height:46px;border-radius:50%;border:3px solid #0ea5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font:700 13px 'Space Mono',monospace;color:#fff">72</span></div>
+        <div><div style="font:700 9px 'Space Mono',monospace;color:#38bdf8;margin-bottom:1px">MODERATE</div><div style="font:400 7px 'Space Mono',monospace;color:rgba(255,255,255,.4)">③ Connectivity Score</div></div>
+      </div>
+      <div>
+        <div style="font:600 7px 'Space Mono',monospace;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:5px">③ Score Breakdown</div>
+        <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.6)">Bus Freq ×50%</span><span style="font:700 8px 'Space Mono',monospace;color:#22c55e">+36</span></div><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px"><div style="height:4px;background:#22c55e;border-radius:2px;width:72%"></div></div></div>
+        <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.6)">Taxi Stability ×30%</span><span style="font:700 8px 'Space Mono',monospace;color:#38bdf8">+22</span></div><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px"><div style="height:4px;background:#38bdf8;border-radius:2px;width:55%"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.6)">Taxi Friction ×20%</span><span style="font:700 8px 'Space Mono',monospace;color:#ef4444">−14</span></div><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px"><div style="height:4px;background:#ef4444;border-radius:2px;width:35%"></div></div></div>
+      </div>
+      <div>
+        <div style="font:600 7px 'Space Mono',monospace;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:5px">④ Adjust Weights</div>
+        <div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.6)">Bus</span><span style="font:700 8px 'Space Mono',monospace;color:#fff">50%</span></div><div style="height:3px;background:rgba(255,255,255,.1);border-radius:2px;position:relative"><div style="height:3px;background:#38bdf8;border-radius:2px;width:50%"></div><div style="position:absolute;top:-5px;left:50%;width:13px;height:13px;background:#fff;border-radius:50%;border:2px solid #38bdf8;transform:translateX(-50%)"></div></div></div>
+        <div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.6)">Taxi</span><span style="font:700 8px 'Space Mono',monospace;color:#fff">30%</span></div><div style="height:3px;background:rgba(255,255,255,.1);border-radius:2px;position:relative"><div style="height:3px;background:#38bdf8;border-radius:2px;width:30%"></div><div style="position:absolute;top:-5px;left:30%;width:13px;height:13px;background:#fff;border-radius:50%;border:2px solid #38bdf8;transform:translateX(-50%)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.6)">Friction</span><span style="font:700 8px 'Space Mono',monospace;color:#fff">20%</span></div><div style="height:3px;background:rgba(255,255,255,.1);border-radius:2px;position:relative"><div style="height:3px;background:#ef4444;border-radius:2px;width:20%"></div><div style="position:absolute;top:-5px;left:20%;width:13px;height:13px;background:#fff;border-radius:50%;border:2px solid #ef4444;transform:translateX(-50%)"></div></div></div>
+      </div>
+      <div>
+        <div style="font:600 7px 'Space Mono',monospace;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:5px">⑤ Check Specific Time</div>
+        <div style="display:flex;gap:6px">
+          <div style="flex:1;border:1.5px dashed rgba(255,255,255,.3);border-radius:4px;height:26px;display:flex;align-items:center;justify-content:center"><span style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.5)">Tue ▼</span></div>
+          <div style="flex:1;border:1.5px dashed #38bdf8;border-radius:4px;height:26px;display:flex;align-items:center;justify-content:center"><span style="font:700 8px 'Space Mono',monospace;color:#38bdf8">7:30am ▼</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- Right: Map + stats -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+      <div style="flex:1;position:relative;background:linear-gradient(rgba(148,163,184,.17) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.17) 1px,transparent 1px),#e8f0f7;background-size:22px 22px">
+        <div style="position:absolute;left:190px;top:18px;width:116px;height:76px;border:2px solid #0ea5e9;background:rgba(14,165,233,.09);border-radius:3px"><span style="font:600 8px 'Space Mono',monospace;color:#0ea5e9;display:block;padding:3px 4px">Punggol ✓</span><span style="font:700 11px 'Space Mono',monospace;color:#0f172a;padding:0 4px">72</span></div>
+        <div style="position:absolute;left:8px;top:8px;width:92px;height:60px;border:1.5px solid #94a3b8;background:rgba(248,250,252,.65);border-radius:3px"><span style="font:600 8px 'Space Mono',monospace;color:#475569;display:block;padding:3px 4px">Woodlands</span><span style="font:700 10px 'Space Mono',monospace;color:#1e293b;padding:0 4px">65</span></div>
+        <div style="position:absolute;left:100px;top:78px;width:86px;height:58px;border:1.5px solid #94a3b8;background:rgba(248,250,252,.65);border-radius:3px"><span style="font:600 8px 'Space Mono',monospace;color:#475569;display:block;padding:3px 4px">Bishan</span><span style="font:700 10px 'Space Mono',monospace;color:#1e293b;padding:0 4px">88</span></div>
+        <div style="position:absolute;left:8px;top:108px;width:86px;height:58px;border:1.5px solid #94a3b8;background:rgba(248,250,252,.65);border-radius:3px"><span style="font:600 8px 'Space Mono',monospace;color:#475569;display:block;padding:3px 4px">Jurong W</span><span style="font:700 10px 'Space Mono',monospace;color:#1e293b;padding:0 4px">71</span></div>
+        <div style="position:absolute;left:195px;top:152px;width:100px;height:58px;border:1.5px solid #ef4444;background:rgba(239,68,68,.06);border-radius:3px"><span style="font:600 8px 'Space Mono',monospace;color:#ef4444;display:block;padding:3px 4px">Marine Pde</span><span style="font:700 10px 'Space Mono',monospace;color:#ef4444;padding:0 4px">51</span></div>
+        <div style="position:absolute;left:204px;top:166px;width:7px;height:7px;border-radius:50%;background:#ef4444;border:1px solid #fff"></div>
+        <div style="position:absolute;left:186px;top:149px;width:7px;height:7px;border-radius:50%;background:#38bdf8;border:1px solid #fff"></div>
+        <div style="position:absolute;left:168px;top:128px;width:7px;height:7px;border-radius:50%;background:#22c55e;border:1px solid #fff"></div>
+        <div style="position:absolute;left:8px;bottom:8px;background:rgba(15,23,42,.85);border-radius:3px;padding:2px 6px;display:flex;align-items:center;gap:4px"><div style="width:5px;height:5px;border-radius:50%;background:#22c55e;animation:blink 1.5s infinite"></div><span style="font:400 7px 'Space Mono',monospace;color:#e2e8f0">Live · 30s</span></div>
+        <div style="position:absolute;right:8px;bottom:8px;background:rgba(255,255,255,.92);border-radius:3px;padding:2px 6px;display:flex;align-items:center;gap:4px"><span style="font:400 7px 'Space Mono',monospace;color:#64748b">Price:</span><div style="width:30px;height:4px;background:linear-gradient(to right,#22c55e,#f59e0b,#ef4444);border-radius:2px"></div></div>
+      </div>
+      <div style="height:50px;background:#f1f5f9;border-top:1px solid #e2e8f0;display:flex;align-items:center;padding:0 12px;gap:14px">
+        <div><div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">Taxis now</div><div style="font:700 13px 'Space Mono',monospace;color:#0f172a">14</div></div>
+        <div style="width:1px;height:24px;background:#e2e8f0"></div>
+        <div><div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">Bus headway</div><div style="font:700 13px 'Space Mono',monospace;color:#0f172a">8 min</div></div>
+        <div style="width:1px;height:24px;background:#e2e8f0"></div>
+        <div><div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">Avg price</div><div style="font:700 13px 'Space Mono',monospace;color:#0f172a">$580k</div></div>
+        <div style="width:1px;height:24px;background:#e2e8f0"></div>
+        <div><div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">To CBD</div><div style="font:700 13px 'Space Mono',monospace;color:#0f172a">42 min</div></div>
+        <div style="flex:1"></div>
+        <div style="height:28px;padding:0 10px;background:#0f172a;border-radius:4px;display:flex;align-items:center"><span style="font:700 8px 'Space Mono',monospace;color:#fff">⑥ Deep Dive →</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== -->
+<!-- FRAME C: DATA GRID DASHBOARD                           -->
+<!-- ====================================================== -->
+<div style="position:absolute;left:1800px;top:100px;width:780px">
+  <div data-drags-parent="1" style="position:absolute;top:-22px;left:0;font:700 10px 'Space Mono',monospace;color:#334155;text-transform:uppercase;letter-spacing:.08em">C — Data Grid · Explicit Formula, Dense Info</div>
+  <div style="background:#fff;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden">
+    <div style="height:48px;background:#fff;border-bottom:2px solid #0f172a;display:flex;align-items:center;padding:0 14px;gap:10px">
+      <div style="width:22px;height:22px;background:#0ea5e9;border-radius:4px;flex-shrink:0"></div>
+      <span style="font:700 12px 'Space Mono',monospace;color:#0f172a">SG Liveability</span>
+      <div style="flex:1"></div>
+      <div style="height:30px;width:178px;border:1.5px dashed #cbd5e1;border-radius:4px;display:flex;align-items:center;padding:0 8px;flex-shrink:0"><span style="font:400 9px 'Space Mono',monospace;color:#94a3b8">🔍 ① postal code</span></div>
+      <div style="height:30px;padding:0 10px;border:1.5px dashed #cbd5e1;border-radius:4px;display:flex;align-items:center;flex-shrink:0"><span style="font:400 9px 'Space Mono',monospace;color:#0f172a">② Punggol ▼</span></div>
+      <div style="height:30px;padding:0 10px;border:1.5px dashed #0ea5e9;background:rgba(14,165,233,.06);border-radius:4px;display:flex;align-items:center;flex-shrink:0"><span style="font:700 9px 'Space Mono',monospace;color:#0ea5e9">Tue 7:30am ▼</span></div>
+    </div>
+    <!-- Map + Score split -->
+    <div style="display:flex;height:232px;border-bottom:1px solid #e2e8f0">
+      <div style="flex:1;position:relative;background:linear-gradient(rgba(148,163,184,.17) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.17) 1px,transparent 1px),#e8f0f7;background-size:20px 20px;border-right:1px solid #e2e8f0">
+        <div style="position:absolute;right:18px;top:14px;width:116px;height:72px;border:2px solid #0ea5e9;background:rgba(14,165,233,.09);border-radius:3px"><span style="font:600 8px 'Space Mono',monospace;color:#0ea5e9;display:block;padding:3px 4px">③ Punggol ✓</span><span style="font:700 11px 'Space Mono',monospace;color:#0f172a;padding:0 4px">72</span></div>
+        <div style="position:absolute;left:8px;top:8px;width:88px;height:56px;border:1.5px solid #94a3b8;background:rgba(248,250,252,.65);border-radius:3px"><span style="font:600 8px 'Space Mono',monospace;color:#475569;display:block;padding:3px 4px">Woodlands</span><span style="font:700 10px 'Space Mono',monospace;color:#1e293b;padding:0 4px">65</span></div>
+        <div style="position:absolute;left:93px;top:78px;width:82px;height:54px;border:1.5px solid #94a3b8;background:rgba(248,250,252,.65);border-radius:3px"><span style="font:600 8px 'Space Mono',monospace;color:#475569;display:block;padding:3px 4px">Bishan</span><span style="font:700 10px 'Space Mono',monospace;color:#1e293b;padding:0 4px">88</span></div>
+        <div style="position:absolute;left:8px;top:108px;width:84px;height:54px;border:1.5px solid #94a3b8;background:rgba(248,250,252,.65);border-radius:3px"><span style="font:600 8px 'Space Mono',monospace;color:#475569;display:block;padding:3px 4px">Jurong W</span><span style="font:700 10px 'Space Mono',monospace;color:#1e293b;padding:0 4px">71</span></div>
+        <div style="position:absolute;right:18px;top:144px;width:100px;height:56px;border:1.5px solid #ef4444;background:rgba(239,68,68,.06);border-radius:3px"><span style="font:600 8px 'Space Mono',monospace;color:#ef4444;display:block;padding:3px 4px">Marine Pde</span><span style="font:700 10px 'Space Mono',monospace;color:#ef4444;padding:0 4px">51</span></div>
+        <div style="position:absolute;left:215px;top:158px;width:7px;height:7px;border-radius:50%;background:#ef4444;border:1px solid #fff"></div>
+        <div style="position:absolute;left:198px;top:142px;width:7px;height:7px;border-radius:50%;background:#38bdf8;border:1px solid #fff"></div>
+        <div style="position:absolute;left:180px;top:124px;width:7px;height:7px;border-radius:50%;background:#22c55e;border:1px solid #fff"></div>
+        <div style="position:absolute;left:8px;bottom:8px;background:rgba(15,23,42,.85);border-radius:3px;padding:2px 5px;display:flex;align-items:center;gap:3px"><div style="width:4px;height:4px;border-radius:50%;background:#22c55e;animation:blink 1.5s infinite"></div><span style="font:400 7px 'Space Mono',monospace;color:#e2e8f0">Live</span></div>
+      </div>
+      <!-- Score panel -->
+      <div style="width:45%;background:#f8fafc;padding:14px;display:flex;flex-direction:column;gap:9px">
+        <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">④ Connectivity Score</div>
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:8px;display:flex;align-items:center;gap:6px">
+          <div style="width:38px;height:38px;border-radius:50%;border:3px solid #0ea5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font:700 12px 'Space Mono',monospace;color:#0ea5e9">72</span></div>
+          <div><div style="font:600 8px 'Space Mono',monospace;color:#0f172a;margin-bottom:1px">= Bus(50%) + Taxi(30%) − Friction(20%)</div><div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">Adjust weights →</div></div>
+        </div>
+        <div>
+          <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font:400 8px 'Space Mono',monospace;color:#475569">Bus ×50%</span><span style="font:700 8px 'Space Mono',monospace;color:#22c55e">+36</span></div><div style="height:5px;background:#e2e8f0;border-radius:3px"><div style="height:5px;background:#22c55e;border-radius:3px;width:72%"></div></div></div>
+          <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font:400 8px 'Space Mono',monospace;color:#475569">Taxi ×30%</span><span style="font:700 8px 'Space Mono',monospace;color:#38bdf8">+22</span></div><div style="height:5px;background:#e2e8f0;border-radius:3px"><div style="height:5px;background:#38bdf8;border-radius:3px;width:55%"></div></div></div>
+          <div><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font:400 8px 'Space Mono',monospace;color:#475569">Friction ×20%</span><span style="font:700 8px 'Space Mono',monospace;color:#ef4444">−14</span></div><div style="height:5px;background:#e2e8f0;border-radius:3px"><div style="height:5px;background:#ef4444;border-radius:3px;width:35%"></div></div></div>
+        </div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <span style="font:600 7px 'Space Mono',monospace;background:#dcfce7;color:#16a34a;padding:2px 5px;border-radius:3px">7am Good</span>
+          <span style="font:600 7px 'Space Mono',monospace;background:#fef9c3;color:#854d0e;padding:2px 5px;border-radius:3px">8am Mod</span>
+          <span style="font:600 7px 'Space Mono',monospace;background:#fee2e2;color:#b91c1c;padding:2px 5px;border-radius:3px">7pm Poor</span>
+        </div>
+      </div>
+    </div>
+    <!-- Metrics grid -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid #e2e8f0">
+      <div style="padding:10px 12px;border-right:1px solid #e2e8f0"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">🚕 Live Taxis</div><div style="font:700 19px 'Space Mono',monospace;color:#0f172a">14</div><div style="font:400 7px 'Space Mono',monospace;color:#22c55e;margin-bottom:4px">nearby now</div><div style="background:#dcfce7;border-radius:3px;padding:2px 5px;display:inline-block"><span style="font:400 7px 'Space Mono',monospace;color:#16a34a">Good</span></div></div>
+      <div style="padding:10px 12px;border-right:1px solid #e2e8f0"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">🚌 Bus Freq</div><div style="font:700 19px 'Space Mono',monospace;color:#0f172a">8 min</div><div style="font:400 7px 'Space Mono',monospace;color:#0ea5e9;margin-bottom:4px">12 stops</div><div style="background:#dbeafe;border-radius:3px;padding:2px 5px;display:inline-block"><span style="font:400 7px 'Space Mono',monospace;color:#1d4ed8">73/100</span></div></div>
+      <div style="padding:10px 12px;border-right:1px solid #e2e8f0"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">🏠 Price</div><div style="font:700 19px 'Space Mono',monospace;color:#0f172a">$580k</div><div style="font:400 7px 'Space Mono',monospace;color:#ef4444;margin-bottom:4px">avg ↑ Rising</div><div style="background:#fee2e2;border-radius:3px;padding:2px 5px;display:inline-block"><span style="font:400 7px 'Space Mono',monospace;color:#b91c1c">+2.4% 6mo</span></div></div>
+      <div style="padding:10px 12px"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">📍 MRT Dist</div><div style="font:700 19px 'Space Mono',monospace;color:#0f172a">1.2km</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b;margin-bottom:4px">14 min walk</div><div style="background:#f1f5f9;border-radius:3px;padding:2px 5px;display:inline-block"><span style="font:400 7px 'Space Mono',monospace;color:#475569">70/100</span></div></div>
+    </div>
+    <div style="height:36px;background:#f8fafc;display:flex;align-items:center;padding:0 14px;gap:14px;border-top:1px solid #e2e8f0">
+      <span style="font:700 8px 'Space Mono',monospace;color:#0ea5e9">OVERVIEW</span>
+      <span style="font:400 8px 'Space Mono',monospace;color:#94a3b8">⑤ 24H FORECAST</span>
+      <span style="font:400 8px 'Space Mono',monospace;color:#94a3b8">PRICE TRENDS</span>
+      <span style="font:400 8px 'Space Mono',monospace;color:#94a3b8">COMPARE</span>
+      <span style="font:400 8px 'Space Mono',monospace;color:#94a3b8">ADDRESS SEARCH</span>
+    </div>
+  </div>
+</div>
+
+<!-- POST-ITS ROW 1 -->
+<div style="position:absolute;left:80px;top:596px;width:292px;background:#fef9c3;border-radius:3px;padding:10px 12px;box-shadow:0 2px 5px rgba(0,0,0,.1);transform:rotate(-1deg)">
+  <div style="font:700 12px 'Caveat',cursive;color:#92400e;margin-bottom:4px">Frame A · Map Command Center</div>
+  <div style="font:400 11px 'Caveat',cursive;color:#78350f;line-height:1.5">✓ Map is hero → instant spatial context<br>✓ Score card floats → always visible<br>✓ Real-time strip is prominent<br>✗ Formula hidden behind ⚙ menu<br>✗ Sliders not discoverable</div>
+</div>
+<div style="position:absolute;left:940px;top:596px;width:292px;background:#fef9c3;border-radius:3px;padding:10px 12px;box-shadow:0 2px 5px rgba(0,0,0,.1);transform:rotate(.8deg)">
+  <div style="font:700 12px 'Caveat',cursive;color:#92400e;margin-bottom:4px">Frame B · Sidebar Navigator</div>
+  <div style="font:400 11px 'Caveat',cursive;color:#78350f;line-height:1.5">✓ Formula + sliders always visible<br>✓ Clear ①–⑤ step-by-step left rail<br>✓ Map reacts to sidebar changes live<br>✗ Map is smaller — less context<br>✗ Dense sidebar may overwhelm novice</div>
+</div>
+<div style="position:absolute;left:1800px;top:596px;width:292px;background:#fef9c3;border-radius:3px;padding:10px 12px;box-shadow:0 2px 5px rgba(0,0,0,.1);transform:rotate(-1.2deg)">
+  <div style="font:700 12px 'Caveat',cursive;color:#92400e;margin-bottom:4px">Frame C · Data Grid Dashboard</div>
+  <div style="font:400 11px 'Caveat',cursive;color:#78350f;line-height:1.5">✓ Formula equation explicit + always shown<br>✓ Data-dense — everything above fold<br>✓ Familiar "dashboard" mental model<br>✗ Risk of information overload<br>✗ Less distinctive / feels more generic</div>
+</div>
+
+<!-- ====================================================== -->
+<!-- SECTION HEADER 02                                      -->
+<!-- ====================================================== -->
+<div style="position:absolute;left:80px;top:762px;font:700 11px 'Space Mono',monospace;color:#64748b;letter-spacing:.12em;text-transform:uppercase">02 — KEY SCREENS &amp; PANELS</div>
+
+<!-- ====================================================== -->
+<!-- FRAME D: SCORE FORMULA PANEL                           -->
+<!-- ====================================================== -->
+<div style="position:absolute;left:80px;top:784px;width:480px">
+  <div data-drags-parent="1" style="position:absolute;top:-22px;left:0;font:700 10px 'Space Mono',monospace;color:#334155;text-transform:uppercase;letter-spacing:.08em">D — Score Formula &amp; Weight Sliders</div>
+  <div style="background:#fff;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden">
+    <div style="height:44px;background:#0f172a;display:flex;align-items:center;padding:0 14px;justify-content:space-between">
+      <span style="font:700 11px 'Space Mono',monospace;color:#fff">Score Formula</span>
+      <div style="width:22px;height:22px;border:1px solid rgba(255,255,255,.3);border-radius:4px;display:flex;align-items:center;justify-content:center"><span style="font:400 12px 'Space Mono',monospace;color:rgba(255,255,255,.5)">×</span></div>
+    </div>
+    <div style="padding:16px;border-bottom:1px solid #e2e8f0">
+      <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">How Your Score Is Calculated</div>
+      <div style="background:#f8fafc;border-radius:8px;padding:12px;display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <div style="text-align:center">
+          <div style="width:50px;height:50px;border-radius:50%;border:3px solid #0ea5e9;display:flex;align-items:center;justify-content:center;margin:0 auto 3px"><span style="font:700 15px 'Space Mono',monospace;color:#0ea5e9">72</span></div>
+          <div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">Your Score</div>
+        </div>
+        <span style="font:700 14px 'Space Mono',monospace;color:#94a3b8">=</span>
+        <div style="text-align:center">
+          <div style="width:42px;height:42px;border-radius:8px;background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto 3px"><span style="font:700 13px 'Space Mono',monospace;color:#16a34a">36</span></div>
+          <div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">Bus ×50%</div>
+        </div>
+        <span style="font:700 14px 'Space Mono',monospace;color:#22c55e">+</span>
+        <div style="text-align:center">
+          <div style="width:42px;height:42px;border-radius:8px;background:#dbeafe;display:flex;align-items:center;justify-content:center;margin:0 auto 3px"><span style="font:700 13px 'Space Mono',monospace;color:#1d4ed8">22</span></div>
+          <div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">Taxi ×30%</div>
+        </div>
+        <span style="font:700 14px 'Space Mono',monospace;color:#ef4444">−</span>
+        <div style="text-align:center">
+          <div style="width:42px;height:42px;border-radius:8px;background:#fee2e2;display:flex;align-items:center;justify-content:center;margin:0 auto 3px"><span style="font:700 13px 'Space Mono',monospace;color:#ef4444">14</span></div>
+          <div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">Friction ×20%</div>
+        </div>
+        <div style="flex:1;text-align:right"><div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;line-height:1.4">Score updates<br>live as you<br>drag sliders</div></div>
+      </div>
+      <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:7px">Commuter Profile Preset</div>
+      <div style="display:flex;gap:6px">
+        <div style="flex:1;border:2px solid #0ea5e9;border-radius:6px;padding:8px;text-align:center;background:#f0f9ff"><div style="font:700 9px 'Space Mono',monospace;color:#0ea5e9;margin-bottom:2px">Commuter</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b">Bus 60% · Taxi 30%</div></div>
+        <div style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:8px;text-align:center"><div style="font:700 9px 'Space Mono',monospace;color:#475569;margin-bottom:2px">Budget Buyer</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b">Price 40% · Bus 35%</div></div>
+        <div style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:8px;text-align:center"><div style="font:700 9px 'Space Mono',monospace;color:#475569;margin-bottom:2px">Custom</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b">Set your own</div></div>
+      </div>
+    </div>
+    <div style="padding:16px">
+      <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">Adjust Weights · Must Sum to 100%</div>
+      <div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font:600 9px 'Space Mono',monospace;color:#0f172a">Bus Frequency</span><span style="font:700 9px 'Space Mono',monospace;color:#22c55e">50%</span></div><div style="height:6px;background:#e2e8f0;border-radius:3px;position:relative"><div style="height:6px;background:#22c55e;border-radius:3px;width:50%"></div><div style="position:absolute;top:-5px;left:50%;width:16px;height:16px;background:#fff;border-radius:50%;border:2px solid #22c55e;transform:translateX(-50%);box-shadow:0 1px 3px rgba(0,0,0,.15)"></div></div></div>
+      <div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font:600 9px 'Space Mono',monospace;color:#0f172a">Taxi Stability</span><span style="font:700 9px 'Space Mono',monospace;color:#38bdf8">30%</span></div><div style="height:6px;background:#e2e8f0;border-radius:3px;position:relative"><div style="height:6px;background:#38bdf8;border-radius:3px;width:30%"></div><div style="position:absolute;top:-5px;left:30%;width:16px;height:16px;background:#fff;border-radius:50%;border:2px solid #38bdf8;transform:translateX(-50%);box-shadow:0 1px 3px rgba(0,0,0,.15)"></div></div></div>
+      <div style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font:600 9px 'Space Mono',monospace;color:#0f172a">Taxi Friction (penalty)</span><span style="font:700 9px 'Space Mono',monospace;color:#ef4444">20%</span></div><div style="height:6px;background:#e2e8f0;border-radius:3px;position:relative"><div style="height:6px;background:#ef4444;border-radius:3px;width:20%"></div><div style="position:absolute;top:-5px;left:20%;width:16px;height:16px;background:#fff;border-radius:50%;border:2px solid #ef4444;transform:translateX(-50%);box-shadow:0 1px 3px rgba(0,0,0,.15)"></div></div></div>
+      <div style="height:36px;background:#0f172a;border-radius:6px;display:flex;align-items:center;justify-content:center"><span style="font:700 10px 'Space Mono',monospace;color:#fff">Apply Weights → Recalculate Score</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== -->
+<!-- FRAME E: BLOCK SEARCH RESULT                           -->
+<!-- ====================================================== -->
+<div style="position:absolute;left:640px;top:784px;width:380px">
+  <div data-drags-parent="1" style="position:absolute;top:-22px;left:0;font:700 10px 'Space Mono',monospace;color:#334155;text-transform:uppercase;letter-spacing:.08em">E — Block-Level Address Search Result</div>
+  <div style="background:#fff;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden">
+    <div style="height:48px;background:#0f172a;display:flex;align-items:center;padding:0 14px;gap:8px">
+      <span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.5)">←</span>
+      <div style="flex:1;height:30px;border:1.5px solid rgba(255,255,255,.3);border-radius:4px;background:rgba(255,255,255,.08);display:flex;align-items:center;padding:0 8px"><span style="font:400 9px 'Space Mono',monospace;color:#fff">413A Punggol Central</span></div>
+    </div>
+    <div style="padding:12px 14px;border-bottom:1px solid #e2e8f0;background:#f8fafc">
+      <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Address Result</div>
+      <div style="font:700 13px 'Space Mono',monospace;color:#0f172a;margin-bottom:1px">Blk 413A Punggol Central</div>
+      <div style="font:400 9px 'Space Mono',monospace;color:#64748b">#12-24 · Singapore 821413</div>
+    </div>
+    <div style="padding:12px 14px;border-bottom:1px solid #e2e8f0">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:58px;height:58px;border-radius:50%;border:4px solid #22c55e;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font:700 17px 'Space Mono',monospace;color:#22c55e">79</span></div>
+        <div>
+          <div style="font:700 13px 'Space Mono',monospace;color:#0f172a;margin-bottom:2px">GOOD Connectivity</div>
+          <div style="font:400 8px 'Space Mono',monospace;color:#64748b;margin-bottom:5px">Based on live data at your selected time</div>
+          <div style="display:flex;gap:4px">
+            <span style="font:600 7px 'Space Mono',monospace;background:#dcfce7;color:#16a34a;padding:2px 5px;border-radius:3px">7am Good</span>
+            <span style="font:600 7px 'Space Mono',monospace;background:#fef9c3;color:#854d0e;padding:2px 5px;border-radius:3px">8am Mod</span>
+            <span style="font:600 7px 'Space Mono',monospace;background:#fef9c3;color:#854d0e;padding:2px 5px;border-radius:3px">6pm Mod</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:0 14px">
+      <div style="display:flex;align-items:center;padding:9px 0;border-bottom:1px solid #f1f5f9;gap:10px"><div style="width:28px;height:28px;background:#e0f2fe;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:13px">🚇</span></div><div style="flex:1"><div style="font:600 9px 'Space Mono',monospace;color:#0f172a">Punggol MRT</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b">0.9 km · 11 min walk</div></div><div style="background:#dbeafe;border-radius:3px;padding:2px 6px;flex-shrink:0"><span style="font:700 8px 'Space Mono',monospace;color:#1d4ed8">90/100</span></div></div>
+      <div style="display:flex;align-items:center;padding:9px 0;border-bottom:1px solid #f1f5f9;gap:10px"><div style="width:28px;height:28px;background:#dcfce7;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:13px">🚌</span></div><div style="flex:1"><div style="font:600 9px 'Space Mono',monospace;color:#0f172a">Nearest Bus Stop</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b">2 min walk · 8 routes</div></div><div style="background:#dcfce7;border-radius:3px;padding:2px 6px;flex-shrink:0"><span style="font:700 8px 'Space Mono',monospace;color:#16a34a">73/100</span></div></div>
+      <div style="display:flex;align-items:center;padding:9px 0;border-bottom:1px solid #f1f5f9;gap:10px"><div style="width:28px;height:28px;background:#fef9c3;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:13px">🚕</span></div><div style="flex:1"><div style="font:600 9px 'Space Mono',monospace;color:#0f172a">Taxis Nearby Now</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b">5 within 500m</div></div><div style="background:#fef9c3;border-radius:3px;padding:2px 6px;flex-shrink:0"><span style="font:700 8px 'Space Mono',monospace;color:#854d0e">Moderate</span></div></div>
+      <div style="display:flex;align-items:center;padding:9px 0;border-bottom:1px solid #f1f5f9;gap:10px"><div style="width:28px;height:28px;background:#f1f5f9;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:13px">🏢</span></div><div style="flex:1"><div style="font:600 9px 'Space Mono',monospace;color:#0f172a">Commute to CBD</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b">42 min by public transport</div></div><div style="background:#f1f5f9;border-radius:3px;padding:2px 6px;flex-shrink:0"><span style="font:700 8px 'Space Mono',monospace;color:#475569">Long</span></div></div>
+      <div style="display:flex;align-items:center;padding:9px 0;gap:10px"><div style="width:28px;height:28px;background:#fee2e2;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:13px">🏠</span></div><div style="flex:1"><div style="font:600 9px 'Space Mono',monospace;color:#0f172a">Nearby HDB Price</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b">~$585k avg · 5 closest blocks</div></div><div style="background:#fee2e2;border-radius:3px;padding:2px 6px;flex-shrink:0"><span style="font:700 8px 'Space Mono',monospace;color:#b91c1c">↑ Rising</span></div></div>
+    </div>
+    <div style="padding:10px 14px"><div style="height:34px;background:#0ea5e9;border-radius:6px;display:flex;align-items:center;justify-content:center"><span style="font:700 10px 'Space Mono',monospace;color:#fff">Compare with Another District →</span></div></div>
+  </div>
+</div>
+
+<!-- ====================================================== -->
+<!-- FRAME F: 24H FORECAST                                  -->
+<!-- ====================================================== -->
+<div style="position:absolute;left:1100px;top:784px;width:520px">
+  <div data-drags-parent="1" style="position:absolute;top:-22px;left:0;font:700 10px 'Space Mono',monospace;color:#334155;text-transform:uppercase;letter-spacing:.08em">F — 24-Hour Taxi Forecast Chart</div>
+  <div style="background:#fff;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden">
+    <div style="height:44px;background:#0f172a;display:flex;align-items:center;padding:0 14px;gap:10px">
+      <span style="font:700 11px 'Space Mono',monospace;color:#fff">24h Taxi Forecast</span>
+      <div style="flex:1"></div>
+      <div style="height:28px;padding:0 8px;border:1.5px dashed rgba(255,255,255,.35);border-radius:4px;display:flex;align-items:center"><span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.6)">Punggol ▼</span></div>
+      <div style="display:flex;gap:3px">
+        <div style="height:26px;padding:0 7px;border:1.5px dashed rgba(255,255,255,.35);border-radius:4px;display:flex;align-items:center"><span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.5)">Mon</span></div>
+        <div style="height:26px;padding:0 7px;border:1.5px solid #38bdf8;background:rgba(56,189,248,.15);border-radius:4px;display:flex;align-items:center"><span style="font:700 9px 'Space Mono',monospace;color:#38bdf8">Tue</span></div>
+        <div style="height:26px;padding:0 7px;border:1.5px dashed rgba(255,255,255,.35);border-radius:4px;display:flex;align-items:center"><span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.5)">Wed</span></div>
+      </div>
+    </div>
+    <div style="padding:16px 16px 0">
+      <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:10px">Taxi Availability · Tuesday (0–24h)</div>
+      <div style="display:flex;align-items:flex-end;gap:3px;height:88px;margin-bottom:4px">
+        <div style="flex:1;background:#e2e8f0;border-radius:2px 2px 0 0;height:12%"></div>
+        <div style="flex:1;background:#e2e8f0;border-radius:2px 2px 0 0;height:9%"></div>
+        <div style="flex:1;background:#e2e8f0;border-radius:2px 2px 0 0;height:12%"></div>
+        <div style="flex:1;background:#f59e0b;border-radius:2px 2px 0 0;height:70%;position:relative"><div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font:700 7px 'Space Mono',monospace;color:#0f172a;white-space:nowrap">7am</div></div>
+        <div style="flex:1;background:#ef4444;border-radius:2px 2px 0 0;height:100%;position:relative"><div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font:700 7px 'Space Mono',monospace;color:#0f172a;white-space:nowrap">8am</div></div>
+        <div style="flex:1;background:#38bdf8;border-radius:2px 2px 0 0;height:57%"></div>
+        <div style="flex:1;background:#38bdf8;border-radius:2px 2px 0 0;height:45%"></div>
+        <div style="flex:1;background:#38bdf8;border-radius:2px 2px 0 0;height:45%"></div>
+        <div style="flex:1;background:#38bdf8;border-radius:2px 2px 0 0;height:50%"></div>
+        <div style="flex:1;background:#38bdf8;border-radius:2px 2px 0 0;height:55%"></div>
+        <div style="flex:1;background:#f59e0b;border-radius:2px 2px 0 0;height:70%;position:relative"><div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font:700 7px 'Space Mono',monospace;color:#0f172a;white-space:nowrap">6pm</div></div>
+        <div style="flex:1;background:#ef4444;border-radius:2px 2px 0 0;height:87%;position:relative"><div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font:700 7px 'Space Mono',monospace;color:#0f172a;white-space:nowrap">7pm</div></div>
+        <div style="flex:1;background:#38bdf8;border-radius:2px 2px 0 0;height:58%"></div>
+        <div style="flex:1;background:#38bdf8;border-radius:2px 2px 0 0;height:48%"></div>
+        <div style="flex:1;background:#e2e8f0;border-radius:2px 2px 0 0;height:30%"></div>
+        <div style="flex:1;background:#e2e8f0;border-radius:2px 2px 0 0;height:20%"></div>
+        <div style="flex:1;background:#e2e8f0;border-radius:2px 2px 0 0;height:14%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding-bottom:12px">
+        <span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">12am</span>
+        <span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">6am</span>
+        <span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">12pm</span>
+        <span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">6pm</span>
+        <span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">12am</span>
+      </div>
+    </div>
+    <div style="padding:0 16px 12px;border-bottom:1px solid #e2e8f0">
+      <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:8px">Peak Hour Ratings · Tuesday (text + color for a11y)</div>
+      <div style="display:flex;gap:7px">
+        <div style="flex:1;border:1px solid #e2e8f0;border-radius:5px;padding:6px;text-align:center"><div style="font:700 9px 'Space Mono',monospace;color:#0f172a">7am</div><div style="font:700 13px monospace;margin:2px 0">🟢</div><div style="font:400 7px 'Space Mono',monospace;color:#16a34a">Good</div></div>
+        <div style="flex:1;border:1px solid #fee2e2;border-radius:5px;padding:6px;text-align:center;background:#fff7f7"><div style="font:700 9px 'Space Mono',monospace;color:#0f172a">8am</div><div style="font:700 13px monospace;margin:2px 0">🔴</div><div style="font:400 7px 'Space Mono',monospace;color:#ef4444">Poor</div></div>
+        <div style="flex:1;border:1px solid #e2e8f0;border-radius:5px;padding:6px;text-align:center"><div style="font:700 9px 'Space Mono',monospace;color:#0f172a">5pm</div><div style="font:700 13px monospace;margin:2px 0">🟢</div><div style="font:400 7px 'Space Mono',monospace;color:#16a34a">Good</div></div>
+        <div style="flex:1;border:1px solid #fef9c3;border-radius:5px;padding:6px;text-align:center;background:#fffdf0"><div style="font:700 9px 'Space Mono',monospace;color:#0f172a">6pm</div><div style="font:700 13px monospace;margin:2px 0">🟡</div><div style="font:400 7px 'Space Mono',monospace;color:#854d0e">Mod</div></div>
+        <div style="flex:1;border:1px solid #fee2e2;border-radius:5px;padding:6px;text-align:center;background:#fff7f7"><div style="font:700 9px 'Space Mono',monospace;color:#0f172a">7pm</div><div style="font:700 13px monospace;margin:2px 0">🔴</div><div style="font:400 7px 'Space Mono',monospace;color:#ef4444">Poor</div></div>
+      </div>
+    </div>
+    <div style="padding:12px 16px">
+      <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:8px">ML Taxi Forecast (from now)</div>
+      <div style="display:flex;gap:8px">
+        <div style="flex:1;background:#f8fafc;border-radius:5px;padding:8px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;margin-bottom:3px">+30 min</div><div style="font:700 14px 'Space Mono',monospace;color:#22c55e">18</div><div style="font:400 7px 'Space Mono',monospace;color:#22c55e">taxis</div></div>
+        <div style="flex:1;background:#f8fafc;border-radius:5px;padding:8px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;margin-bottom:3px">+60 min</div><div style="font:700 14px 'Space Mono',monospace;color:#f59e0b">11</div><div style="font:400 7px 'Space Mono',monospace;color:#f59e0b">taxis</div></div>
+        <div style="flex:1;background:#f8fafc;border-radius:5px;padding:8px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;margin-bottom:3px">+120 min</div><div style="font:700 14px 'Space Mono',monospace;color:#ef4444">6</div><div style="font:400 7px 'Space Mono',monospace;color:#ef4444">taxis</div></div>
+        <div style="flex:2;background:#dbeafe;border-radius:5px;padding:8px;display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:#38bdf8;flex-shrink:0"></div><div><div style="font:600 7px 'Space Mono',monospace;color:#1d4ed8;margin-bottom:1px">⚠ BUS_GAP alert</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b">Bus 65 delayed ~7:45am</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== -->
+<!-- FRAME G: PRICE TREND                                   -->
+<!-- ====================================================== -->
+<div style="position:absolute;left:1700px;top:784px;width:460px">
+  <div data-drags-parent="1" style="position:absolute;top:-22px;left:0;font:700 10px 'Space Mono',monospace;color:#334155;text-transform:uppercase;letter-spacing:.08em">G — Price Trend &amp; Affordability</div>
+  <div style="background:#fff;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden">
+    <div style="height:44px;background:#0f172a;display:flex;align-items:center;padding:0 14px;gap:10px">
+      <span style="font:700 11px 'Space Mono',monospace;color:#fff">Price Trends</span>
+      <div style="flex:1"></div>
+      <div style="height:28px;padding:0 8px;border:1.5px dashed rgba(255,255,255,.35);border-radius:4px;display:flex;align-items:center"><span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.6)">Punggol ▼</span></div>
+    </div>
+    <div style="padding:14px;display:flex;gap:10px;border-bottom:1px solid #e2e8f0">
+      <div style="flex:1;background:#f8fafc;border-radius:6px;padding:10px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Avg Price</div><div style="font:700 19px 'Space Mono',monospace;color:#0f172a">$580k</div><div style="font:400 7px 'Space Mono',monospace;color:#ef4444">↑ Rising</div></div>
+      <div style="flex:1;background:#f8fafc;border-radius:6px;padding:10px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Median</div><div style="font:700 19px 'Space Mono',monospace;color:#0f172a">$565k</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b">4-room</div></div>
+      <div style="flex:1;background:#dcfce7;border-radius:6px;padding:10px;text-align:center;border:1px solid #bbf7d0"><div style="font:600 7px 'Space Mono',monospace;color:#16a34a;text-transform:uppercase;margin-bottom:4px">Value Score</div><div style="font:700 19px 'Space Mono',monospace;color:#16a34a">81/100</div><div style="font:400 7px 'Space Mono',monospace;color:#16a34a">Good</div></div>
+    </div>
+    <div style="padding:14px;border-bottom:1px solid #e2e8f0">
+      <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:8px">Resale Price Trend · Punggol (2017–2026)</div>
+      <svg viewBox="0 0 420 90" style="width:100%;height:80px;display:block">
+        <line x1="20" y1="10" x2="400" y2="10" stroke="#e2e8f0" stroke-width="1"></line>
+        <line x1="20" y1="34" x2="400" y2="34" stroke="#e2e8f0" stroke-width="1"></line>
+        <line x1="20" y1="58" x2="400" y2="58" stroke="#e2e8f0" stroke-width="1"></line>
+        <line x1="20" y1="82" x2="400" y2="82" stroke="#e2e8f0" stroke-width="1"></line>
+        <text x="8" y="13" font-size="6" fill="#94a3b8" font-family="Space Mono, monospace">600k</text>
+        <text x="8" y="37" font-size="6" fill="#94a3b8" font-family="Space Mono, monospace">550k</text>
+        <text x="8" y="61" font-size="6" fill="#94a3b8" font-family="Space Mono, monospace">500k</text>
+        <text x="8" y="85" font-size="6" fill="#94a3b8" font-family="Space Mono, monospace">450k</text>
+        <path d="M20,74 62,68 104,62 146,60 188,46 230,26 272,18 314,14 356,10 356,82 20,82 Z" fill="rgba(14,165,233,.08)"></path>
+        <polyline points="20,74 62,68 104,62 146,60 188,46 230,26 272,18 314,14 356,10" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+        <line x1="356" y1="10" x2="398" y2="6" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,3" stroke-linecap="round"></line>
+        <circle cx="398" cy="6" r="4" fill="#f59e0b" stroke="#fff" stroke-width="1.5"></circle>
+        <text x="17" y="90" font-size="5.5" fill="#94a3b8" font-family="Space Mono, monospace">'17</text>
+        <text x="101" y="90" font-size="5.5" fill="#94a3b8" font-family="Space Mono, monospace">'19</text>
+        <text x="185" y="90" font-size="5.5" fill="#94a3b8" font-family="Space Mono, monospace">'21</text>
+        <text x="269" y="90" font-size="5.5" fill="#94a3b8" font-family="Space Mono, monospace">'23</text>
+        <text x="353" y="90" font-size="5.5" fill="#94a3b8" font-family="Space Mono, monospace">'25</text>
+        <text x="388" y="90" font-size="5.5" fill="#f59e0b" font-family="Space Mono, monospace">'26E</text>
+      </svg>
+      <div style="display:flex;gap:12px;margin-top:4px">
+        <div style="display:flex;align-items:center;gap:4px"><div style="width:16px;height:2px;background:#0ea5e9;border-radius:1px"></div><span style="font:400 7px 'Space Mono',monospace;color:#64748b">Actual price</span></div>
+        <div style="display:flex;align-items:center;gap:4px"><div style="width:16px;height:2px;background:#f59e0b;border-radius:1px;border-top:1px dashed #f59e0b"></div><span style="font:400 7px 'Space Mono',monospace;color:#64748b">ML forecast</span></div>
+      </div>
+    </div>
+    <div style="padding:12px 14px;display:flex;align-items:center;gap:10px">
+      <div style="background:#fee2e2;border-radius:6px;padding:8px 12px;flex:1"><div style="font:600 7px 'Space Mono',monospace;color:#b91c1c;text-transform:uppercase;margin-bottom:2px">6-month Forecast</div><div style="font:700 13px 'Space Mono',monospace;color:#ef4444">↑ Rising · +2.4%</div></div>
+      <div style="background:#f8fafc;border-radius:6px;padding:8px 12px;flex:1"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Affordability</div><div style="font:700 13px 'Space Mono',monospace;color:#0f172a">~$580k avg</div></div>
+      <div style="height:34px;padding:0 12px;background:#0f172a;border-radius:6px;display:flex;align-items:center;flex-shrink:0"><span style="font:700 9px 'Space Mono',monospace;color:#fff">View District →</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== -->
+<!-- SECTION HEADER 03                                      -->
+<!-- ====================================================== -->
+<div style="position:absolute;left:80px;top:1330px;font:700 11px 'Space Mono',monospace;color:#64748b;letter-spacing:.12em;text-transform:uppercase">03 — ONBOARDING &amp; DISTRICT DEEP-DIVE</div>
+
+<!-- ====================================================== -->
+<!-- FRAME H: ONBOARDING                                    -->
+<!-- ====================================================== -->
+<div style="position:absolute;left:80px;top:1356px;width:440px">
+  <div data-drags-parent="1" style="position:absolute;top:-22px;left:0;font:700 10px 'Space Mono',monospace;color:#334155;text-transform:uppercase;letter-spacing:.08em">H — Onboarding / Empty State</div>
+  <div style="background:#fff;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden">
+    <div style="background:#0f172a;padding:24px;text-align:center">
+      <div style="width:44px;height:44px;background:#0ea5e9;border-radius:10px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center"><span style="font:700 20px monospace;color:#fff">🗺</span></div>
+      <div style="font:700 16px 'Space Mono',monospace;color:#fff;margin-bottom:6px">SG Liveability Index</div>
+      <div style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.55);line-height:1.6;max-width:280px;margin:0 auto">Is that cheaper non-MRT flat actually worth it? Find out with live transport data + real resale prices.</div>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:8px">
+      <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">How It Works · 3 Steps</div>
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;border:1px solid #e2e8f0;border-radius:6px">
+        <div style="width:24px;height:24px;border-radius:50%;background:#0ea5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font:700 10px 'Space Mono',monospace;color:#fff">1</span></div>
+        <div><div style="font:700 10px 'Space Mono',monospace;color:#0f172a;margin-bottom:2px">Find your district</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b">Search by postal code or tap the map. All 55 SG planning areas covered.</div></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;border:1px solid #e2e8f0;border-radius:6px">
+        <div style="width:24px;height:24px;border-radius:50%;background:#0ea5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font:700 10px 'Space Mono',monospace;color:#fff">2</span></div>
+        <div><div style="font:700 10px 'Space Mono',monospace;color:#0f172a;margin-bottom:2px">Check your peak hours</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b">Select your commute time (Tue 7:30am) and see live taxi and bus availability.</div></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;border:1px solid #e2e8f0;border-radius:6px">
+        <div style="width:24px;height:24px;border-radius:50%;background:#0ea5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font:700 10px 'Space Mono',monospace;color:#fff">3</span></div>
+        <div><div style="font:700 10px 'Space Mono',monospace;color:#0f172a;margin-bottom:2px">Tune to your lifestyle</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b">Adjust score weights. Daily commuter or budget buyer? The score adapts to you.</div></div>
+      </div>
+    </div>
+    <div style="padding:0 16px 16px">
+      <div style="height:38px;background:#0ea5e9;border-radius:6px;display:flex;align-items:center;justify-content:center;margin-bottom:8px"><span style="font:700 11px 'Space Mono',monospace;color:#fff">Start Exploring Singapore →</span></div>
+      <div style="text-align:center"><span style="font:400 8px 'Space Mono',monospace;color:#94a3b8">No account needed · Live data from LTA DataMall</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== -->
+<!-- FRAME I: DISTRICT DEEP-DIVE                            -->
+<!-- ====================================================== -->
+<div style="position:absolute;left:600px;top:1356px;width:520px">
+  <div data-drags-parent="1" style="position:absolute;top:-22px;left:0;font:700 10px 'Space Mono',monospace;color:#334155;text-transform:uppercase;letter-spacing:.08em">I — District Deep-Dive View</div>
+  <div style="background:#fff;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden">
+    <div style="height:48px;background:#0f172a;display:flex;align-items:center;padding:0 14px;gap:10px">
+      <span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.5)">← Overview</span>
+      <div style="width:1px;height:20px;background:rgba(255,255,255,.2)"></div>
+      <span style="font:700 12px 'Space Mono',monospace;color:#fff;flex:1">Punggol · Deep Dive</span>
+      <div style="height:28px;padding:0 8px;border:1.5px dashed rgba(255,255,255,.35);border-radius:4px;display:flex;align-items:center"><span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.6)">Tue 7:30am ▼</span></div>
+    </div>
+    <div style="background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:12px 14px;display:flex;align-items:center;gap:12px">
+      <div style="width:52px;height:52px;border-radius:50%;border:4px solid #0ea5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font:700 16px 'Space Mono',monospace;color:#0ea5e9">72</span></div>
+      <div style="flex:1">
+        <div style="font:700 13px 'Space Mono',monospace;color:#0f172a;margin-bottom:3px">MODERATE Connectivity</div>
+        <div style="height:6px;background:#e2e8f0;border-radius:3px"><div style="height:6px;background:linear-gradient(to right,#ef4444,#f59e0b,#22c55e);border-radius:3px;width:72%"></div></div>
+        <div style="display:flex;justify-content:space-between;margin-top:2px"><span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">0 Poor</span><span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">50</span><span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">100 Excellent</span></div>
+      </div>
+      <div style="text-align:right;flex-shrink:0"><div style="font:400 7px 'Space Mono',monospace;color:#94a3b8;margin-bottom:1px">Value Score</div><div style="font:700 16px 'Space Mono',monospace;color:#22c55e">81/100</div></div>
+    </div>
+    <div style="display:flex;border-bottom:1px solid #e2e8f0">
+      <div style="padding:8px 14px;border-bottom:2px solid #0ea5e9"><span style="font:700 8px 'Space Mono',monospace;color:#0ea5e9">TRANSPORT</span></div>
+      <div style="padding:8px 14px"><span style="font:400 8px 'Space Mono',monospace;color:#94a3b8">24H FORECAST</span></div>
+      <div style="padding:8px 14px"><span style="font:400 8px 'Space Mono',monospace;color:#94a3b8">PRICE HISTORY</span></div>
+      <div style="padding:8px 14px"><span style="font:400 8px 'Space Mono',monospace;color:#94a3b8">COMPARE</span></div>
+    </div>
+    <div style="padding:12px 14px;display:flex;gap:10px;border-bottom:1px solid #e2e8f0">
+      <div style="flex:1;background:#f8fafc;border-radius:6px;padding:10px"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">🚌 Bus Network</div><div style="font:700 17px 'Space Mono',monospace;color:#0f172a">12</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b;margin-bottom:4px">bus stops</div><div style="font:700 12px 'Space Mono',monospace;color:#0f172a">8 min</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b">avg headway · 73/100</div></div>
+      <div style="flex:1;background:#f8fafc;border-radius:6px;padding:10px"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">🚕 Taxi Avail.</div><div style="font:700 17px 'Space Mono',monospace;color:#0f172a">14</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b;margin-bottom:4px">nearby now</div><div style="font:700 12px 'Space Mono',monospace;color:#f59e0b">0.68</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b">friction index</div></div>
+      <div style="flex:1;background:#f8fafc;border-radius:6px;padding:10px"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">📍 MRT Access</div><div style="font:700 17px 'Space Mono',monospace;color:#0f172a">1.2km</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b;margin-bottom:4px">Punggol MRT</div><div style="font:700 12px 'Space Mono',monospace;color:#0f172a">14 min</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b">walk · 70/100</div></div>
+    </div>
+    <!-- Day/hour heatmap -->
+    <div style="padding:12px 14px">
+      <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:8px">Best Times to Commute · Heatmap (color + text label)</div>
+      <div style="display:grid;grid-template-columns:36px repeat(5,1fr);gap:2px">
+        <div></div>
+        <div style="font:600 7px 'Space Mono',monospace;color:#64748b;text-align:center;padding:2px">7am</div>
+        <div style="font:600 7px 'Space Mono',monospace;color:#64748b;text-align:center;padding:2px">8am</div>
+        <div style="font:600 7px 'Space Mono',monospace;color:#64748b;text-align:center;padding:2px">5pm</div>
+        <div style="font:600 7px 'Space Mono',monospace;color:#64748b;text-align:center;padding:2px">6pm</div>
+        <div style="font:600 7px 'Space Mono',monospace;color:#64748b;text-align:center;padding:2px">7pm</div>
+        <div style="font:400 7px 'Space Mono',monospace;color:#94a3b8;display:flex;align-items:center">Mon</div>
+        <div style="height:22px;background:#22c55e;border-radius:2px;display:flex;align-items:center;justify-content:center"><span style="font:700 6px 'Space Mono',monospace;color:#fff">G</span></div>
+        <div style="height:22px;background:#f59e0b;border-radius:2px;display:flex;align-items:center;justify-content:center"><span style="font:700 6px 'Space Mono',monospace;color:#fff">M</span></div>
+        <div style="height:22px;background:#22c55e;border-radius:2px;display:flex;align-items:center;justify-content:center"><span style="font:700 6px 'Space Mono',monospace;color:#fff">G</span></div>
+        <div style="height:22px;background:#f59e0b;border-radius:2px;display:flex;align-items:center;justify-content:center"><span style="font:700 6px 'Space Mono',monospace;color:#fff">M</span></div>
+        <div style="height:22px;background:#ef4444;border-radius:2px;display:flex;align-items:center;justify-content:center"><span style="font:700 6px 'Space Mono',monospace;color:#fff">P</span></div>
+        <div style="font:400 7px 'Space Mono',monospace;color:#94a3b8;display:flex;align-items:center">Tue</div>
+        <div style="height:22px;background:#22c55e;border-radius:2px;display:flex;align-items:center;justify-content:center"><span style="font:700 6px 'Space Mono',monospace;color:#fff">G</span></div>
+        <div style="height:22px;background:#ef4444;border-radius:2px;border:2px solid #0f172a;display:flex;align-items:center;justify-content:center"><span style="font:700 6px 'Space Mono',monospace;color:#fff">P</span></div>
+        <div style="height:22px;background:#22c55e;border-radius:2px;display:flex;align-items:center;justify-content:center"><span style="font:700 6px 'Space Mono',monospace;color:#fff">G</span></div>
+        <div style="height:22px;background:#f59e0b;border-radius:2px;display:flex;align-items:center;justify-content:center"><span style="font:700 6px 'Space Mono',monospace;color:#fff">M</span></div>
+        <div style="height:22px;background:#ef4444;border-radius:2px;display:flex;align-items:center;justify-content:center"><span style="font:700 6px 'Space Mono',monospace;color:#fff">P</span></div>
+        <div style="font:400 7px 'Space Mono',monospace;color:#94a3b8;display:flex;align-items:center">Fri</div>
+        <div style="height:22px;background:#f59e0b;border-radius:2px;display:flex;align-items:center;justify-content:center"><span style="font:700 6px 'Space Mono',monospace;color:#fff">M</span></div>
+        <div style="height:22px;background:#ef4444;border-radius:2px;display:flex;align-items:center;justify-content:center"><span style="font:700 6px 'Space Mono',monospace;color:#fff">P</span></div>
+        <div style="height:22px;background:#22c55e;border-radius:2px;display:flex;align-items:center;justify-content:center"><span style="font:700 6px 'Space Mono',monospace;color:#fff">G</span></div>
+        <div style="height:22px;background:#22c55e;border-radius:2px;display:flex;align-items:center;justify-content:center"><span style="font:700 6px 'Space Mono',monospace;color:#fff">G</span></div>
+        <div style="height:22px;background:#22c55e;border-radius:2px;display:flex;align-items:center;justify-content:center"><span style="font:700 6px 'Space Mono',monospace;color:#fff">G</span></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <div style="display:flex;align-items:center;gap:3px"><div style="width:8px;height:8px;background:#22c55e;border-radius:1px"></div><span style="font:400 7px 'Space Mono',monospace;color:#64748b">G = Good</span></div>
+        <div style="display:flex;align-items:center;gap:3px"><div style="width:8px;height:8px;background:#f59e0b;border-radius:1px"></div><span style="font:400 7px 'Space Mono',monospace;color:#64748b">M = Moderate</span></div>
+        <div style="display:flex;align-items:center;gap:3px"><div style="width:8px;height:8px;background:#ef4444;border-radius:1px"></div><span style="font:400 7px 'Space Mono',monospace;color:#64748b">P = Poor</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== -->
+<!-- FRAME G: ONBOARDING SPLASH                             -->
+<!-- ====================================================== -->
+<div style="position:absolute;left:80px;top:1600px;width:520px">
+  <div data-drags-parent="1" style="position:absolute;top:-22px;left:0;font:700 10px 'Space Mono',monospace;color:#334155;text-transform:uppercase;letter-spacing:.08em">G — Onboarding Splash · First-time landing</div>
+  <div style="background:#0f172a;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.18);overflow:hidden;padding:48px 36px;display:flex;flex-direction:column;align-items:center">
+    <!-- Logo -->
+    <div style="width:64px;height:64px;background:linear-gradient(135deg,#0ea5e9,#38bdf8);border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:22px;box-shadow:0 0 40px rgba(14,165,233,.4)">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none"><path d="M5 25L15 5L25 25" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="15" cy="19" r="3" fill="white"/></svg>
+    </div>
+    <div style="font:700 26px 'Space Mono',monospace;color:#f8fafc;margin-bottom:8px;text-align:center">SG Liveability Index</div>
+    <div style="font:400 11px 'Space Mono',monospace;color:rgba(255,255,255,.4);text-align:center;line-height:1.7;max-width:360px;margin-bottom:36px">Is that cheaper non-MRT flat actually worth it?<br/>Find out with live transport data + real resale prices.</div>
+    <!-- 3 steps -->
+    <div style="display:flex;gap:14px;width:100%;margin-bottom:36px">
+      <div style="flex:1;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:16px;background:rgba(255,255,255,.04)">
+        <div style="width:28px;height:28px;background:#0ea5e9;border-radius:7px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;font:700 12px 'Space Mono',monospace;color:#fff">1</div>
+        <div style="font:700 9px 'Space Mono',monospace;color:#f8fafc;margin-bottom:4px">Find your district</div>
+        <div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.3);line-height:1.6">Tap map or search by postal code</div>
+      </div>
+      <div style="flex:1;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:16px;background:rgba(255,255,255,.04)">
+        <div style="width:28px;height:28px;background:#0ea5e9;border-radius:7px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;font:700 12px 'Space Mono',monospace;color:#fff">2</div>
+        <div style="font:700 9px 'Space Mono',monospace;color:#f8fafc;margin-bottom:4px">Check peak hours</div>
+        <div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.3);line-height:1.6">Live taxi + bus at your commute time</div>
+      </div>
+      <div style="flex:1;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:16px;background:rgba(255,255,255,.04)">
+        <div style="width:28px;height:28px;background:#0ea5e9;border-radius:7px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;font:700 12px 'Space Mono',monospace;color:#fff">3</div>
+        <div style="font:700 9px 'Space Mono',monospace;color:#f8fafc;margin-bottom:4px">Tune to you</div>
+        <div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.3);line-height:1.6">Adjust score weights to your lifestyle</div>
+      </div>
+    </div>
+    <!-- CTA -->
+    <div style="height:48px;width:100%;background:linear-gradient(135deg,#0ea5e9,#38bdf8);border-radius:10px;display:flex;align-items:center;justify-content:center">
+      <span style="font:700 12px 'Space Mono',monospace;color:#fff;letter-spacing:.04em">Start Exploring Singapore →</span>
+    </div>
+    <div style="margin-top:12px;font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.2)">No account · Live data from LTA DataMall · Updated every 30s</div>
+  </div>
+</div>
+
+<!-- ====================================================== -->
+<!-- FRAME H: BLOCK TRANSPORT PROFILE                       -->
+<!-- ====================================================== -->
+<div style="position:absolute;left:660px;top:1600px;width:560px">
+  <div data-drags-parent="1" style="position:absolute;top:-22px;left:0;font:700 10px 'Space Mono',monospace;color:#334155;text-transform:uppercase;letter-spacing:.08em">H — Block Transport Profile · Postal code lookup</div>
+  <div style="background:#fff;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden">
+    <!-- Header -->
+    <div style="height:44px;background:#0f172a;display:flex;align-items:center;padding:0 16px;gap:10px">
+      <div style="flex:1;height:28px;background:rgba(255,255,255,.08);border-radius:6px;display:flex;align-items:center;padding:0 10px;gap:6px">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="4.5" cy="4.5" r="3" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/><line x1="7" y1="7" x2="9" y2="9" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.3)">postal code</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div style="height:28px;padding:0 10px;background:#0ea5e9;border-radius:6px;display:flex;align-items:center"><span style="font:700 8px 'Space Mono',monospace;color:#fff">Fetch</span></div>
+        <div style="display:flex;gap:4px">
+          <div style="height:28px;padding:0 8px;background:rgba(255,255,255,.08);border-radius:6px;display:flex;align-items:center"><span style="font:700 7px 'Space Mono',monospace;color:rgba(255,255,255,.5)">250m</span></div>
+          <div style="height:28px;padding:0 8px;background:#0ea5e9;border-radius:6px;display:flex;align-items:center"><span style="font:700 7px 'Space Mono',monospace;color:#fff">500m</span></div>
+          <div style="height:28px;padding:0 8px;background:rgba(255,255,255,.08);border-radius:6px;display:flex;align-items:center"><span style="font:700 7px 'Space Mono',monospace;color:rgba(255,255,255,.5)">1km</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- Address result -->
+    <div style="padding:16px;border-bottom:1px solid #e2e8f0">
+      <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:6px">Address Result</div>
+      <div style="font:700 15px 'Space Mono',monospace;color:#1e293b;margin-bottom:2px">Blk 413A Punggol Central</div>
+      <div style="font:400 9px 'Space Mono',monospace;color:#64748b">#12-24 · Singapore 821413</div>
+    </div>
+    <!-- Big stats -->
+    <div style="display:flex;border-bottom:1px solid #e2e8f0">
+      <div style="flex:1;padding:18px;border-right:1px solid #e2e8f0;text-align:center">
+        <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:6px">🚕 Live Taxis</div>
+        <div style="font:700 40px 'Space Mono',monospace;color:#22c55e;line-height:1">8</div>
+        <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-top:3px">within 500m</div>
+      </div>
+      <div style="flex:1;padding:18px;border-right:1px solid #e2e8f0;text-align:center">
+        <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:6px">🚌 Bus Stops</div>
+        <div style="font:700 40px 'Space Mono',monospace;color:#38bdf8;line-height:1">5</div>
+        <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-top:3px">within 500m</div>
+      </div>
+      <div style="flex:1;padding:18px;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:6px">
+        <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase">District</div>
+        <div style="font:700 14px 'Space Mono',monospace;color:#1e293b">Punggol</div>
+        <div style="height:28px;background:#0f172a;border-radius:7px;display:flex;align-items:center;justify-content:center"><span style="font:700 8px 'Space Mono',monospace;color:#38bdf8">Full Deep Dive →</span></div>
+      </div>
+    </div>
+    <!-- Bus arrivals -->
+    <div style="padding:14px 16px">
+      <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:10px">Live Bus Arrivals · 500m radius</div>
+      <!-- Stop 1 -->
+      <div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:8px">
+        <div style="padding:8px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:6px">
+          <div style="width:6px;height:6px;border-radius:50%;background:#22c55e"></div>
+          <span style="font:700 9px 'Space Mono',monospace;color:#1e293b">Punggol Rd (Opp Blk 267A)</span>
+          <span style="font:400 8px 'Space Mono',monospace;color:#94a3b8">· Stop 65189</span>
+        </div>
+        <div style="padding:8px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f1f5f9">
+          <div style="width:38px;height:24px;background:#1e293b;border-radius:5px;display:flex;align-items:center;justify-content:center"><span style="font:700 10px 'Space Mono',monospace;color:#fff">84</span></div>
+          <div style="height:22px;padding:0 8px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);border-radius:4px;display:flex;align-items:center"><span style="font:700 9px 'Space Mono',monospace;color:#22c55e">4 min</span></div>
+          <div style="height:22px;padding:0 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;display:flex;align-items:center"><span style="font:400 9px 'Space Mono',monospace;color:#64748b">14 min</span></div>
+        </div>
+        <div style="padding:8px 12px;display:flex;align-items:center;gap:10px">
+          <div style="width:38px;height:24px;background:#1e293b;border-radius:5px;display:flex;align-items:center;justify-content:center"><span style="font:700 10px 'Space Mono',monospace;color:#fff">85</span></div>
+          <div style="height:22px;padding:0 8px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);border-radius:4px;display:flex;align-items:center"><span style="font:700 9px 'Space Mono',monospace;color:#22c55e">9 min</span></div>
+          <div style="height:22px;padding:0 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;display:flex;align-items:center"><span style="font:400 9px 'Space Mono',monospace;color:#64748b">22 min</span></div>
+        </div>
+      </div>
+      <!-- Radius legend -->
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;background:rgba(34,197,94,.2);border:1px solid #22c55e;border-radius:2px"></div><span style="font:400 7px 'Space Mono',monospace;color:#64748b">≤5 min</span></div>
+        <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;background:rgba(245,158,11,.2);border:1px solid #f59e0b;border-radius:2px"></div><span style="font:400 7px 'Space Mono',monospace;color:#64748b">≤10 min</span></div>
+        <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:2px"></div><span style="font:400 7px 'Space Mono',monospace;color:#64748b">&gt;10 min</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACCESSIBILITY NOTE -->
+<div style="position:absolute;left:1210px;top:1356px;width:300px;background:#dbeafe;border-radius:3px;padding:12px;box-shadow:0 2px 5px rgba(0,0,0,.1);transform:rotate(1.5deg)">
+  <div style="font:700 13px 'Caveat',cursive;color:#1d4ed8;margin-bottom:5px">♿ A11y Requirements</div>
+  <div style="font:400 11px 'Caveat',cursive;color:#1e40af;line-height:1.5">
+    ✓ Color is never the ONLY signal — always pair with text label (Good/Mod/Poor)<br>
+    ✓ Heatmap: G/M/P letter labels inside cells<br>
+    ✓ Score "72" shown as text, not just ring fill<br>
+    ✓ MRT line colors: add line code text (EWL, NSL)<br>
+    ✓ Min 4.5:1 contrast ratio for all text<br>
+    ✓ Chart bars: add Y-axis labels
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,1997 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  .leaflet-container{background:#c8dae6!important}
+  .sg-marker{background:rgba(255,255,255,.88);border-radius:7px;padding:4px 9px;cursor:pointer;text-align:center;white-space:nowrap;transition:all .12s ease;font-family:'Space Mono',monospace}
+  .sg-marker:hover{background:rgba(255,255,255,.98);transform:scale(1.06)}
+  .sg-marker.active{background:rgba(255,255,255,.98);box-shadow:0 4px 18px rgba(0,0,0,.25)}
+  .sg-marker .mn{font-size:7px;font-weight:600;color:#334155;letter-spacing:.03em;display:block;line-height:1.2}
+  .sg-marker .ms{font-size:18px;font-weight:700;line-height:1.1;display:block}
+  .leaflet-control-zoom{border:1px solid rgba(255,255,255,.3)!important;border-radius:7px!important;overflow:hidden}
+  .leaflet-control-zoom a{background:#0f172a!important;color:#38bdf8!important;border-color:#1e293b!important;font-family:'Space Mono',monospace!important;line-height:26px!important}
+  .leaflet-control-zoom a:hover{background:#1e293b!important}
+  .leaflet-control-attribution{display:none}
+</style>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Space Mono',monospace;background:#080e1c;color:#f8fafc}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes glow{0%,100%{box-shadow:0 0 16px rgba(14,165,233,.35)}50%{box-shadow:0 0 28px rgba(14,165,233,.6)}}
+  input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:#1e293b;border-radius:2px;outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#0ea5e9;border:2.5px solid #0f172a;cursor:pointer;box-shadow:0 0 0 3px rgba(14,165,233,.25)}
+  ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#334155;border-radius:2px}
+  input[type=text]{outline:none}
+  input::placeholder{color:rgba(255,255,255,.22)}
+</style>
+</helmet>
+
+<!-- ═══════════ ONBOARDING ═══════════ -->
+<sc-if value="{{ isOnboarding }}" hint-placeholder-val="{{ true }}">
+<div style="min-height:100vh;background:linear-gradient(150deg,#060c18 0%,#0f172a 55%,#091a30 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 24px;animation:fadeUp .5s ease">
+  <div style="width:76px;height:76px;background:linear-gradient(135deg,#0ea5e9,#38bdf8);border-radius:22px;display:flex;align-items:center;justify-content:center;margin-bottom:28px;box-shadow:0 0 56px rgba(14,165,233,.4)">
+    <svg width="38" height="38" viewBox="0 0 38 38" fill="none"><path d="M6 32L19 7L32 32" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="24" r="4" fill="white"/><line x1="10" y1="28" x2="28" y2="28" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" stroke-linecap="round"/></svg>
+  </div>
+  <div style="font:700 34px 'Space Mono',monospace;color:#fff;text-align:center;margin-bottom:10px;letter-spacing:-.02em">SG Liveability Index</div>
+  <div style="font:400 13px 'Space Mono',monospace;color:rgba(255,255,255,.38);text-align:center;max-width:480px;line-height:1.85;margin-bottom:52px">Is that cheaper non-MRT flat actually worth it?<br/>Real-time transport data · HDB resale prices · 55 planning areas.</div>
+  <div style="display:flex;gap:20px;max-width:740px;width:100%;margin-bottom:52px">
+    <div style="flex:1;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:26px">
+      <div style="width:38px;height:38px;background:#0ea5e9;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;font:700 15px 'Space Mono',monospace;color:#fff">1</div>
+      <div style="font:700 11px 'Space Mono',monospace;color:#f8fafc;margin-bottom:7px">Find your district</div>
+      <div style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.32);line-height:1.75">Tap any zone on the live map or search by postal code.</div>
+    </div>
+    <div style="flex:1;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:26px">
+      <div style="width:38px;height:38px;background:#0ea5e9;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;font:700 15px 'Space Mono',monospace;color:#fff">2</div>
+      <div style="font:700 11px 'Space Mono',monospace;color:#f8fafc;margin-bottom:7px">Check your peak hours</div>
+      <div style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.32);line-height:1.75">Select commute time. See live taxi + bus availability at that exact moment.</div>
+    </div>
+    <div style="flex:1;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:26px">
+      <div style="width:38px;height:38px;background:#0ea5e9;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;font:700 15px 'Space Mono',monospace;color:#fff">3</div>
+      <div style="font:700 11px 'Space Mono',monospace;color:#f8fafc;margin-bottom:7px">Tune to your lifestyle</div>
+      <div style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.32);line-height:1.75">Adjust score weights. Commuter, budget buyer, or remote worker.</div>
+    </div>
+  </div>
+  <div onClick="{{ startExploring }}" style="height:58px;padding:0 52px;background:linear-gradient(135deg,#0ea5e9,#38bdf8);border-radius:14px;display:flex;align-items:center;cursor:pointer;font:700 13px 'Space Mono',monospace;color:#fff;letter-spacing:.04em;box-shadow:0 0 48px rgba(14,165,233,.45)" style-hover="filter:brightness(1.1)">
+    Start Exploring Singapore →
+  </div>
+  <div style="margin-top:18px;font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.18)">No account · Live data from LTA DataMall · Updated every 30s</div>
+</div>
+</sc-if>
+
+<!-- ═══════════ MAIN APP ═══════════ -->
+<sc-if value="{{ isApp }}" hint-placeholder-val="{{ false }}">
+<div style="height:100vh;display:flex;flex-direction:column;background:#080e1c;overflow:hidden">
+
+  <!-- NAV -->
+  <div style="height:52px;background:#0f172a;border-bottom:1px solid #1e293b;display:flex;align-items:center;padding:0 18px;gap:10px;flex-shrink:0;z-index:20">
+    <div onClick="{{ goHome }}" style="display:flex;align-items:center;gap:8px;cursor:pointer;flex-shrink:0">
+      <div style="width:30px;height:30px;background:linear-gradient(135deg,#0ea5e9,#38bdf8);border-radius:8px;display:flex;align-items:center;justify-content:center">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 13L7.5 2L13 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7.5" cy="9.5" r="2" fill="white"/></svg>
+      </div>
+      <span style="font:700 12px 'Space Mono',monospace;color:#fff">SG Liveability</span>
+    </div>
+    <div style="width:1px;height:20px;background:#1e293b;flex-shrink:0"></div>
+    <div style="flex:1;max-width:280px;height:34px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:8px;display:flex;align-items:center;padding:0 10px;gap:7px">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="5" cy="5" r="3.5" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/><line x1="8" y1="8" x2="11" y2="11" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <input type="text" placeholder="Search district or postal code…" value="{{ searchQ }}" onChange="{{ setSearch }}" onKeyDown="{{ handleSearch }}" style="flex:1;background:none;font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.8);border:none"/>
+    </div>
+    <div style="flex:1"></div>
+    <sc-if value="{{ isDeepDive }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ goHome }}" style="height:34px;padding:0 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:7px;display:flex;align-items:center;gap:5px;cursor:pointer;flex-shrink:0" style-hover="background:rgba(255,255,255,.08)">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M7 2L3 5L7 8" stroke="rgba(255,255,255,.45)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.45)">Overview</span>
+    </div>
+    </sc-if>
+    <!-- District picker -->
+    <div style="position:relative;flex-shrink:0">
+      <div onClick="{{ toggleDistrictPicker }}" style="height:34px;padding:0 11px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.11);border-radius:7px;display:flex;align-items:center;gap:6px;cursor:pointer" style-hover="background:rgba(255,255,255,.1)">
+        <div style="width:6px;height:6px;border-radius:50%;background:#0ea5e9"></div>
+        <span style="font:700 10px 'Space Mono',monospace;color:#fff">{{ district }}</span>
+        <svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M2 3.5l2.5 2.5 2.5-2.5" stroke="rgba(255,255,255,.4)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <sc-if value="{{ showDistrictPicker }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;top:40px;left:0;background:#0f172a;border:1px solid #1e293b;border-radius:9px;overflow-y:auto;max-height:260px;z-index:100;box-shadow:0 12px 32px rgba(0,0,0,.6);min-width:160px">
+        <sc-for list="{{ districtOptions }}" as="opt" hint-placeholder-count="6">
+          <div onClick="{{ opt.select }}" style="{{ opt.rowS }}" style-hover="background:rgba(255,255,255,.07)">
+            <div style="display:flex;align-items:center;gap:7px">
+              <div style="{{ opt.dotS }}"></div>
+              <span style="{{ opt.textS }}">{{ opt.label }}</span>
+            </div>
+            <span style="{{ opt.scS }}">{{ opt.sc }}</span>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+    </div>
+    <!-- Day picker -->
+    <div style="position:relative;flex-shrink:0">
+      <div onClick="{{ toggleDayPicker }}" style="height:34px;padding:0 11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.11);border-radius:7px;display:flex;align-items:center;gap:6px;cursor:pointer" style-hover="background:rgba(255,255,255,.09)">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="2" width="9" height="8" rx="1.5" stroke="rgba(255,255,255,.35)" stroke-width="1.3"/><line x1="3.5" y1="1" x2="3.5" y2="3.5" stroke="rgba(255,255,255,.35)" stroke-width="1.3" stroke-linecap="round"/><line x1="7.5" y1="1" x2="7.5" y2="3.5" stroke="rgba(255,255,255,.35)" stroke-width="1.3" stroke-linecap="round"/><line x1="1" y1="5" x2="10" y2="5" stroke="rgba(255,255,255,.2)" stroke-width="1"/></svg>
+        <span style="font:700 10px 'Space Mono',monospace;color:#f8fafc">{{ day }}</span>
+        <svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M2 3.5l2.5 2.5 2.5-2.5" stroke="rgba(255,255,255,.35)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <sc-if value="{{ showDayPicker }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;top:40px;left:0;background:#0f172a;border:1px solid #1e293b;border-radius:9px;overflow:hidden;z-index:100;box-shadow:0 12px 32px rgba(0,0,0,.5);min-width:120px">
+        <sc-for list="{{ dayOptions }}" as="opt" hint-placeholder-count="5">
+          <div onClick="{{ opt.select }}" style="{{ opt.rowS }}" style-hover="background:rgba(255,255,255,.07)">
+            <span style="{{ opt.textS }}">{{ opt.label }}</span>
+            <sc-if value="{{ opt.active }}" hint-placeholder-val="{{ false }}">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 2.5" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+    </div>
+    <!-- Time picker -->
+    <div style="position:relative;flex-shrink:0">
+      <div onClick="{{ toggleTimePicker }}" style="height:34px;padding:0 11px;background:rgba(14,165,233,.1);border:1.5px solid rgba(14,165,233,.32);border-radius:7px;display:flex;align-items:center;gap:6px;cursor:pointer" style-hover="background:rgba(14,165,233,.18)">
+        <div style="width:6px;height:6px;border-radius:50%;background:#22c55e;animation:blink 1.5s infinite"></div>
+        <span style="font:700 10px 'Space Mono',monospace;color:#38bdf8">{{ time }}</span>
+        <svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M2 3.5l2.5 2.5 2.5-2.5" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <sc-if value="{{ showTimePicker }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;top:40px;right:0;background:#0f172a;border:1px solid #1e293b;border-radius:9px;overflow:hidden;z-index:100;box-shadow:0 12px 32px rgba(0,0,0,.5);min-width:130px">
+        <sc-for list="{{ timeOptions }}" as="opt" hint-placeholder-count="5">
+          <div onClick="{{ opt.select }}" style="{{ opt.rowS }}" style-hover="background:rgba(255,255,255,.07)">
+            <span style="{{ opt.textS }}">{{ opt.label }}</span>
+            <sc-if value="{{ opt.active }}" hint-placeholder-val="{{ false }}">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 2.5" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;position:relative">
+
+    <!-- ══ DASHBOARD ══ -->
+    <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column">
+
+      <!-- MAP HERO -->
+      <div style="position:relative;height:320px;min-height:320px;background:#cfdfe8;flex-shrink:0;overflow:hidden">
+        <!-- Real Leaflet map -->
+        <div id="sg-live-map" style="position:absolute;inset:0;width:100%;height:100%"></div>
+        <!-- Floating score card — reacts to hover -->
+        <div style="position:absolute;right:14px;top:14px;width:210px;background:{{ floatCardBg }};border:1.5px solid {{ dispBorder }};border-radius:14px;padding:15px 16px;box-shadow:0 8px 32px rgba(0,0,0,.18);z-index:10;transition:all .15s">
+          <!-- hover hint -->
+          <sc-if value="{{ isHovering }}" hint-placeholder-val="{{ false }}">
+            <div style="font:600 7px 'Space Mono',monospace;color:rgba(255,255,255,.28);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;display:flex;align-items:center;gap:5px">
+              <div style="width:5px;height:5px;border-radius:50%;background:#38bdf8;animation:blink 1s infinite;flex-shrink:0"></div>
+              {{ dispD }} · hover preview
+            </div>
+          </sc-if>
+          <sc-if value="{{ notHovering }}" hint-placeholder-val="{{ true }}">
+            <div style="font:600 7px 'Space Mono',monospace;color:#64748b;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">{{ dispD }} · {{ day }} {{ time }}</div>
+          </sc-if>
+
+          <!-- Score ring -->
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="{{ dispRingStyle }}">
+              <span style="font:700 18px 'Space Mono',monospace;color:#fff">{{ dispSc }}</span>
+            </div>
+            <div>
+              <div style="{{ dispLabelStyle }}">{{ dispL }}</div>
+              <div style="font:400 8px 'Space Mono',monospace;color:#64748b">Connectivity Score</div>
+            </div>
+          </div>
+
+          <!-- Stats -->
+          <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font:400 8px 'Space Mono',monospace;color:#64748b">🚕  taxis nearby</span>
+              <span style="font:700 8px 'Space Mono',monospace;color:#22c55e">{{ dispTaxis }}</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font:400 8px 'Space Mono',monospace;color:#64748b">🚌  bus stops</span>
+              <span style="font:700 8px 'Space Mono',monospace;color:#38bdf8">{{ dispBusStops }}</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font:400 8px 'Space Mono',monospace;color:#64748b">🚇  nearest MRT</span>
+              <span style="font:700 8px 'Space Mono',monospace;color:#334155">{{ dispMrt }}</span>
+            </div>
+          </div>
+
+          <!-- Bus service pills -->
+          <div style="margin-bottom:12px">
+            <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:5px">Bus services</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap">
+              <sc-for list="{{ dispBusSvcs }}" as="b" hint-placeholder-count="4">
+                <span style="{{ b.pS }}">{{ b.no }}</span>
+              </sc-for>
+            </div>
+          </div>
+
+          <div onClick="{{ goToDeepDive }}" style="height:30px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:#1e293b">
+            <span style="font:700 8px 'Space Mono',monospace;color:#38bdf8">{{ cardCta }}</span>
+          </div>
+        </div>
+        <!-- Live indicator -->
+        <div style="position:absolute;left:14px;bottom:10px;background:rgba(7,12,26,.88);border-radius:6px;padding:4px 10px;display:flex;align-items:center;gap:6px;z-index:10">
+          <div style="width:6px;height:6px;border-radius:50%;background:#22c55e;animation:blink 1.5s infinite"></div>
+          <span style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.45)">Live · Updates every 30s</span>
+        </div>
+        <!-- Map style picker -->
+        <div style="position:absolute;left:14px;bottom:38px;display:flex;gap:5px;z-index:1000;pointer-events:all">
+          <sc-for list="{{ mapStyleOptions }}" as="ms" hint-placeholder-count="5">
+            <div onClick="{{ ms.select }}" style="{{ ms.btnS }}" style-hover="opacity:1">
+              <span style="{{ ms.txtS }}">{{ ms.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <!-- Legend -->
+        <div style="position:absolute;right:226px;bottom:10px;background:rgba(7,12,26,.88);border-radius:6px;padding:4px 12px;display:flex;align-items:center;gap:10px">
+          <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;background:#22c55e;border-radius:2px"></div><span style="font:400 7px 'Space Mono',monospace;color:rgba(255,255,255,.4)">Good ≥80</span></div>
+          <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;background:#f59e0b;border-radius:2px"></div><span style="font:400 7px 'Space Mono',monospace;color:rgba(255,255,255,.4)">Moderate 65–79</span></div>
+          <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;background:#ef4444;border-radius:2px"></div><span style="font:400 7px 'Space Mono',monospace;color:rgba(255,255,255,.4)">Poor &lt;65</span></div>
+        </div>
+      </div>
+
+      <!-- METRICS STRIP -->
+      <div style="background:#0f172a;border-top:1px solid #1a2e42;border-bottom:1px solid #1a2e42;padding:8px 16px;display:flex;gap:6px;flex-shrink:0">
+        <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:8px 12px">
+          <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;display:flex;align-items:center;gap:3px">Live Taxis <span title="Exact number of taxis available in this district right now. From LTA DataMall, updated every 60 seconds." style="font:400 8px sans-serif;color:#cbd5e1;cursor:help">ⓘ</span></div>
+          <div style="font:700 22px 'Space Mono',monospace;color:#1e293b;line-height:1">{{ liveTaxis }}</div>
+          <div style="margin-top:3px"><span style="font:700 7px 'Space Mono',monospace;background:rgba(34,197,94,.12);color:#22c55e;padding:1px 6px;border-radius:3px;border:1px solid rgba(34,197,94,.25)">{{ fluxBadge }}</span></div>
+        </div>
+        <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:8px 12px">
+          <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;display:flex;align-items:center;gap:3px">Mean (window) <span title="Rolling 60-minute average taxi count. Smooths out short spikes. If Live Taxis drops well below this, it signals an unusual shortage." style="font:400 8px sans-serif;color:#cbd5e1;cursor:help">ⓘ</span></div>
+          <div style="font:700 22px 'Space Mono',monospace;color:#1e293b;line-height:1">{{ meanWindow }}</div>
+          <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-top:2px">60-min rolling avg</div>
+        </div>
+        <div style="{{ connCardStyle }}">
+          <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;display:flex;align-items:center;gap:3px">Connectivity Score <span title="0–100 score: Bus×50% + Taxi×30% − Friction×20%. 80+ = Well connected. 65–79 = Moderate. Below 65 = Poor. Adjust weights in Score Weights modal." style="font:400 8px sans-serif;cursor:help">ⓘ</span></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="{{ connRingStyle }}"><span style="font:700 14px 'Space Mono',monospace;color:{{ selColor }}">{{ selScore }}</span></div>
+            <div>
+              <div style="{{ connLabelStyle }}">{{ selLabel }}</div>
+              <div style="font:400 7px 'Space Mono',monospace;color:#64748b;margin-top:1px">/100 · {{ district }}</div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:8px 12px">
+          <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;display:flex;align-items:center;gap:3px">Friction <span title="Friction = Estimated Pickups ÷ Current Taxis. 0.0–0.2 = easy to get a taxi. 0.2–0.5 = moderate wait. 0.5–1.0 = high demand, taxis disappearing fast." style="font:400 8px sans-serif;color:#cbd5e1;cursor:help">ⓘ</span></div>
+          <div style="font:700 22px 'Space Mono',monospace;color:#1e293b;line-height:1">{{ friction }}</div>
+          <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-top:2px">demand/supply ratio</div>
+        </div>
+        <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:8px 12px">
+          <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Avg Price</div>
+          <div style="font:700 22px 'Space Mono',monospace;color:#1e293b;line-height:1">$580k</div>
+          <div style="font:400 8px 'Space Mono',monospace;color:#ef4444;margin-top:2px">↑ Rising</div>
+        </div>
+        <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:8px 12px">
+          <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;display:flex;align-items:center;gap:3px">Alerts <span title="Anomaly alerts: LOW_TAX (taxis suddenly scarce), HIGH_FLUX (taxi count surged or dropped >10 in 1 min), BUS_GAP (bus wait >8 min). 0 = all clear." style="font:400 8px sans-serif;color:#cbd5e1;cursor:help">ⓘ</span></div>
+          <div style="font:700 22px 'Space Mono',monospace;color:#22c55e;line-height:1">{{ alertCount }}</div>
+          <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-top:2px">all clear</div>
+        </div>
+      </div>
+
+      <!-- TAB BAR -->
+      <div style="background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:stretch;flex-shrink:0;position:sticky;top:0;z-index:15;">
+        <div style="{{ t1S }}" onClick="{{ setOvTab }}"><span style="{{ t1TS }}">Overview</span></div>
+        <div style="{{ t2S }}" onClick="{{ setFcTab }}"><span style="{{ t2TS }}">24H Forecast</span></div>
+        <div style="{{ t3S }}" onClick="{{ setPrTab }}"><span style="{{ t3TS }}">Price Trends</span></div>
+        <div style="{{ t4S }}" onClick="{{ setCpTab }}"><span style="{{ t4TS }}">Compare</span></div>
+        <div style="flex:1"></div>
+        <div onClick="{{ goToCardRef }}" style="padding:0 14px;display:flex;align-items:center;gap:5px;cursor:pointer;border-bottom:2px solid transparent" style-hover="background:#f8fafc">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1" width="4" height="4" rx="1" fill="#94a3b8"/><rect x="6" y="1" width="4" height="4" rx="1" fill="#94a3b8"/><rect x="1" y="6" width="4" height="4" rx="1" fill="#94a3b8"/><rect x="6" y="6" width="4" height="4" rx="1" fill="#94a3b8"/></svg>
+          <span style="font:400 9px 'Space Mono',monospace;color:#64748b">Cards</span>
+        </div>
+        <div onClick="{{ goToGlossary }}" style="padding:0 14px;display:flex;align-items:center;gap:5px;cursor:pointer;border-bottom:2px solid transparent" style-hover="background:#f8fafc">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1" width="9" height="9" rx="1" stroke="#94a3b8" stroke-width="1.2"/><line x1="3" y1="3.5" x2="8" y2="3.5" stroke="#94a3b8" stroke-width="1" stroke-linecap="round"/><line x1="3" y1="5.5" x2="8" y2="5.5" stroke="#94a3b8" stroke-width="1" stroke-linecap="round"/><line x1="3" y1="7.5" x2="6" y2="7.5" stroke="#94a3b8" stroke-width="1" stroke-linecap="round"/></svg>
+          <span style="font:400 9px 'Space Mono',monospace;color:#64748b">Glossary</span>
+        </div>
+        <div onClick="{{ toggleFormula }}" style="padding:0 14px;display:flex;align-items:center;gap:5px;cursor:pointer;border-bottom:2px solid transparent" style-hover="background:#f8fafc">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><line x1="1" y1="2" x2="10" y2="2" stroke="#94a3b8" stroke-width="1.4" stroke-linecap="round"/><line x1="1" y1="5.5" x2="10" y2="5.5" stroke="#94a3b8" stroke-width="1.4" stroke-linecap="round"/><line x1="1" y1="9" x2="10" y2="9" stroke="#94a3b8" stroke-width="1.4" stroke-linecap="round"/><circle cx="3.5" cy="2" r="1.6" fill="#0ea5e9" stroke="#fff" stroke-width=".8"/><circle cx="7.5" cy="5.5" r="1.6" fill="#0ea5e9" stroke="#fff" stroke-width=".8"/><circle cx="5" cy="9" r="1.6" fill="#0ea5e9" stroke="#fff" stroke-width=".8"/></svg>
+          <span style="font:400 9px 'Space Mono',monospace;color:#64748b">Score Weights</span>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT -->
+      <div style="min-height:500px;overflow:visible;background:#f0f4f7">
+
+        <!-- OVERVIEW -->
+        <sc-if value="{{ isOv }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:18px;display:flex;flex-direction:column;gap:14px;background:#f0f4f7">
+          <!-- TRANSPORT TIMELINESS — first thing visible -->
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px">
+            <div style="font:700 12px 'Space Mono',monospace;color:#1e293b;margin-bottom:3px">⏱️ Transport Timeliness</div>
+            <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-bottom:14px">Real-time bus + taxi service quality inside {{ district }}</div>
+            <div style="display:flex;gap:0;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+              <div style="flex:1;padding:10px 12px;border-right:1px solid #e2e8f0;background:#f8fafc">
+                <div style="font:700 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:8px">🚌 Bus</div>
+                <div style="display:flex;gap:0">
+                  <div style="flex:1;padding-right:10px;border-right:1px solid #e2e8f0"><div style="font:600 6px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Stops in zone</div><div style="font:700 20px 'Space Mono',monospace;color:#1e293b;line-height:1">12</div><div style="font:400 6px 'Space Mono',monospace;color:#64748b;margin-top:2px">bus stops</div></div>
+                  <div style="flex:1.6;padding:0 10px;border-right:1px solid #e2e8f0"><div style="font:600 6px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Frequency</div><div style="font:700 11px 'Space Mono',monospace;color:#1e293b;line-height:1.3">~8 min 🟢</div><div style="font:400 6px 'Space Mono',monospace;color:#64748b;margin-top:2px">Typical SG</div></div>
+                  <div style="flex:1;padding:0 10px;border-right:1px solid #e2e8f0"><div style="font:600 6px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Bus Score</div><div style="font:700 20px 'Space Mono',monospace;color:#22c55e;line-height:1">73</div></div>
+                  <div style="flex:1.2;padding-left:10px"><div style="font:600 6px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Redundancy</div><div style="font:700 20px 'Space Mono',monospace;color:#22c55e;line-height:1">74</div><div style="font:400 6px 'Space Mono',monospace;color:#64748b;margin-top:2px">8 routes</div></div>
+                </div>
+              </div>
+              <div style="width:120px;padding:10px 12px;background:{{ scorePastel }};border-left:2px solid {{ scoreBorder }};border-right:2px solid {{ scoreBorder }};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;flex-shrink:0">
+                <div style="font:600 6px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:6px">Connectivity</div>
+                <div style="width:52px;height:52px;border-radius:50%;border:3px solid {{ selColor }};display:flex;align-items:center;justify-content:center;margin-bottom:5px;box-shadow:0 0 12px {{ selColor }}33"><span style="font:700 16px 'Space Mono',monospace;color:{{ selColor }}">{{ selScore }}</span></div>
+                <div style="font:700 8px 'Space Mono',monospace;color:{{ selColor }}">{{ selLabel }}</div>
+              </div>
+              <div style="flex:1;padding:10px 12px">
+                <div style="font:700 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:8px">🚕 Taxi</div>
+                <div style="display:flex;gap:0">
+                  <div style="flex:1;padding-right:10px;border-right:1px solid #e2e8f0"><div style="font:600 6px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Available</div><div style="font:700 20px 'Space Mono',monospace;color:#1e293b;line-height:1">{{ liveTaxis }}</div><div style="font:400 6px 'Space Mono',monospace;color:#22c55e;margin-top:2px">{{ fluxBadge }}</div></div>
+                  <div style="flex:1;padding:0 10px;border-right:1px solid #e2e8f0"><div style="font:600 6px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Friction</div><div style="font:700 16px 'Space Mono',monospace;color:#1e293b;line-height:1">{{ friction }}</div><div style="font:400 6px 'Space Mono',monospace;color:#64748b;margin-top:2px">demand/supply</div></div>
+                  <div style="flex:1;padding-left:10px"><div style="font:600 6px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Mean (60m)</div><div style="font:700 16px 'Space Mono',monospace;color:#1e293b;line-height:1">{{ meanWindow }}</div><div style="font:400 6px 'Space Mono',monospace;color:#64748b;margin-top:2px">rolling avg</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Transport cards + right panel -->
+          <div style="display:flex;gap:14px">
+            <!-- Left main -->
+            <div style="flex:1;display:flex;gap:14px;min-width:0">
+          <!-- Score breakdown -->
+          <!-- Transport cards -->
+          <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:13px;display:flex;align-items:center;gap:11px">
+              <div style="width:40px;height:40px;background:rgba(239,68,68,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">🚇</div>
+              <div style="flex:1"><div style="font:600 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:2px">Punggol MRT (NEL)</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b">1.2 km · 14 min walk</div></div>
+              <div style="background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.22);border-radius:6px;padding:3px 8px;flex-shrink:0"><span style="font:700 9px 'Space Mono',monospace;color:#38bdf8">70/100</span></div>
+            </div>
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:13px;display:flex;align-items:center;gap:11px">
+              <div style="width:40px;height:40px;background:rgba(34,197,94,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">🚌</div>
+              <div style="flex:1"><div style="font:600 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:2px">Bus Network</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b">12 stops · 8 min avg headway</div></div>
+              <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.22);border-radius:6px;padding:3px 8px;flex-shrink:0"><span style="font:700 9px 'Space Mono',monospace;color:#22c55e">73/100</span></div>
+            </div>
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:13px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:11px">
+                <div style="width:40px;height:40px;background:rgba(245,158,11,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">🚕</div>
+                <div style="flex:1"><div style="font:600 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:2px">Taxi Availability</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b">{{ liveTaxis }} nearby · friction index 0.68</div></div>
+                <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:6px;padding:3px 8px;flex-shrink:0"><span style="font:700 9px 'Space Mono',monospace;color:#f59e0b">Mod</span></div>
+              </div>
+              <div style="padding-top:7px;border-top:1px solid #f1f5f9">
+                <div style="font:600 6px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:7px;text-align:center">Taxi availability · past 24 hours</div>
+                <div style="display:flex;align-items:center;justify-content:center;gap:5px">
+                  <!-- Morning -->
+                  <span style="font-size:13px" title="Morning peak">☀️</span>
+                  <span style="font:600 7px 'Space Mono',monospace;background:rgba(34,197,94,.12);color:#059669;padding:2px 6px;border-radius:4px;border:1px solid rgba(34,197,94,.22)">7am ✓</span>
+                  <span style="font:600 7px 'Space Mono',monospace;background:rgba(220,38,38,.08);color:#dc2626;padding:2px 6px;border-radius:4px;border:1px solid rgba(220,38,38,.18)">8am ✗</span>
+                  <span style="font:600 7px 'Space Mono',monospace;background:rgba(220,38,38,.08);color:#dc2626;padding:2px 6px;border-radius:4px;border:1px solid rgba(220,38,38,.18)">9am ✗</span>
+                  <!-- Divider -->
+                  <span style="font:400 10px sans-serif;color:#cbd5e1;margin:0 2px">·</span>
+                  <!-- Evening -->
+                  <span style="font-size:13px" title="Evening peak">🌙</span>
+                  <span style="font:600 7px 'Space Mono',monospace;background:rgba(34,197,94,.12);color:#059669;padding:2px 6px;border-radius:4px;border:1px solid rgba(34,197,94,.22)">5pm ✓</span>
+                  <span style="font:600 7px 'Space Mono',monospace;background:rgba(217,119,6,.1);color:#d97706;padding:2px 6px;border-radius:4px;border:1px solid rgba(217,119,6,.2)">6pm ~</span>
+                  <span style="font:600 7px 'Space Mono',monospace;background:rgba(220,38,38,.08);color:#dc2626;padding:2px 6px;border-radius:4px;border:1px solid rgba(220,38,38,.18)">7pm ✗</span>
+                </div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:13px;display:flex;align-items:center;gap:11px">
+              <div style="width:40px;height:40px;background:rgba(100,116,139,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">🏢</div>
+              <div style="flex:1"><div style="font:600 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:2px">Commute to CBD</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b">42 min by public transport</div></div>
+              <div style="background:rgba(100,116,139,.08);border:1px solid rgba(100,116,139,.18);border-radius:6px;padding:3px 8px;flex-shrink:0"><span style="font:700 9px 'Space Mono',monospace;color:#64748b">Long</span></div>
+            </div>
+          </div>
+                      </div><!-- /left main -->
+
+            <!-- RIGHT PANEL -->
+            <div style="width:224px;display:flex;flex-direction:column;gap:12px;flex-shrink:0">
+
+              <!-- Forecasts + Peak hours -->
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px">
+                <div style="font:700 11px 'Space Mono',monospace;color:#1e293b;margin-bottom:3px">🔮 Forecasts</div>
+                <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-bottom:10px">Predicted taxi count in this district</div>
+                <div style="display:flex;gap:6px">
+                  <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px;text-align:center">
+                    <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;margin-bottom:3px">+30 min</div>
+                    <div style="font:700 20px 'Space Mono',monospace;color:#22c55e">18</div>
+                    <div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">taxis</div>
+                  </div>
+                  <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px;text-align:center">
+                    <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;margin-bottom:3px">+60 min</div>
+                    <div style="font:700 20px 'Space Mono',monospace;color:#f59e0b">11</div>
+                    <div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">taxis</div>
+                  </div>
+                  <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px;text-align:center">
+                    <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;margin-bottom:3px">+2 hr</div>
+                    <div style="font:700 20px 'Space Mono',monospace;color:#ef4444">6</div>
+                    <div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">taxis</div>
+                  </div>
+                </div>
+
+              </div>
+
+            </div><!-- /right panel -->
+          </div><!-- /top row -->
+
+          <!-- BOTTOM ROW: Leaderboard + Price Snapshot side by side -->
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <!-- DISTRICT LEADERBOARD -->
+            <div style="flex:1.3;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px">
+            <div style="font:700 12px 'Space Mono',monospace;color:#1e293b;margin-bottom:3px">🏆 District Leaderboard</div>
+            <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-bottom:16px">Connectivity score ranking across districts</div>
+            <div style="display:flex;align-items:flex-end;gap:5px;height:80px;margin-bottom:6px">
+              <sc-for list="{{ leaderboardBars }}" as="lb" hint-placeholder-count="8">
+                <div style="{{ lb.colS }}">
+                  <div style="{{ lb.scoreS }}">{{ lb.score }}</div>
+                  <div style="{{ lb.barS }}"></div>
+                  <div style="{{ lb.nameS }}">{{ lb.name }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top:10px;border:1px solid #e2e8f0;border-radius:9px;overflow:hidden">
+              <div style="display:grid;grid-template-columns:1fr 64px 110px;background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:7px 12px">
+                <span style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase">District</span>
+                <span style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase">Score</span>
+                <span style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase">Verdict</span>
+              </div>
+              <sc-for list="{{ leaderboardRows }}" as="lr" hint-placeholder-count="8">
+                <div style="{{ lr.rowS }}">
+                  <span style="{{ lr.nameS }}">{{ lr.name }}</span>
+                  <span style="{{ lr.scS }}">{{ lr.score }}</span>
+                  <div style="display:flex;align-items:center;gap:5px"><div style="{{ lr.dotS }}"></div><span style="{{ lr.vtS }}">{{ lr.verdict }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+            <!-- PRICE SNAPSHOT -->
+            <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px">
+              <div>
+                <div style="font:700 12px 'Space Mono',monospace;color:#1e293b;margin-bottom:3px">💰 Price Snapshot</div>
+                <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8">Resale prices · {{ district }}</div>
+              </div>
+              <!-- Big numbers -->
+              <div style="display:flex;gap:8px">
+                <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:12px;text-align:center">
+                  <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Avg Price</div>
+                  <div style="font:700 16px 'Space Mono',monospace;color:#1e293b;line-height:1">{{ distAvg }}</div>
+                </div>
+                <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:12px;text-align:center">
+                  <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Median</div>
+                  <div style="font:700 16px 'Space Mono',monospace;color:#1e293b;line-height:1">{{ distMedian }}</div>
+                </div>
+                <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:12px;text-align:center">
+                  <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Txns</div>
+                  <div style="font:700 16px 'Space Mono',monospace;color:#1e293b;line-height:1">{{ distTxn }}</div>
+                </div>
+              </div>
+              <!-- VFM top 5 -->
+              <div>
+                <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:8px">Top 5 Value-for-Money</div>
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <sc-for list="{{ vfmTop5 }}" as="vf" hint-placeholder-count="5">
+                    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9">
+                      <span style="font:700 8px 'Space Mono',monospace;color:#94a3b8;width:14px;text-align:right">{{ vf.rank }}</span>
+                      <span style="font:400 8px 'Space Mono',monospace;color:#1e293b;flex:1">{{ vf.town }}</span>
+                      <span style="font:700 8px 'Space Mono',monospace;color:#22c55e">{{ vf.vfm }}</span>
+                      <span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">{{ vf.avg }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        </sc-if>
+
+        <!-- FORECAST TAB -->
+        <sc-if value="{{ isFc }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:18px;display:flex;flex-direction:column;gap:14px">
+          <!-- 7×24 Heatmap -->
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px">
+            <div style="font:700 13px 'Space Mono',monospace;color:#1e293b;margin-bottom:3px">🗓️ Weekly Taxi Availability Heatmap · {{ district }}</div>
+            <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-bottom:14px">Each cell = 1-hour slot. Darker green = more taxis. Red = peak squeeze.</div>
+            <div style="display:grid;grid-template-columns:32px repeat(24,1fr);gap:2px;margin-bottom:2px">
+              <div></div>
+              <sc-for list="{{ heatmapHours }}" as="hr" hint-placeholder-count="24">
+                <div style="font:400 5.5px 'Space Mono',monospace;color:#94a3b8;text-align:center">{{ hr }}</div>
+              </sc-for>
+            </div>
+            <sc-for list="{{ heatmapRows }}" as="row" hint-placeholder-count="7">
+              <div style="display:grid;grid-template-columns:32px repeat(24,1fr);gap:2px;margin-bottom:2px">
+                <div style="font:600 7px 'Space Mono',monospace;color:#64748b;display:flex;align-items:center">{{ row.day }}</div>
+                <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="24">
+                  <div style="{{ cell.cS }}"></div>
+                </sc-for>
+              </div>
+            </sc-for>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:10px;justify-content:flex-end">
+              <span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">Scarce</span>
+              <div style="display:flex;gap:2px">
+                <div style="width:12px;height:12px;border-radius:2px;background:#fca5a5"></div>
+                <div style="width:12px;height:12px;border-radius:2px;background:#fdba74"></div>
+                <div style="width:12px;height:12px;border-radius:2px;background:#fde68a"></div>
+                <div style="width:12px;height:12px;border-radius:2px;background:#86efac"></div>
+                <div style="width:12px;height:12px;border-radius:2px;background:#22c55e"></div>
+              </div>
+              <span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">Plentiful</span>
+            </div>
+          </div>
+          <!-- Anomaly alerts + Model performance row -->
+          <div style="display:flex;gap:14px">
+            <!-- Anomaly alerts -->
+            <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px">
+              <div style="font:700 11px 'Space Mono',monospace;color:#1e293b;margin-bottom:3px">🚨 Anomaly alerts</div>
+              <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-bottom:10px">Auto-triggered when something unusual is detected</div>
+              <sc-if value="{{ hasAlerts }}" hint-placeholder-val="{{ false }}">
+                <div style="{{ alertBannerS }}">
+                  <div style="display:flex;align-items:flex-start;gap:10px">
+                    <span style="font-size:16px;flex-shrink:0">{{ alertIcon }}</span>
+                    <div style="flex:1">
+                      <div style="font:700 10px 'Space Mono',monospace;color:#fff;margin-bottom:3px">{{ alertTitle }}</div>
+                      <div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.75);line-height:1.5">{{ alertDesc }}</div>
+                    </div>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ noAlerts }}" hint-placeholder-val="{{ true }}">
+                <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px;display:flex;align-items:center;gap:7px">
+                  <div style="width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0"></div>
+                  <span style="font:700 9px 'Space Mono',monospace;color:#15803d">No alerts — all clear</span>
+                </div>
+              </sc-if>
+              <div onClick="{{ cycleAlert }}" style="margin-top:8px;height:24px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:#f1f5f9">
+                <span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">Demo: cycle alert type</span>
+              </div>
+            </div>
+            <!-- Model performance -->
+            <div style="flex:1.4;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px">
+              <div style="font:700 11px 'Space Mono',monospace;color:#1e293b;margin-bottom:3px">📐 Model performance</div>
+              <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-bottom:10px">How accurate are our taxi forecasts?</div>
+              <div style="background:#fefce8;border:1px solid #fde047;border-radius:7px;padding:7px 10px;display:flex;align-items:center;gap:6px;margin-bottom:10px">
+                <span style="font-size:11px">⚡</span>
+                <span style="font:400 7px 'Space Mono',monospace;color:#713f12">Showing training accuracy. Live eval runs daily at 08:00 SGT.</span>
+              </div>
+              <div style="display:flex;gap:8px">
+                <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><span style="font:600 8px 'Space Mono',monospace;color:#1e293b">+30 min</span><span style="font:700 8px 'Space Mono',monospace;color:#059669">■ Great</span></div>
+                  <div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">Off by ~5.1 taxis avg</div>
+                </div>
+                <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><span style="font:600 8px 'Space Mono',monospace;color:#1e293b">+60 min</span><span style="font:700 8px 'Space Mono',monospace;color:#059669">■ Good</span></div>
+                  <div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">Off by ~3.9 taxis avg</div>
+                </div>
+                <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><span style="font:600 8px 'Space Mono',monospace;color:#1e293b">+2 hr</span><span style="font:700 8px 'Space Mono',monospace;color:#d97706">■ OK</span></div>
+                  <div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">Off by ~5.0 taxis avg</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Peak ratings + Taxi forecast row -->
+          <div style="display:flex;gap:14px">
+            <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px">
+              <div style="font:700 11px 'Space Mono',monospace;color:#1e293b;margin-bottom:12px">⭐ Peak Hour Ratings</div>
+              <div style="display:flex;gap:6px">
+                <div style="flex:1;border:1px solid rgba(34,197,94,.22);border-radius:8px;padding:8px;text-align:center;background:rgba(34,197,94,.06)"><div style="font:700 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:2px">7am</div><div style="font:700 8px 'Space Mono',monospace;color:#22c55e">Good</div></div>
+                <div style="flex:1;border:1px solid rgba(239,68,68,.22);border-radius:8px;padding:8px;text-align:center;background:rgba(239,68,68,.06)"><div style="font:700 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:2px">8am</div><div style="font:700 8px 'Space Mono',monospace;color:#ef4444">Poor</div></div>
+                <div style="flex:1;border:1px solid rgba(34,197,94,.22);border-radius:8px;padding:8px;text-align:center;background:rgba(34,197,94,.06)"><div style="font:700 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:2px">5pm</div><div style="font:700 8px 'Space Mono',monospace;color:#22c55e">Good</div></div>
+                <div style="flex:1;border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:8px;text-align:center;background:rgba(245,158,11,.06)"><div style="font:700 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:2px">6pm</div><div style="font:700 8px 'Space Mono',monospace;color:#f59e0b">Mod</div></div>
+                <div style="flex:1;border:1px solid rgba(239,68,68,.22);border-radius:8px;padding:8px;text-align:center;background:rgba(239,68,68,.06)"><div style="font:700 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:2px">7pm</div><div style="font:700 8px 'Space Mono',monospace;color:#ef4444">Poor</div></div>
+              </div>
+            </div>
+            <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px">
+              <div style="font:700 11px 'Space Mono',monospace;color:#1e293b;margin-bottom:12px">🔮 Taxi Forecast</div>
+              <div style="display:flex;gap:6px">
+                <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;margin-bottom:3px">+30 min</div><div style="font:700 20px 'Space Mono',monospace;color:#22c55e">18</div><div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">taxis</div></div>
+                <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;margin-bottom:3px">+60 min</div><div style="font:700 20px 'Space Mono',monospace;color:#f59e0b">11</div><div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">taxis</div></div>
+                <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;margin-bottom:3px">+2 hr</div><div style="font:700 20px 'Space Mono',monospace;color:#ef4444">6</div><div style="font:400 7px 'Space Mono',monospace;color:#94a3b8">taxis</div></div>
+              </div>
+            </div>
+          </div>
+          <!-- hidden old content wrapper --><div style="display:none">
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px">
+            <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px">Taxi Availability · {{ fcDay }} (0–24h)</div>
+            <!-- Bar chart -->
+            <div style="display:flex;align-items:flex-end;gap:3px;height:120px;padding-top:20px;position:relative">
+              <div style="flex:1;position:relative"><div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font:600 7px 'Space Mono',monospace;color:#64748b;white-space:nowrap"></div><div style="width:100%;height:10%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:8%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:9%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:11%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:13%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:15%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1;position:relative"><div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font:600 7px 'Space Mono',monospace;color:#f59e0b;white-space:nowrap">7am</div><div style="width:100%;height:68%;background:#f59e0b;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1;position:relative"><div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font:600 7px 'Space Mono',monospace;color:#ef4444;white-space:nowrap">8am</div><div style="width:100%;height:100%;background:#ef4444;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:54%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:46%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:44%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:48%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:52%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:55%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:58%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:62%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1;position:relative"><div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font:600 7px 'Space Mono',monospace;color:#f59e0b;white-space:nowrap">6pm</div><div style="width:100%;height:72%;background:#f59e0b;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1;position:relative"><div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font:600 7px 'Space Mono',monospace;color:#ef4444;white-space:nowrap">7pm</div><div style="width:100%;height:90%;background:#ef4444;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:55%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:42%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:28%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:18%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:13%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div>
+              <div style="flex:1"><div style="width:100%;height:9%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:6px;padding-bottom:2px">
+              <span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">12am</span>
+              <span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">6am</span>
+              <span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">12pm</span>
+              <span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">6pm</span>
+              <span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">12am</span>
+            </div>
+            <!-- Peak ratings -->
+            <div style="margin-top:16px;padding-top:14px;border-top:1px solid #e2e8f0">
+              <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:9px">Peak Hour Ratings</div>
+              <div style="display:flex;gap:8px">
+                <div style="flex:1;border:1px solid rgba(34,197,94,.22);border-radius:8px;padding:8px;text-align:center;background:rgba(34,197,94,.06)"><div style="font:700 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:3px">7am</div><div style="font:400 8px 'Space Mono',monospace;color:#22c55e">Good</div></div>
+                <div style="flex:1;border:1px solid rgba(239,68,68,.22);border-radius:8px;padding:8px;text-align:center;background:rgba(239,68,68,.06)"><div style="font:700 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:3px">8am</div><div style="font:400 8px 'Space Mono',monospace;color:#ef4444">Poor</div></div>
+                <div style="flex:1;border:1px solid rgba(34,197,94,.22);border-radius:8px;padding:8px;text-align:center;background:rgba(34,197,94,.06)"><div style="font:700 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:3px">5pm</div><div style="font:400 8px 'Space Mono',monospace;color:#22c55e">Good</div></div>
+                <div style="flex:1;border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:8px;text-align:center;background:rgba(245,158,11,.06)"><div style="font:700 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:3px">6pm</div><div style="font:400 8px 'Space Mono',monospace;color:#f59e0b">Mod</div></div>
+                <div style="flex:1;border:1px solid rgba(239,68,68,.22);border-radius:8px;padding:8px;text-align:center;background:rgba(239,68,68,.06)"><div style="font:700 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:3px">7pm</div><div style="font:400 8px 'Space Mono',monospace;color:#ef4444">Poor</div></div>
+              </div>
+            </div>
+            <!-- ML forecast -->
+            <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e2e8f0">
+              <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:9px">ML Taxi Forecast (from now)</div>
+              <div style="display:flex;gap:8px">
+                <div style="flex:1;background:#f8fafc;border-radius:8px;padding:10px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#3d5166;margin-bottom:4px">+30 min</div><div style="font:700 16px 'Space Mono',monospace;color:#22c55e">18</div><div style="font:400 7px 'Space Mono',monospace;color:#22c55e">taxis</div></div>
+                <div style="flex:1;background:#f8fafc;border-radius:8px;padding:10px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#3d5166;margin-bottom:4px">+60 min</div><div style="font:700 16px 'Space Mono',monospace;color:#f59e0b">11</div><div style="font:400 7px 'Space Mono',monospace;color:#f59e0b">taxis</div></div>
+                <div style="flex:1;background:#f8fafc;border-radius:8px;padding:10px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#3d5166;margin-bottom:4px">+120 min</div><div style="font:700 16px 'Space Mono',monospace;color:#ef4444">6</div><div style="font:400 7px 'Space Mono',monospace;color:#ef4444">taxis</div></div>
+                <div style="flex:2;background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.2);border-radius:8px;padding:10px;display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:#38bdf8;flex-shrink:0;animation:blink 2s infinite"></div><div><div style="font:600 7px 'Space Mono',monospace;color:#38bdf8;margin-bottom:2px">⚠ BUS_GAP alert</div><div style="font:400 7px 'Space Mono',monospace;color:rgba(255,255,255,.45)">Bus 65 delayed ~7:45am</div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- PRICE TAB -->
+        <sc-if value="{{ isPr }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:18px;display:flex;flex-direction:column;gap:14px">
+          <!-- Price by town table -->
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px">
+            <div style="font:700 13px 'Space Mono',monospace;color:#1e293b;margin-bottom:3px">💰 Price by town</div>
+            <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-bottom:14px">Average 4 ROOM resale price, last 12 months</div>
+            <div style="border:1px solid #e2e8f0;border-radius:9px;overflow:hidden">
+              <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 80px;background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:8px 14px">
+                <span style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase">Town</span>
+                <span style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase">Avg Price</span>
+                <span style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase">Median Price</span>
+                <span style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase">Txn</span>
+              </div>
+              <sc-for list="{{ priceRows }}" as="pr" hint-placeholder-count="10">
+                <div style="{{ pr.rowS }}">
+                  <span style="{{ pr.nameS }}">{{ pr.town }}</span>
+                  <span style="font:700 9px 'Space Mono',monospace;color:#1e293b">{{ pr.avg }}</span>
+                  <span style="font:400 9px 'Space Mono',monospace;color:#64748b">{{ pr.median }}</span>
+                  <span style="font:400 9px 'Space Mono',monospace;color:#94a3b8">{{ pr.txn }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- VFM Ranking -->
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px">
+            <div style="font:700 13px 'Space Mono',monospace;color:#1e293b;margin-bottom:3px">🏆 Value-for-Money ranking</div>
+            <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-bottom:14px">Combines transport connectivity + affordability</div>
+            <div style="border:1px solid #e2e8f0;border-radius:9px;overflow:hidden">
+              <div style="display:grid;grid-template-columns:1.4fr 1fr 80px 120px;background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:8px 14px">
+                <span style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase">Town</span>
+                <span style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase">Avg Price</span>
+                <span style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase">VFM Score</span>
+                <span style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase">Verdict</span>
+              </div>
+              <sc-for list="{{ vfmRows }}" as="vr" hint-placeholder-count="10">
+                <div style="{{ vr.rowS }}">
+                  <span style="font:400 9px 'Space Mono',monospace;color:#334155">{{ vr.town }}</span>
+                  <span style="font:400 9px 'Space Mono',monospace;color:#64748b">{{ vr.avg }}</span>
+                  <span style="font:700 9px 'Space Mono',monospace;color:#22c55e">{{ vr.vfm }}</span>
+                  <div style="display:flex;align-items:center;gap:5px"><div style="width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0"></div><span style="font:400 8px 'Space Mono',monospace;color:#22c55e">{{ vr.verdict }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- Price trend chart -->
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px">
+            <div style="font:700 13px 'Space Mono',monospace;color:#1e293b;margin-bottom:3px">📈 Price trend · Marine Parade</div>
+            <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-bottom:14px">Marine Parade — 4 ROOM monthly avg price</div>
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px">
+            <div style="display:flex;gap:10px;margin-bottom:18px">
+              <div style="flex:1;background:#f8fafc;border-radius:9px;padding:12px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:5px">Latest avg price</div><div style="font:700 22px 'Space Mono',monospace;color:#1e293b">S$615,333</div></div>
+              <div style="flex:1;background:#f8fafc;border-radius:9px;padding:12px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:5px">Price change</div><div style="font:700 22px 'Space Mono',monospace;color:#1e293b">S$+56,333</div><div style="font:700 8px 'Space Mono',monospace;color:#22c55e;margin-top:2px">↑ +10.1%</div></div>
+              <div style="flex:1;background:#f8fafc;border-radius:9px;padding:12px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:5px">Total transactions</div><div style="font:700 22px 'Space Mono',monospace;color:#1e293b">349</div></div>
+            </div>
+            <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:10px">Resale Price Trend · Punggol (2017–2026)</div>
+            <svg viewBox="0 0 560 100" style="width:100%;height:90px;display:block">
+              <line x1="30" y1="10" x2="540" y2="10" stroke="#1e293b" stroke-width="1"/><line x1="30" y1="35" x2="540" y2="35" stroke="#1e293b" stroke-width="1"/><line x1="30" y1="60" x2="540" y2="60" stroke="#1e293b" stroke-width="1"/><line x1="30" y1="85" x2="540" y2="85" stroke="#1e293b" stroke-width="1"/>
+              <text x="2" y="13" font-size="7" fill="#3d5166" font-family="Space Mono,monospace">600k</text>
+              <text x="2" y="38" font-size="7" fill="#3d5166" font-family="Space Mono,monospace">550k</text>
+              <text x="2" y="63" font-size="7" fill="#3d5166" font-family="Space Mono,monospace">500k</text>
+              <text x="2" y="88" font-size="7" fill="#3d5166" font-family="Space Mono,monospace">450k</text>
+              <path d="M30,78 90,72 150,64 210,60 270,46 330,26 390,18 450,12 510,8" fill="none" stroke="#0ea5e9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M30,78 90,72 150,64 210,60 270,46 330,26 390,18 450,12 510,8 510,85 30,85 Z" fill="rgba(14,165,233,.07)"/>
+              <line x1="510" y1="8" x2="540" y2="4" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,3" stroke-linecap="round"/>
+              <circle cx="540" cy="4" r="4" fill="#f59e0b" stroke="#0f172a" stroke-width="1.5"/>
+              <text x="26" y="96" font-size="7" fill="#3d5166" font-family="Space Mono,monospace">'17</text>
+              <text x="146" y="96" font-size="7" fill="#3d5166" font-family="Space Mono,monospace">'19</text>
+              <text x="266" y="96" font-size="7" fill="#3d5166" font-family="Space Mono,monospace">'21</text>
+              <text x="386" y="96" font-size="7" fill="#3d5166" font-family="Space Mono,monospace">'23</text>
+              <text x="500" y="96" font-size="7" fill="#3d5166" font-family="Space Mono,monospace">'25</text>
+              <text x="528" y="96" font-size="7" fill="#f59e0b" font-family="Space Mono,monospace">'26E</text>
+            </svg>
+            <div style="display:flex;gap:14px;margin-top:6px">
+              <div style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:2.5px;background:#0ea5e9;border-radius:2px"></div><span style="font:400 8px 'Space Mono',monospace;color:#3d5166">Actual resale price</span></div>
+              <div style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:2.5px;background:#f59e0b;border-radius:2px;border-top:1.5px dashed #f59e0b"></div><span style="font:400 8px 'Space Mono',monospace;color:#3d5166">ML 6-month forecast</span></div>
+            </div>
+            <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e2e8f0;display:flex;gap:8px">
+              <div style="flex:1;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.18);border-radius:8px;padding:10px"><div style="font:600 7px 'Space Mono',monospace;color:#ef4444;text-transform:uppercase;margin-bottom:3px">6-Month Forecast</div><div style="font:700 14px 'Space Mono',monospace;color:#ef4444">↑ Rising · +2.4%</div></div>
+              <div style="flex:1;background:#f8fafc;border-radius:8px;padding:10px"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:3px">Affordability</div><div style="font:700 14px 'Space Mono',monospace;color:#1e293b">~$580k avg</div></div>
+              <div style="flex:1;background:#f8fafc;border-radius:8px;padding:10px"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:3px">Price/Score Ratio</div><div style="font:700 14px 'Space Mono',monospace;color:#22c55e">Favourable</div></div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- COMPARE TAB -->
+        <sc-if value="{{ isCp }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:18px">
+          <div style="font:700 13px 'Space Mono',monospace;color:#1e293b;margin-bottom:14px">District Comparison · {{ day }} {{ time }}</div>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:160px 1fr 1fr 1fr;border-bottom:1px solid #e2e8f0">
+              <div style="padding:12px;font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase"></div>
+              <div style="padding:12px;text-align:center;background:rgba(14,165,233,.06);border-left:1px solid rgba(14,165,233,.18)"><div style="font:700 11px 'Space Mono',monospace;color:#38bdf8">Bishan</div><div style="font:700 20px 'Space Mono',monospace;color:#22c55e;margin-top:2px">{{ bsSc }}</div></div>
+              <div style="padding:12px;text-align:center;border-left:1px solid #e2e8f0;background:rgba(14,165,233,.05)"><div style="font:700 11px 'Space Mono',monospace;color:#f8fafc">{{ district }}</div><div style="font:700 20px 'Space Mono',monospace;margin-top:2px;color:{{ selColor }}">{{ selScore }}</div></div>
+              <div style="padding:12px;text-align:center;border-left:1px solid #e2e8f0"><div style="font:700 11px 'Space Mono',monospace;color:#1e293b">Marine Pde</div><div style="font:700 20px 'Space Mono',monospace;color:#ef4444;margin-top:2px">{{ mpSc }}</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:160px 1fr 1fr 1fr;border-bottom:1px solid #e2e8f0">
+              <div style="padding:10px 12px;font:400 8px 'Space Mono',monospace;color:#64748b;display:flex;align-items:center">MRT Distance</div>
+              <div style="padding:10px 12px;text-align:center;border-left:1px solid rgba(14,165,233,.15);background:rgba(14,165,233,.05)"><span style="font:700 9px 'Space Mono',monospace;color:#22c55e">0.5 km</span></div>
+              <div style="padding:10px 12px;text-align:center;border-left:1px solid #e2e8f0"><span style="font:700 9px 'Space Mono',monospace;color:#f59e0b">1.2 km</span></div>
+              <div style="padding:10px 12px;text-align:center;border-left:1px solid #e2e8f0"><span style="font:700 9px 'Space Mono',monospace;color:#ef4444">2.1 km</span></div>
+            </div>
+            <div style="display:grid;grid-template-columns:160px 1fr 1fr 1fr;border-bottom:1px solid #e2e8f0">
+              <div style="padding:10px 12px;font:400 8px 'Space Mono',monospace;color:#64748b;display:flex;align-items:center">Bus Headway</div>
+              <div style="padding:10px 12px;text-align:center;border-left:1px solid rgba(14,165,233,.15);background:rgba(14,165,233,.05)"><span style="font:700 9px 'Space Mono',monospace;color:#22c55e">5 min</span></div>
+              <div style="padding:10px 12px;text-align:center;border-left:1px solid #e2e8f0"><span style="font:700 9px 'Space Mono',monospace;color:#f59e0b">8 min</span></div>
+              <div style="padding:10px 12px;text-align:center;border-left:1px solid #e2e8f0"><span style="font:700 9px 'Space Mono',monospace;color:#ef4444">14 min</span></div>
+            </div>
+            <div style="display:grid;grid-template-columns:160px 1fr 1fr 1fr;border-bottom:1px solid #e2e8f0">
+              <div style="padding:10px 12px;font:400 8px 'Space Mono',monospace;color:#64748b;display:flex;align-items:center">CBD Commute</div>
+              <div style="padding:10px 12px;text-align:center;border-left:1px solid rgba(14,165,233,.15);background:rgba(14,165,233,.05)"><span style="font:700 9px 'Space Mono',monospace;color:#22c55e">22 min</span></div>
+              <div style="padding:10px 12px;text-align:center;border-left:1px solid #e2e8f0"><span style="font:700 9px 'Space Mono',monospace;color:#f59e0b">42 min</span></div>
+              <div style="padding:10px 12px;text-align:center;border-left:1px solid #e2e8f0"><span style="font:700 9px 'Space Mono',monospace;color:#f59e0b">35 min</span></div>
+            </div>
+            <div style="display:grid;grid-template-columns:160px 1fr 1fr 1fr;border-bottom:1px solid #e2e8f0">
+              <div style="padding:10px 12px;font:400 8px 'Space Mono',monospace;color:#64748b;display:flex;align-items:center">Avg HDB Price</div>
+              <div style="padding:10px 12px;text-align:center;border-left:1px solid rgba(14,165,233,.15);background:rgba(14,165,233,.05)"><span style="font:700 9px 'Space Mono',monospace;color:#ef4444">$680k</span></div>
+              <div style="padding:10px 12px;text-align:center;border-left:1px solid #e2e8f0"><span style="font:700 9px 'Space Mono',monospace;color:#f59e0b">$580k</span></div>
+              <div style="padding:10px 12px;text-align:center;border-left:1px solid #e2e8f0"><span style="font:700 9px 'Space Mono',monospace;color:#22c55e">$440k</span></div>
+            </div>
+            <div style="display:grid;grid-template-columns:160px 1fr 1fr 1fr">
+              <div style="padding:10px 12px;font:400 8px 'Space Mono',monospace;color:#64748b;display:flex;align-items:center">Value Score</div>
+              <div style="padding:10px 12px;text-align:center;border-left:1px solid rgba(14,165,233,.15);background:rgba(14,165,233,.05)"><span style="font:700 9px 'Space Mono',monospace;color:#f59e0b">76/100</span></div>
+              <div style="padding:10px 12px;text-align:center;border-left:1px solid #e2e8f0"><span style="font:700 9px 'Space Mono',monospace;color:#22c55e">81/100</span></div>
+              <div style="padding:10px 12px;text-align:center;border-left:1px solid #e2e8f0"><span style="font:700 9px 'Space Mono',monospace;color:#22c55e">84/100</span></div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ══ DEEP DIVE ══ -->
+    <sc-if value="{{ isDeepDive }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <!-- Header -->
+      <div style="background:#0f172a;border-bottom:1px solid #1e293b;padding:14px 18px;display:flex;align-items:center;gap:14px;flex-shrink:0">
+        <div style="{{ ddRingStyle }}"><span style="font:700 18px 'Space Mono',monospace;color:#fff">{{ selScore }}</span></div>
+        <div style="flex:1">
+          <div style="font:700 16px 'Space Mono',monospace;color:#fff;margin-bottom:4px">{{ district }} · Deep Dive</div>
+          <div style="height:6px;background:#1e293b;border-radius:3px;max-width:300px"><div style="{{ ddBarStyle }}"></div></div>
+          <div style="display:flex;justify-content:space-between;max-width:300px;margin-top:2px"><span style="font:400 7px 'Space Mono',monospace;color:#3d5166">0 Poor</span><span style="font:400 7px 'Space Mono',monospace;color:#3d5166">100 Excellent</span></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font:400 8px 'Space Mono',monospace;color:#3d5166;margin-bottom:2px">Value Score</div>
+          <div style="font:700 20px 'Space Mono',monospace;color:#22c55e">81<span style="font:400 10px;color:rgba(34,197,94,.6)">/100</span></div>
+        </div>
+      </div>
+      <!-- Deep dive tab bar -->
+      <div style="background:#0f172a;border-bottom:1px solid #1e293b;display:flex;flex-shrink:0">
+        <div style="{{ dd1S }}" onClick="{{ setDdTr }}"><span style="{{ dd1TS }}">Transport</span></div>
+        <div style="{{ dd2S }}" onClick="{{ setDd24 }}"><span style="{{ dd2TS }}">24H Forecast</span></div>
+        <div style="{{ dd3S }}" onClick="{{ setDd3 }}"><span style="{{ dd3TS }}">Price History</span></div>
+        <div style="{{ dd4S }}" onClick="{{ setDd4 }}"><span style="{{ dd4TS }}">Compare</span></div>
+      </div>
+      <!-- Deep dive content -->
+      <div style="flex:1;overflow-y:auto;background:#f0f4f7;padding:18px">
+
+        <!-- Transport tab -->
+        <sc-if value="{{ isDdTr }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;gap:14px">
+          <div style="flex:2;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;gap:12px">
+              <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:11px;padding:16px">
+                <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:10px">🚌 Bus Network</div>
+                <div style="font:700 28px 'Space Mono',monospace;color:#1e293b;line-height:1">12</div>
+                <div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.4);margin-bottom:8px">bus stops in zone</div>
+                <div style="font:700 16px 'Space Mono',monospace;color:#38bdf8">8 min</div>
+                <div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.4);margin-bottom:10px">average headway</div>
+                <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:6px;padding:4px 8px;display:inline-block"><span style="font:700 9px 'Space Mono',monospace;color:#22c55e">73/100</span></div>
+              </div>
+              <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:11px;padding:16px">
+                <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:10px">🚕 Taxi Availability</div>
+                <div style="font:700 28px 'Space Mono',monospace;color:#1e293b;line-height:1">{{ liveTaxis }}</div>
+                <div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.4);margin-bottom:8px">taxis nearby now</div>
+                <div style="font:700 16px 'Space Mono',monospace;color:#f59e0b">0.68</div>
+                <div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.4);margin-bottom:10px">friction index</div>
+                <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:6px;padding:4px 8px;display:inline-block"><span style="font:700 9px 'Space Mono',monospace;color:#f59e0b">Moderate</span></div>
+              </div>
+              <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:11px;padding:16px">
+                <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:10px">🚇 MRT Access</div>
+                <div style="font:700 28px 'Space Mono',monospace;color:#1e293b;line-height:1">1.2</div>
+                <div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.4);margin-bottom:8px">km to Punggol MRT</div>
+                <div style="font:700 16px 'Space Mono',monospace;color:#f59e0b">14 min</div>
+                <div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.4);margin-bottom:10px">walking time</div>
+                <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:6px;padding:4px 8px;display:inline-block"><span style="font:700 9px 'Space Mono',monospace;color:#f59e0b">70/100</span></div>
+              </div>
+            </div>
+            <!-- Heatmap -->
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:11px;padding:16px">
+              <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:12px">Best Times to Commute · Weekly Heatmap</div>
+              <div style="display:grid;grid-template-columns:40px repeat(5,1fr);gap:3px;margin-bottom:8px">
+                <div></div>
+                <div style="font:600 7px 'Space Mono',monospace;color:#3d5166;text-align:center;padding:2px">7am</div>
+                <div style="font:600 7px 'Space Mono',monospace;color:#3d5166;text-align:center;padding:2px">8am</div>
+                <div style="font:600 7px 'Space Mono',monospace;color:#3d5166;text-align:center;padding:2px">5pm</div>
+                <div style="font:600 7px 'Space Mono',monospace;color:#3d5166;text-align:center;padding:2px">6pm</div>
+                <div style="font:600 7px 'Space Mono',monospace;color:#3d5166;text-align:center;padding:2px">7pm</div>
+                <div style="font:400 7px 'Space Mono',monospace;color:#3d5166;display:flex;align-items:center">Mon</div>
+                <div style="height:24px;background:#22c55e;border-radius:3px;display:flex;align-items:center;justify-content:center"><span style="font:700 7px 'Space Mono',monospace;color:#fff">G</span></div>
+                <div style="height:24px;background:#f59e0b;border-radius:3px;display:flex;align-items:center;justify-content:center"><span style="font:700 7px 'Space Mono',monospace;color:#fff">M</span></div>
+                <div style="height:24px;background:#22c55e;border-radius:3px;display:flex;align-items:center;justify-content:center"><span style="font:700 7px 'Space Mono',monospace;color:#fff">G</span></div>
+                <div style="height:24px;background:#f59e0b;border-radius:3px;display:flex;align-items:center;justify-content:center"><span style="font:700 7px 'Space Mono',monospace;color:#fff">M</span></div>
+                <div style="height:24px;background:#ef4444;border-radius:3px;display:flex;align-items:center;justify-content:center"><span style="font:700 7px 'Space Mono',monospace;color:#fff">P</span></div>
+                <div style="font:400 7px 'Space Mono',monospace;color:#38bdf8;display:flex;align-items:center">Tue ←</div>
+                <div style="height:24px;background:#22c55e;border:2px solid #38bdf8;border-radius:3px;display:flex;align-items:center;justify-content:center"><span style="font:700 7px 'Space Mono',monospace;color:#fff">G</span></div>
+                <div style="height:24px;background:#ef4444;border:2px solid #38bdf8;border-radius:3px;display:flex;align-items:center;justify-content:center"><span style="font:700 7px 'Space Mono',monospace;color:#fff">P</span></div>
+                <div style="height:24px;background:#22c55e;border-radius:3px;display:flex;align-items:center;justify-content:center"><span style="font:700 7px 'Space Mono',monospace;color:#fff">G</span></div>
+                <div style="height:24px;background:#f59e0b;border-radius:3px;display:flex;align-items:center;justify-content:center"><span style="font:700 7px 'Space Mono',monospace;color:#fff">M</span></div>
+                <div style="height:24px;background:#ef4444;border-radius:3px;display:flex;align-items:center;justify-content:center"><span style="font:700 7px 'Space Mono',monospace;color:#fff">P</span></div>
+                <div style="font:400 7px 'Space Mono',monospace;color:#3d5166;display:flex;align-items:center">Fri</div>
+                <div style="height:24px;background:#f59e0b;border-radius:3px;display:flex;align-items:center;justify-content:center"><span style="font:700 7px 'Space Mono',monospace;color:#fff">M</span></div>
+                <div style="height:24px;background:#ef4444;border-radius:3px;display:flex;align-items:center;justify-content:center"><span style="font:700 7px 'Space Mono',monospace;color:#fff">P</span></div>
+                <div style="height:24px;background:#22c55e;border-radius:3px;display:flex;align-items:center;justify-content:center"><span style="font:700 7px 'Space Mono',monospace;color:#fff">G</span></div>
+                <div style="height:24px;background:#22c55e;border-radius:3px;display:flex;align-items:center;justify-content:center"><span style="font:700 7px 'Space Mono',monospace;color:#fff">G</span></div>
+                <div style="height:24px;background:#22c55e;border-radius:3px;display:flex;align-items:center;justify-content:center"><span style="font:700 7px 'Space Mono',monospace;color:#fff">G</span></div>
+              </div>
+              <div style="display:flex;gap:12px">
+                <div style="display:flex;align-items:center;gap:4px"><div style="width:9px;height:9px;background:#22c55e;border-radius:2px"></div><span style="font:400 7px 'Space Mono',monospace;color:#3d5166">G = Good</span></div>
+                <div style="display:flex;align-items:center;gap:4px"><div style="width:9px;height:9px;background:#f59e0b;border-radius:2px"></div><span style="font:400 7px 'Space Mono',monospace;color:#3d5166">M = Moderate</span></div>
+                <div style="display:flex;align-items:center;gap:4px"><div style="width:9px;height:9px;background:#ef4444;border-radius:2px"></div><span style="font:400 7px 'Space Mono',monospace;color:#3d5166">P = Poor</span></div>
+              </div>
+            </div>
+          </div>
+          <!-- Address lookup panel -->
+          <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px">
+            <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em">Block-Level Lookup</div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px">
+              <div style="font:600 7px 'Space Mono',monospace;color:#3d5166;margin-bottom:4px">Address</div>
+              <div style="font:700 11px 'Space Mono',monospace;color:#1e293b;margin-bottom:1px">Blk 413A Punggol Central</div>
+              <div style="font:400 8px 'Space Mono',monospace;color:#64748b">#12-24 · Singapore 821413</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.18);border-radius:9px">
+              <div style="width:52px;height:52px;border-radius:50%;border:3.5px solid #22c55e;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font:700 17px 'Space Mono',monospace;color:#22c55e">79</span></div>
+              <div><div style="font:700 11px 'Space Mono',monospace;color:#1e293b;margin-bottom:3px">GOOD Connectivity</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b">Block-level at {{ day }} {{ time }}</div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0">
+              <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #1e293b">
+                <span style="font-size:14px">🚇</span>
+                <div style="flex:1"><div style="font:600 8px 'Space Mono',monospace;color:#f8fafc">Punggol MRT</div><div style="font:400 7px 'Space Mono',monospace;color:rgba(255,255,255,.3)">0.9 km · 11 min walk</div></div>
+                <span style="font:700 8px 'Space Mono',monospace;color:#38bdf8">90/100</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #1e293b">
+                <span style="font-size:14px">🚌</span>
+                <div style="flex:1"><div style="font:600 8px 'Space Mono',monospace;color:#f8fafc">Nearest Bus Stop</div><div style="font:400 7px 'Space Mono',monospace;color:rgba(255,255,255,.3)">2 min walk · 8 routes</div></div>
+                <span style="font:700 8px 'Space Mono',monospace;color:#22c55e">73/100</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #1e293b">
+                <span style="font-size:14px">🚕</span>
+                <div style="flex:1"><div style="font:600 8px 'Space Mono',monospace;color:#f8fafc">Taxis Nearby</div><div style="font:400 7px 'Space Mono',monospace;color:rgba(255,255,255,.3)">5 within 500m</div></div>
+                <span style="font:700 8px 'Space Mono',monospace;color:#f59e0b">Mod</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:9px 0">
+                <span style="font-size:14px">🏠</span>
+                <div style="flex:1"><div style="font:600 8px 'Space Mono',monospace;color:#f8fafc">Nearby HDB Price</div><div style="font:400 7px 'Space Mono',monospace;color:rgba(255,255,255,.3)">~$585k avg · 5 closest blocks</div></div>
+                <span style="font:700 8px 'Space Mono',monospace;color:#ef4444">↑ Rise</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- 24H tab (reuse forecast) -->
+        <sc-if value="{{ isDd24 }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ setFcTab }}" style="cursor:pointer"><div style="display:inline-block;margin-bottom:12px;padding:4px 10px;background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.2);border-radius:6px"><span style="font:400 8px 'Space Mono',monospace;color:#38bdf8">← Also visible in Overview → 24H Forecast tab</span></div></div>
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px">
+          <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:14px">Taxi Availability · Tuesday (0–24h)</div>
+          <div style="display:flex;align-items:flex-end;gap:3px;height:120px;padding-top:20px;position:relative">
+            <div style="flex:1"><div style="width:100%;height:10%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div><div style="flex:1"><div style="width:100%;height:8%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div><div style="flex:1"><div style="width:100%;height:9%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div><div style="flex:1"><div style="width:100%;height:11%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div><div style="flex:1"><div style="width:100%;height:13%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div><div style="flex:1"><div style="width:100%;height:15%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div>
+            <div style="flex:1;position:relative"><div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font:600 7px 'Space Mono',monospace;color:#f59e0b;white-space:nowrap">7am</div><div style="width:100%;height:68%;background:#f59e0b;border-radius:2px 2px 0 0"></div></div>
+            <div style="flex:1;position:relative"><div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font:600 7px 'Space Mono',monospace;color:#ef4444;white-space:nowrap">8am</div><div style="width:100%;height:100%;background:#ef4444;border-radius:2px 2px 0 0"></div></div>
+            <div style="flex:1"><div style="width:100%;height:54%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div><div style="flex:1"><div style="width:100%;height:46%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div><div style="flex:1"><div style="width:100%;height:44%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div><div style="flex:1"><div style="width:100%;height:48%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div><div style="flex:1"><div style="width:100%;height:52%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div><div style="flex:1"><div style="width:100%;height:55%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div><div style="flex:1"><div style="width:100%;height:58%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div><div style="flex:1"><div style="width:100%;height:62%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div>
+            <div style="flex:1;position:relative"><div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font:600 7px 'Space Mono',monospace;color:#f59e0b;white-space:nowrap">6pm</div><div style="width:100%;height:72%;background:#f59e0b;border-radius:2px 2px 0 0"></div></div>
+            <div style="flex:1;position:relative"><div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font:600 7px 'Space Mono',monospace;color:#ef4444;white-space:nowrap">7pm</div><div style="width:100%;height:90%;background:#ef4444;border-radius:2px 2px 0 0"></div></div>
+            <div style="flex:1"><div style="width:100%;height:55%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div><div style="flex:1"><div style="width:100%;height:42%;background:#38bdf8;border-radius:2px 2px 0 0"></div></div><div style="flex:1"><div style="width:100%;height:28%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div><div style="flex:1"><div style="width:100%;height:18%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div><div style="flex:1"><div style="width:100%;height:13%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div><div style="flex:1"><div style="width:100%;height:9%;background:#cbd5e1;border-radius:2px 2px 0 0"></div></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px"><span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">12am</span><span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">6am</span><span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">12pm</span><span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">6pm</span><span style="font:400 7px 'Space Mono',monospace;color:#94a3b8">12am</span></div>
+        </div>
+        </sc-if>
+
+        <!-- Price history tab -->
+        <sc-if value="{{ isDd3 }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px">
+          <div style="font:700 12px 'Space Mono',monospace;color:#f8fafc;margin-bottom:14px">Price History · {{ district }}</div>
+          <div style="display:flex;gap:10px;margin-bottom:16px">
+            <div style="flex:1;background:#f8fafc;border-radius:9px;padding:12px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:5px">Current Avg</div><div style="font:700 22px 'Space Mono',monospace;color:#f8fafc">$580k</div><div style="font:400 8px 'Space Mono',monospace;color:#ef4444;margin-top:2px">↑ Rising</div></div>
+            <div style="flex:1;background:#f8fafc;border-radius:9px;padding:12px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:5px">6M Change</div><div style="font:700 22px 'Space Mono',monospace;color:#ef4444">+2.4%</div><div style="font:400 8px 'Space Mono',monospace;color:#3d5166;margin-top:2px">above avg</div></div>
+            <div style="flex:1;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.18);border-radius:9px;padding:12px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#22c55e;text-transform:uppercase;margin-bottom:5px">Value Score</div><div style="font:700 22px 'Space Mono',monospace;color:#22c55e">81/100</div><div style="font:400 8px 'Space Mono',monospace;color:#22c55e;margin-top:2px">Good</div></div>
+          </div>
+          <svg viewBox="0 0 560 100" style="width:100%;height:90px;display:block">
+            <line x1="30" y1="10" x2="540" y2="10" stroke="#1e293b" stroke-width="1"/><line x1="30" y1="35" x2="540" y2="35" stroke="#1e293b" stroke-width="1"/><line x1="30" y1="60" x2="540" y2="60" stroke="#1e293b" stroke-width="1"/><line x1="30" y1="85" x2="540" y2="85" stroke="#1e293b" stroke-width="1"/>
+            <text x="2" y="13" font-size="7" fill="#3d5166" font-family="Space Mono,monospace">600k</text><text x="2" y="38" font-size="7" fill="#3d5166" font-family="Space Mono,monospace">550k</text><text x="2" y="63" font-size="7" fill="#3d5166" font-family="Space Mono,monospace">500k</text><text x="2" y="88" font-size="7" fill="#3d5166" font-family="Space Mono,monospace">450k</text>
+            <path d="M30,78 90,72 150,64 210,60 270,46 330,26 390,18 450,12 510,8" fill="none" stroke="#0ea5e9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M30,78 90,72 150,64 210,60 270,46 330,26 390,18 450,12 510,8 510,85 30,85 Z" fill="rgba(14,165,233,.07)"/>
+            <line x1="510" y1="8" x2="540" y2="4" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,3"/>
+            <circle cx="540" cy="4" r="4" fill="#f59e0b" stroke="#0f172a" stroke-width="1.5"/>
+            <text x="26" y="96" font-size="7" fill="#3d5166" font-family="Space Mono,monospace">'17</text><text x="266" y="96" font-size="7" fill="#3d5166" font-family="Space Mono,monospace">'21</text><text x="500" y="96" font-size="7" fill="#3d5166" font-family="Space Mono,monospace">'25</text><text x="528" y="96" font-size="7" fill="#f59e0b" font-family="Space Mono,monospace">'26E</text>
+          </svg>
+        </div>
+        </sc-if>
+
+        <!-- Compare tab (dd) -->
+        <sc-if value="{{ isDd4 }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ setCpTab }}" style="cursor:pointer;display:inline-block;margin-bottom:12px;padding:4px 10px;background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.2);border-radius:6px"><span style="font:400 8px 'Space Mono',monospace;color:#38bdf8">View full comparison in Overview → Compare tab</span></div>
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px">
+          <div style="font:700 12px 'Space Mono',monospace;color:#1e293b;margin-bottom:14px">{{ district }} vs. Similar Districts</div>
+          <div style="display:flex;gap:12px">
+            <div style="flex:1;background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.2);border-radius:10px;padding:14px;text-align:center"><div style="font:700 11px 'Space Mono',monospace;color:#0ea5e9;margin-bottom:6px">{{ district }}</div><div style="font:700 32px 'Space Mono',monospace;color:#22c55e">{{ selScore }}</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b;margin-top:4px">{{ selLabel }}</div></div>
+            <div style="flex:1;background:#f8fafc;border-radius:10px;padding:14px;text-align:center"><div style="font:700 11px 'Space Mono',monospace;color:#f8fafc;margin-bottom:6px">Sengkang</div><div style="font:700 32px 'Space Mono',monospace;color:#f59e0b">{{ skSc }}</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b;margin-top:4px">MODERATE</div></div>
+            <div style="flex:1;background:#f8fafc;border-radius:10px;padding:14px;text-align:center"><div style="font:700 11px 'Space Mono',monospace;color:#f8fafc;margin-bottom:6px">Tampines</div><div style="font:700 32px 'Space Mono',monospace;color:#22c55e">{{ tpSc }}</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b;margin-top:4px">GOOD</div></div>
+          </div>
+        </div>
+        </sc-if>
+
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ══ POSTAL RESULT ══ -->
+    <sc-if value="{{ isPostalResult }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+
+      <!-- Header -->
+      <div style="background:#0f172a;border-bottom:1px solid #1e293b;padding:16px 20px;flex-shrink:0">
+        <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;letter-spacing:.12em;margin-bottom:7px">Postal Code Search · {{ postalQ }}</div>
+        <div style="font:700 16px 'Space Mono',monospace;color:#f8fafc;margin-bottom:3px">{{ postalBlock }}</div>
+        <div style="font:400 9px 'Space Mono',monospace;color:#64748b">{{ postalUnit }} · Singapore {{ postalQ }}</div>
+      </div>
+
+      <!-- Content -->
+      <div style="flex:1;overflow-y:auto;background:#080e1c;padding:20px">
+
+        <!-- Radius selector -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+          <span style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;white-space:nowrap;letter-spacing:.08em">Search radius</span>
+          <div style="{{ r250S }}" onClick="{{ setR250 }}"><span style="{{ r250TS }}">250 m</span></div>
+          <div style="{{ r500S }}" onClick="{{ setR500 }}"><span style="{{ r500TS }}">500 m</span></div>
+          <div style="{{ r1kS }}" onClick="{{ setR1k }}"><span style="{{ r1kTS }}">1 km</span></div>
+          <div style="flex:1;height:1px;background:#1e293b"></div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:6px;height:6px;border-radius:50%;background:#22c55e;animation:blink 1.5s infinite"></div><span style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.3)">Live data</span></div>
+        </div>
+
+        <!-- Big stats row -->
+        <div style="display:flex;gap:12px;margin-bottom:22px">
+
+          <div style="flex:1;background:#0f172a;border:1px solid #1e293b;border-radius:14px;padding:22px 20px;text-align:center">
+            <div style="font:700 48px 'Space Mono',monospace;color:#22c55e;line-height:1;margin-bottom:8px">{{ postalTaxis }}</div>
+            <div style="font:400 10px 'Space Mono',monospace;color:rgba(255,255,255,.45);margin-bottom:3px">🚕  live taxis available</div>
+            <div style="font:400 8px 'Space Mono',monospace;color:#3d5166">within {{ radiusLabel }} of this block</div>
+          </div>
+
+          <div style="flex:1;background:#0f172a;border:1px solid #1e293b;border-radius:14px;padding:22px 20px;text-align:center">
+            <div style="font:700 48px 'Space Mono',monospace;color:#38bdf8;line-height:1;margin-bottom:8px">{{ postalStopsCount }}</div>
+            <div style="font:400 10px 'Space Mono',monospace;color:rgba(255,255,255,.45);margin-bottom:3px">🚌  bus stops</div>
+            <div style="font:400 8px 'Space Mono',monospace;color:#3d5166">within {{ radiusLabel }} of this block</div>
+          </div>
+
+          <div style="flex:1;background:#0f172a;border:1px solid #1e293b;border-radius:14px;padding:22px 20px;display:flex;flex-direction:column;justify-content:center;gap:10px">
+            <div>
+              <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">District</div>
+              <div style="font:700 16px 'Space Mono',monospace;color:#f8fafc">{{ postalDistrict }}</div>
+            </div>
+            <div onClick="{{ goToPostalDeepDive }}" style="height:32px;background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.22);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:rgba(14,165,233,.2)">
+              <span style="font:700 8px 'Space Mono',monospace;color:#0ea5e9">Full District Deep Dive →</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bus arrivals -->
+        <div style="font:600 8px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px">Live Bus Arrivals · {{ radiusLabel }} radius</div>
+
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <sc-for list="{{ postalStopsData }}" as="stop" hint-placeholder-count="3">
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+              <!-- Stop header -->
+              <div style="padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px">
+                <div style="width:7px;height:7px;border-radius:50%;background:#22c55e;animation:blink 1.5s infinite;flex-shrink:0"></div>
+                <span style="font:700 10px 'Space Mono',monospace;color:#f8fafc">{{ stop.name }}</span>
+                <span style="font:400 8px 'Space Mono',monospace;color:#3d5166">· Stop {{ stop.id }}</span>
+              </div>
+              <!-- Services -->
+              <sc-for list="{{ stop.svcs }}" as="svc" hint-placeholder-count="3">
+                <div style="padding:10px 16px;border-bottom:1px solid #111927;display:flex;align-items:center;gap:14px">
+                  <div style="width:48px;height:28px;background:#1e293b;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                    <span style="font:700 11px 'Space Mono',monospace;color:#f8fafc">{{ svc.no }}</span>
+                  </div>
+                  <div style="display:flex;gap:8px;align-items:center;flex:1">
+                    <div style="{{ svc.e1S }}"><span style="{{ svc.e1TS }}">{{ svc.e1 }}</span></div>
+                    <div style="{{ svc.e2S }}"><span style="{{ svc.e2TS }}">{{ svc.e2 }}</span></div>
+                  </div>
+                  <div style="{{ svc.dotS }}"></div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- Data note -->
+        <div style="margin-top:16px;padding:11px 14px;background:rgba(14,165,233,.04);border:1px solid rgba(14,165,233,.1);border-radius:9px;display:flex;align-items:flex-start;gap:8px">
+          <div style="width:6px;height:6px;border-radius:50%;background:#38bdf8;flex-shrink:0;animation:blink 2s infinite;margin-top:2px"></div>
+          <div>
+            <div style="font:600 8px 'Space Mono',monospace;color:#38bdf8;margin-bottom:3px">Data sources</div>
+            <div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.28);line-height:1.6">Taxi count: LTA DataMall real-time taxi availability · Bus arrivals: LTA BusArrivalv2 API · Radius: {{ radiusLabel }} around postal centroid (OneMap geocode)</div>
+          </div>
+        </div>
+
+        <!-- Try other codes hint -->
+        <div style="margin-top:14px;padding:11px 14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:9px">
+          <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:7px">Try these sample postal codes</div>
+          <div style="display:flex;gap:7px;flex-wrap:wrap">
+            <span style="font:700 8px 'Space Mono',monospace;color:#0ea5e9;background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.18);padding:3px 8px;border-radius:5px;cursor:pointer">825234</span>
+            <span style="font:700 8px 'Space Mono',monospace;color:#0ea5e9;background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.18);padding:3px 8px;border-radius:5px;cursor:pointer">820413</span>
+            <span style="font:700 8px 'Space Mono',monospace;color:#0ea5e9;background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.18);padding:3px 8px;border-radius:5px;cursor:pointer">570033</span>
+            <span style="font:700 8px 'Space Mono',monospace;color:#0ea5e9;background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.18);padding:3px 8px;border-radius:5px;cursor:pointer">730207</span>
+            <span style="font:700 8px 'Space Mono',monospace;color:#0ea5e9;background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.18);padding:3px 8px;border-radius:5px;cursor:pointer">150033</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    </sc-if>
+
+  </div>
+
+  <!-- ══ CARD LAYOUT REFERENCE ══ -->
+  <sc-if value="{{ isCardRef }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;background:#f0f4f7;z-index:1000;display:flex;flex-direction:column;overflow:hidden">
+    <div style="background:#0f172a;height:52px;display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0;border-bottom:1px solid #1e293b">
+      <div onClick="{{ goHome }}" style="height:32px;padding:0 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;display:flex;align-items:center;gap:6px;cursor:pointer" style-hover="background:rgba(255,255,255,.1)">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M7 2L3 5L7 8" stroke="rgba(255,255,255,.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.5)">Back</span>
+      </div>
+      <span style="font:700 14px 'Space Mono',monospace;color:#fff">🃏 Card Layout Reference</span>
+      <span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.3)">All card + view variations used in the dashboard</span>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:28px">
+
+      <!-- Row 1: Map hover cards -->
+      <div>
+        <div style="font:700 11px 'Space Mono',monospace;color:#1e293b;margin-bottom:4px">1. Map Hover Card (district-level)</div>
+        <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-bottom:14px">Appears when hovering a district marker. Shows summary — no per-stop ETAs. Bus service number pills only.</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          <!-- Good state -->
+          <div style="width:210px;background:rgba(7,12,26,.96);border:1px solid rgba(34,197,94,.4);border-radius:14px;padding:15px 16px;box-shadow:0 12px 40px rgba(0,0,0,.4)">
+            <div style="font:600 7px 'Space Mono',monospace;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;display:flex;align-items:center;gap:5px"><div style="width:5px;height:5px;border-radius:50%;background:#38bdf8;animation:blink 1s infinite"></div>Bishan · hover preview</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div style="width:48px;height:48px;border-radius:50%;border:3.5px solid #22c55e;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 14px rgba(34,197,94,.4)"><span style="font:700 16px 'Space Mono',monospace;color:#22c55e">88</span></div>
+              <div><div style="font:700 11px 'Space Mono',monospace;color:#22c55e">GOOD</div><div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.3)">Connectivity Score</div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:9px">
+              <div style="display:flex;justify-content:space-between"><span style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.45)">🚕 taxis nearby</span><span style="font:700 8px 'Space Mono',monospace;color:#22c55e">16</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.45)">🚌 bus stops</span><span style="font:700 8px 'Space Mono',monospace;color:#38bdf8">14</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.45)">🚇 nearest MRT</span><span style="font:700 8px 'Space Mono',monospace;color:rgba(255,255,255,.55)">0.3km Bishan</span></div>
+            </div>
+            <div style="margin-bottom:9px"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:5px">Bus services</div><div style="display:flex;gap:4px;flex-wrap:wrap"><span style="font:700 8px 'Space Mono',monospace;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.22);border-radius:4px;padding:2px 7px;color:#38bdf8">13</span><span style="font:700 8px 'Space Mono',monospace;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.22);border-radius:4px;padding:2px 7px;color:#38bdf8">52</span><span style="font:700 8px 'Space Mono',monospace;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.22);border-radius:4px;padding:2px 7px;color:#38bdf8">88</span><span style="font:700 8px 'Space Mono',monospace;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.22);border-radius:4px;padding:2px 7px;color:#38bdf8">157</span><span style="font:700 8px 'Space Mono',monospace;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.22);border-radius:4px;padding:2px 7px;color:#38bdf8">163</span></div></div>
+            <div style="height:30px;background:rgba(14,165,233,.14);border:1px solid rgba(14,165,233,.3);border-radius:8px;display:flex;align-items:center;justify-content:center"><span style="font:700 8px 'Space Mono',monospace;color:#38bdf8">Explore Bishan →</span></div>
+          </div>
+          <!-- Poor state -->
+          <div style="width:210px;background:rgba(7,12,26,.96);border:1px solid rgba(239,68,68,.35);border-radius:14px;padding:15px 16px;box-shadow:0 12px 40px rgba(0,0,0,.4)">
+            <div style="font:600 7px 'Space Mono',monospace;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">Marine Pde · selected</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div style="width:48px;height:48px;border-radius:50%;border:3.5px solid #ef4444;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 14px rgba(239,68,68,.35)"><span style="font:700 16px 'Space Mono',monospace;color:#ef4444">51</span></div>
+              <div><div style="font:700 11px 'Space Mono',monospace;color:#ef4444">POOR</div><div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.3)">Connectivity Score</div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:9px">
+              <div style="display:flex;justify-content:space-between"><span style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.45)">🚕 taxis nearby</span><span style="font:700 8px 'Space Mono',monospace;color:#f59e0b">5</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.45)">🚌 bus stops</span><span style="font:700 8px 'Space Mono',monospace;color:#38bdf8">6</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.45)">🚇 nearest MRT</span><span style="font:700 8px 'Space Mono',monospace;color:rgba(255,255,255,.55)">2.1km Parkway</span></div>
+            </div>
+            <div style="margin-bottom:9px"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:5px">Bus services</div><div style="display:flex;gap:4px;flex-wrap:wrap"><span style="font:700 8px 'Space Mono',monospace;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.22);border-radius:4px;padding:2px 7px;color:#38bdf8">31</span><span style="font:700 8px 'Space Mono',monospace;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.22);border-radius:4px;padding:2px 7px;color:#38bdf8">36</span><span style="font:700 8px 'Space Mono',monospace;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.22);border-radius:4px;padding:2px 7px;color:#38bdf8">155</span></div></div>
+            <div style="height:30px;background:rgba(14,165,233,.14);border:1px solid rgba(14,165,233,.3);border-radius:8px;display:flex;align-items:center;justify-content:center"><span style="font:700 8px 'Space Mono',monospace;color:#38bdf8">Explore Marine Pde →</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2: Postal code result card -->
+      <div>
+        <div style="font:700 11px 'Space Mono',monospace;color:#1e293b;margin-bottom:4px">2. Postal Code Search Result (block-level)</div>
+        <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-bottom:14px">Triggered by 6-digit postal code in search bar. Shows per-stop bus ETAs + live taxi count + radius toggle. More detailed than district hover.</div>
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;max-width:640px">
+          <div style="padding:12px 16px;background:#0f172a;border-bottom:1px solid #1e293b">
+            <div style="font:600 7px 'Space Mono',monospace;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:5px">Postal Code · 825234</div>
+            <div style="font:700 13px 'Space Mono',monospace;color:#f8fafc">Blk 234E Punggol Way</div>
+            <div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.35)">#10-234 · Singapore 825234</div>
+          </div>
+          <div style="display:flex;gap:0;border-bottom:1px solid #e2e8f0">
+            <div style="flex:1;padding:16px;text-align:center;border-right:1px solid #e2e8f0"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:6px">🚕 Live Taxis</div><div style="font:700 38px 'Space Mono',monospace;color:#22c55e;line-height:1">8</div><div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-top:3px">within 500m</div></div>
+            <div style="flex:1;padding:16px;text-align:center;border-right:1px solid #e2e8f0"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:6px">🚌 Bus Stops</div><div style="font:700 38px 'Space Mono',monospace;color:#38bdf8;line-height:1">5</div><div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-top:3px">within 500m</div></div>
+            <div style="flex:1;padding:16px;display:flex;flex-direction:column;justify-content:center;gap:6px;align-items:center"><div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase">District</div><div style="font:700 13px 'Space Mono',monospace;color:#1e293b">Punggol</div><div style="display:flex;gap:4px"><span style="font:700 7px 'Space Mono',monospace;background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.25);border-radius:4px;padding:2px 7px;color:#0ea5e9">250m</span><span style="font:700 7px 'Space Mono',monospace;background:#0ea5e9;border-radius:4px;padding:2px 7px;color:#fff">500m</span><span style="font:700 7px 'Space Mono',monospace;background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.25);border-radius:4px;padding:2px 7px;color:#0ea5e9">1km</span></div></div>
+          </div>
+          <div style="padding:14px 16px">
+            <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:10px">Live Bus Arrivals · 500m radius</div>
+            <div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+              <div style="padding:7px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:6px"><div style="width:6px;height:6px;border-radius:50%;background:#22c55e"></div><span style="font:700 9px 'Space Mono',monospace;color:#1e293b">Punggol Rd (Opp Blk 267A)</span><span style="font:400 8px 'Space Mono',monospace;color:#94a3b8">· Stop 65189</span></div>
+              <div style="padding:8px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f1f5f9"><div style="width:38px;height:24px;background:#1e293b;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font:700 10px 'Space Mono',monospace;color:#fff">84</span></div><div style="height:22px;padding:0 8px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);border-radius:4px;display:flex;align-items:center"><span style="font:700 9px 'Space Mono',monospace;color:#22c55e">4 min</span></div><div style="height:22px;padding:0 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;display:flex;align-items:center"><span style="font:400 9px 'Space Mono',monospace;color:#64748b">14 min</span></div></div>
+              <div style="padding:8px 12px;display:flex;align-items:center;gap:10px"><div style="width:38px;height:24px;background:#1e293b;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font:700 10px 'Space Mono',monospace;color:#fff">85</span></div><div style="height:22px;padding:0 8px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);border-radius:4px;display:flex;align-items:center"><span style="font:700 9px 'Space Mono',monospace;color:#f59e0b">9 min</span></div><div style="height:22px;padding:0 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;display:flex;align-items:center"><span style="font:400 9px 'Space Mono',monospace;color:#64748b">22 min</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 3: Alert banner states -->
+      <div>
+        <div style="font:700 11px 'Space Mono',monospace;color:#1e293b;margin-bottom:4px">3. Anomaly Alert Banner States</div>
+        <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-bottom:14px">When an alert fires, replaces the "No alerts" green pill with a prominent coloured banner in the right panel. Three types:</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:220px;background:#dc2626;border:1.5px solid #b91c1c;border-radius:10px;padding:12px 14px;box-shadow:0 4px 20px rgba(220,38,38,.4)"><div style="display:flex;align-items:flex-start;gap:8px"><span style="font-size:14px">🔴</span><div><div style="font:700 10px 'Space Mono',monospace;color:#fff;margin-bottom:3px">LOW_TAX — Taxis suddenly scarce!</div><div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.75);line-height:1.5">Count dropped below mean − 2σ. Possible: rain, event, peak demand. +30min forecast: 6 taxis.</div></div></div></div>
+          <div style="flex:1;min-width:220px;background:#d97706;border:1.5px solid #b45309;border-radius:10px;padding:12px 14px;box-shadow:0 4px 20px rgba(217,119,6,.4)"><div style="display:flex;align-items:flex-start;gap:8px"><span style="font-size:14px">🟡</span><div><div style="font:700 10px 'Space Mono',monospace;color:#fff;margin-bottom:3px">HIGH_FLUX — Surge detected!</div><div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.75);line-height:1.5">Flux > ±10 in 1 min. Peak hour starting or taxis fleeing area.</div></div></div></div>
+          <div style="flex:1;min-width:220px;background:#0284c7;border:1.5px solid #0369a1;border-radius:10px;padding:12px 14px;box-shadow:0 4px 20px rgba(2,132,199,.4)"><div style="display:flex;align-items:flex-start;gap:8px"><span style="font-size:14px">🔵</span><div><div style="font:700 10px 'Space Mono',monospace;color:#fff;margin-bottom:3px">BUS_GAP — Wait time exceeded!</div><div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.75);line-height:1.5">Bus 65 avg headway now 11 min. Possible breakdown or congestion.</div></div></div></div>
+        </div>
+      </div>
+
+      <!-- Row 4: Deep dive transport card -->
+      <div>
+        <div style="font:700 11px 'Space Mono',monospace;color:#1e293b;margin-bottom:4px">4. Deep Dive Transport Card</div>
+        <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-bottom:14px">Accessed via "Explore District →" on the hover card or from search. District-level detailed breakdown — not block-level.</div>
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:14px;max-width:380px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <div style="width:52px;height:52px;border-radius:50%;border:3.5px solid #22c55e;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 16px rgba(34,197,94,.35)"><span style="font:700 17px 'Space Mono',monospace;color:#22c55e">88</span></div>
+            <div><div style="font:700 14px 'Space Mono',monospace;color:#f8fafc">Bishan · Deep Dive</div><div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.35)">Connectivity Score · Tue 7:30am</div></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <div style="flex:1;background:rgba(255,255,255,.05);border-radius:8px;padding:10px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#3d5166;margin-bottom:4px">🚌 Bus Stops</div><div style="font:700 20px 'Space Mono',monospace;color:#f8fafc">14</div><div style="font:400 7px 'Space Mono',monospace;color:#38bdf8;margin-top:2px">73/100</div></div>
+            <div style="flex:1;background:rgba(255,255,255,.05);border-radius:8px;padding:10px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#3d5166;margin-bottom:4px">🚕 Taxis</div><div style="font:700 20px 'Space Mono',monospace;color:#f8fafc">16</div><div style="font:400 7px 'Space Mono',monospace;color:#f59e0b;margin-top:2px">Moderate</div></div>
+            <div style="flex:1;background:rgba(255,255,255,.05);border-radius:8px;padding:10px;text-align:center"><div style="font:600 7px 'Space Mono',monospace;color:#3d5166;margin-bottom:4px">🚇 MRT</div><div style="font:700 14px 'Space Mono',monospace;color:#f8fafc;line-height:1.2">0.3km</div><div style="font:400 7px 'Space Mono',monospace;color:#38bdf8;margin-top:2px">Bishan</div></div>
+          </div>
+          <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px">
+            <div style="font:600 7px 'Space Mono',monospace;color:#3d5166;text-transform:uppercase;margin-bottom:6px">Key difference vs postal search</div>
+            <div style="font:400 8px 'Space Mono',monospace;color:rgba(255,255,255,.45);line-height:1.6">Zone-level stats (all stops in district), not block-level. No per-stop ETAs — shows frequency score + redundancy instead.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ══ GLOSSARY SCREEN ══ -->
+  <sc-if value="{{ isGlossary }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;background:#f0f4f7;z-index:40;display:flex;flex-direction:column;overflow:hidden">
+    <!-- Header -->
+    <div style="background:#0f172a;height:52px;display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0;border-bottom:1px solid #1e293b">
+      <div onClick="{{ goHome }}" style="height:32px;padding:0 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;display:flex;align-items:center;gap:6px;cursor:pointer" style-hover="background:rgba(255,255,255,.1)">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M7 2L3 5L7 8" stroke="rgba(255,255,255,.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.5)">Back</span>
+      </div>
+      <span style="font:700 14px 'Space Mono',monospace;color:#fff">📖 Glossary &amp; Metrics Guide</span>
+      <span style="font:400 9px 'Space Mono',monospace;color:rgba(255,255,255,.3)">Plain English explanations of everything in this dashboard</span>
+    </div>
+    <!-- Content -->
+    <div style="flex:1;overflow-y:auto;padding:24px;max-width:860px;width:100%;margin:0 auto">
+
+      <!-- What is this app -->
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:16px">
+        <div style="font:700 14px 'Space Mono',monospace;color:#1e293b;margin-bottom:8px">🗺️ What is this app?</div>
+        <div style="font:400 10px 'Space Mono',monospace;color:#64748b;line-height:1.8">This dashboard helps you decide whether a Singapore district is worth moving into if it has no MRT station nearby. It analyses real-time taxi data from LTA (Land Transport Authority) and gives each district a connectivity score from 0 to 100. <strong>Higher score = easier to get around without MRT.</strong></div>
+      </div>
+
+      <!-- Score formula -->
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:16px">
+        <div style="font:700 13px 'Space Mono',monospace;color:#1e293b;margin-bottom:4px">🏆 District Connectivity Score (0–100)</div>
+        <div style="font:400 8px 'Space Mono',monospace;color:#94a3b8;margin-bottom:14px">The main score is calculated using this formula:</div>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:14px;margin-bottom:14px;text-align:center">
+          <span style="font:700 14px 'Space Mono',monospace;color:#1e293b">Score = Bus × 0.5 + Taxi × 0.3 − Friction × 0.2</span>
+        </div>
+        <div style="display:flex;gap:0;border:1px solid #e2e8f0;border-radius:9px;overflow:hidden;margin-bottom:14px">
+          <div style="flex:1;padding:10px 14px;border-right:1px solid #e2e8f0;text-align:center"><div style="font:700 9px 'Space Mono',monospace;color:#94a3b8;margin-bottom:4px">Score</div><div style="font:700 9px 'Space Mono',monospace;color:#64748b">Meaning</div></div>
+          <div style="flex:2;padding:10px 14px;border-right:1px solid #e2e8f0"><div style="font:700 9px 'Space Mono',monospace;color:#22c55e;margin-bottom:3px">75–100 ✅ Well connected</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b">Comfortable without MRT</div></div>
+          <div style="flex:2;padding:10px 14px;border-right:1px solid #e2e8f0"><div style="font:700 9px 'Space Mono',monospace;color:#f59e0b;margin-bottom:3px">50–74 ⚠️ Moderate</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b">Manageable with some planning</div></div>
+          <div style="flex:2;padding:10px 14px"><div style="font:700 9px 'Space Mono',monospace;color:#ef4444;margin-bottom:3px">0–49 ❌ Poor</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b">Transit friction is high</div></div>
+        </div>
+        <div style="font:600 8px 'Space Mono',monospace;color:#64748b;margin-bottom:6px">Why these weights?</div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font:400 8px 'Space Mono',monospace;color:#64748b;line-height:1.6">• Buses get <strong>50%</strong> because in non-MRT areas, buses are your main transport</div>
+          <div style="font:400 8px 'Space Mono',monospace;color:#64748b;line-height:1.6">• Taxis get <strong>30%</strong> as a backup option</div>
+          <div style="font:400 8px 'Space Mono',monospace;color:#64748b;line-height:1.6">• Friction loses <strong>20%</strong> to penalise areas where taxis are hard to get</div>
+        </div>
+      </div>
+
+      <!-- Taxi metrics -->
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:16px">
+        <div style="font:700 13px 'Space Mono',monospace;color:#1e293b;margin-bottom:14px">🚕 Taxi Metrics</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="border:1px solid #f1f5f9;border-radius:8px;padding:12px"><div style="font:700 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:5px">Live Taxis — what does this number mean?</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b;line-height:1.7">The exact number of taxis available in the district at this moment. Comes directly from LTA's API, updated every 60 seconds.</div></div>
+          <div style="border:1px solid #f1f5f9;border-radius:8px;padding:12px"><div style="font:700 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:5px">Taxi Flux — what does +/− mean?</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b;line-height:1.7">Flux = current taxi count minus the count 60 seconds ago. <strong>+N means more taxis entering</strong> (supply arriving). <strong>−N means taxis leaving</strong> (could mean high demand).</div></div>
+          <div style="border:1px solid #f1f5f9;border-radius:8px;padding:12px"><div style="font:700 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:5px">Friction Index — what does 0.000 mean?</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b;line-height:1.7">Friction = Estimated Pickups ÷ Current Taxis. It measures how much demand is consuming the taxi supply.<br/><br/>
+            <div style="display:flex;gap:0;border:1px solid #e2e8f0;border-radius:7px;overflow:hidden;margin-top:8px">
+              <div style="flex:1;padding:6px 10px;border-right:1px solid #e2e8f0"><div style="font:700 8px 'Space Mono',monospace;color:#22c55e">0.0–0.2</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b">Low demand — easy to get a taxi</div></div>
+              <div style="flex:1;padding:6px 10px;border-right:1px solid #e2e8f0"><div style="font:700 8px 'Space Mono',monospace;color:#f59e0b">0.2–0.5</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b">Moderate — some wait time expected</div></div>
+              <div style="flex:1;padding:6px 10px"><div style="font:700 8px 'Space Mono',monospace;color:#ef4444">0.5–1.0</div><div style="font:400 7px 'Space Mono',monospace;color:#64748b">High demand — taxis disappearing fast</div></div>
+            </div>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- Bus metrics -->
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:16px">
+        <div style="font:700 13px 'Space Mono',monospace;color:#1e293b;margin-bottom:14px">🚌 Bus Metrics</div>
+        <div style="border:1px solid #f1f5f9;border-radius:8px;padding:12px;margin-bottom:10px"><div style="font:700 9px 'Space Mono',monospace;color:#1e293b;margin-bottom:5px">Bus Frequency Score — how is this calculated?</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b;line-height:1.7">Based on average time between buses (called headway) at all stops in the district.</div>
+          <div style="display:flex;gap:0;border:1px solid #e2e8f0;border-radius:7px;overflow:hidden;margin-top:8px">
+            <div style="flex:1;padding:6px 10px;border-right:1px solid #e2e8f0"><div style="font:700 8px 'Space Mono',monospace;color:#64748b">Headway</div></div>
+            <div style="flex:1;padding:6px 10px;border-right:1px solid #e2e8f0"><div style="font:700 8px 'Space Mono',monospace;color:#64748b">Score</div></div>
+            <div style="flex:2;padding:6px 10px"><div style="font:700 8px 'Space Mono',monospace;color:#64748b">Meaning</div></div>
+          </div>
+          <div style="display:flex;gap:0;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 7px 7px;overflow:hidden">
+            <div style="flex:1;padding:5px 10px;border-right:1px solid #e2e8f0;border-top:1px solid #e2e8f0"><div style="font:400 8px 'Space Mono',monospace;color:#64748b">&lt; 2 min</div></div>
+            <div style="flex:1;padding:5px 10px;border-right:1px solid #e2e8f0;border-top:1px solid #e2e8f0"><div style="font:700 8px 'Space Mono',monospace;color:#22c55e">90–100</div></div>
+            <div style="flex:2;padding:5px 10px;border-top:1px solid #e2e8f0"><div style="font:400 8px 'Space Mono',monospace;color:#22c55e">🟢 Excellent — bus every 2 min</div></div>
+          </div>
+          <div style="display:flex;gap:0;border:1px solid #e2e8f0;border-top:none;overflow:hidden">
+            <div style="flex:1;padding:5px 10px;border-right:1px solid #e2e8f0;border-top:1px solid #e2e8f0"><div style="font:400 8px 'Space Mono',monospace;color:#64748b">2–10 min</div></div>
+            <div style="flex:1;padding:5px 10px;border-right:1px solid #e2e8f0;border-top:1px solid #e2e8f0"><div style="font:700 8px 'Space Mono',monospace;color:#22c55e">60–89</div></div>
+            <div style="flex:2;padding:5px 10px;border-top:1px solid #e2e8f0"><div style="font:400 8px 'Space Mono',monospace;color:#22c55e">🟢 Good — Typical Singapore service</div></div>
+          </div>
+          <div style="display:flex;gap:0;border:1px solid #e2e8f0;border-top:none;overflow:hidden">
+            <div style="flex:1;padding:5px 10px;border-right:1px solid #e2e8f0;border-top:1px solid #e2e8f0"><div style="font:400 8px 'Space Mono',monospace;color:#64748b">10–20 min</div></div>
+            <div style="flex:1;padding:5px 10px;border-right:1px solid #e2e8f0;border-top:1px solid #e2e8f0"><div style="font:700 8px 'Space Mono',monospace;color:#f59e0b">30–59</div></div>
+            <div style="flex:2;padding:5px 10px;border-top:1px solid #e2e8f0"><div style="font:400 8px 'Space Mono',monospace;color:#f59e0b">🟡 Moderate</div></div>
+          </div>
+          <div style="display:flex;gap:0;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 7px 7px;overflow:hidden">
+            <div style="flex:1;padding:5px 10px;border-right:1px solid #e2e8f0;border-top:1px solid #e2e8f0"><div style="font:400 8px 'Space Mono',monospace;color:#64748b">&gt; 20 min</div></div>
+            <div style="flex:1;padding:5px 10px;border-right:1px solid #e2e8f0;border-top:1px solid #e2e8f0"><div style="font:700 8px 'Space Mono',monospace;color:#ef4444">0–29</div></div>
+            <div style="flex:2;padding:5px 10px;border-top:1px solid #e2e8f0"><div style="font:400 8px 'Space Mono',monospace;color:#ef4444">🔴 Poor — very infrequent</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Anomaly alerts -->
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:16px">
+        <div style="font:700 13px 'Space Mono',monospace;color:#1e293b;margin-bottom:14px">🚨 Anomaly Alerts</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="border:1px solid #f1f5f9;border-radius:8px;padding:12px"><div style="font:700 9px 'Space Mono',monospace;color:#ef4444;margin-bottom:5px">🔴 LOW_TAX alert</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b;line-height:1.7">Triggered when taxi count drops below mean − 2 standard deviations. In plain English: if there are usually 15 taxis and suddenly there are only 3 — something is wrong. Could be: sudden rain, major event nearby, peak hour demand spike.</div></div>
+          <div style="border:1px solid #f1f5f9;border-radius:8px;padding:12px"><div style="font:700 9px 'Space Mono',monospace;color:#f59e0b;margin-bottom:5px">🟡 HIGH_FLUX alert</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b;line-height:1.7">Triggered when taxis suddenly surge or drop by 10+ in one minute. Could mean: concurrent model nearby (sudden surge of people needing taxis), peak hour starting (taxis fleeing one area fast), or rush hour starting.</div></div>
+          <div style="border:1px solid #f1f5f9;border-radius:8px;padding:12px"><div style="font:700 9px 'Space Mono',monospace;color:#38bdf8;margin-bottom:5px">🔵 BUS_GAP alert</div><div style="font:400 8px 'Space Mono',monospace;color:#64748b;line-height:1.7">Triggered when the average bus wait time exceeds 8 minutes. Could mean: bus breakdown on a major route, unusual traffic congestion, or service disruption.</div></div>
+        </div>
+      </div>
+
+      <!-- Data sources -->
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:16px">
+        <div style="font:700 13px 'Space Mono',monospace;color:#1e293b;margin-bottom:14px">📦 Data Sources</div>
+        <div style="border:1px solid #e2e8f0;border-radius:9px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:1fr 2fr 1.2fr;background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:8px 14px">
+            <span style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase">Data</span>
+            <span style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase">Source</span>
+            <span style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase">Update Frequency</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 2fr 1.2fr;border-bottom:1px solid #f1f5f9;padding:8px 14px"><span style="font:400 9px 'Space Mono',monospace;color:#334155">Taxi locations</span><span style="font:400 9px 'Space Mono',monospace;color:#64748b">LTA DataMall / Taxi Availability</span><span style="font:400 9px 'Space Mono',monospace;color:#22c55e">Every 60 seconds</span></div>
+          <div style="display:grid;grid-template-columns:1fr 2fr 1.2fr;border-bottom:1px solid #f1f5f9;padding:8px 14px"><span style="font:400 9px 'Space Mono',monospace;color:#334155">Bus arrivals</span><span style="font:400 9px 'Space Mono',monospace;color:#64748b">LTA DataMall / BusArrivalv2</span><span style="font:400 9px 'Space Mono',monospace;color:#22c55e">Every 3 minutes</span></div>
+          <div style="display:grid;grid-template-columns:1fr 2fr 1.2fr;border-bottom:1px solid #f1f5f9;padding:8px 14px"><span style="font:400 9px 'Space Mono',monospace;color:#334155">Bus stops</span><span style="font:400 9px 'Space Mono',monospace;color:#64748b">LTA DataMall / BusStops</span><span style="font:400 9px 'Space Mono',monospace;color:#64748b">One-time at startup</span></div>
+          <div style="display:grid;grid-template-columns:1fr 2fr 1.2fr;padding:8px 14px"><span style="font:400 9px 'Space Mono',monospace;color:#334155">ML predictions</span><span style="font:400 9px 'Space Mono',monospace;color:#64748b">On-device (sklearn)</span><span style="font:400 9px 'Space Mono',monospace;color:#64748b">Every 30 minutes</span></div>
+        </div>
+        <div style="margin-top:10px;font:400 8px 'Space Mono',monospace;color:#94a3b8">All HDB price data is used under the Singapore Open Data Licence (data.gov.sg).</div>
+      </div>
+
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ══ FORMULA MODAL ══ -->
+  <sc-if value="{{ showFormula }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ toggleFormula }}" style="position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;display:flex;align-items:center;justify-content:center">
+    <div onClick="{{ stopPropagation }}" style="width:520px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.6)">
+      <div style="height:52px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;padding:0 20px;justify-content:space-between">
+        <span style="font:700 12px 'Space Mono',monospace;color:#1e293b">Score Formula &amp; Weights</span>
+        <div onClick="{{ toggleFormula }}" style="width:28px;height:28px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:rgba(255,255,255,.12)">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 2l6 6M8 2l-6 6" stroke="rgba(255,255,255,.5)" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div style="padding:20px;border-bottom:1px solid #e2e8f0">
+        <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px">Live Formula · Updates with sliders</div>
+        <div style="display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">
+          <div style="{{ fmlRingStyle }}"><span style="font:700 18px 'Space Mono',monospace;color:{{ fColor }}">{{ fScore }}</span></div>
+          <span style="font:700 18px 'Space Mono',monospace;color:#334155">=</span>
+          <div style="text-align:center">
+            <div style="width:48px;height:48px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.28);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 4px"><span style="font:700 15px 'Space Mono',monospace;color:#22c55e">{{ busComp }}</span></div>
+            <div style="font:400 7px 'Space Mono',monospace;color:#3d5166">Bus ×{{ busW }}%</div>
+          </div>
+          <span style="font:700 16px 'Space Mono',monospace;color:#22c55e">+</span>
+          <div style="text-align:center">
+            <div style="width:48px;height:48px;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.25);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 4px"><span style="font:700 15px 'Space Mono',monospace;color:#38bdf8">{{ taxiComp }}</span></div>
+            <div style="font:400 7px 'Space Mono',monospace;color:#3d5166">Taxi ×{{ taxiW }}%</div>
+          </div>
+          <span style="font:700 16px 'Space Mono',monospace;color:#ef4444">−</span>
+          <div style="text-align:center">
+            <div style="width:48px;height:48px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.22);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 4px"><span style="font:700 15px 'Space Mono',monospace;color:#ef4444">{{ frComp }}</span></div>
+            <div style="font:400 7px 'Space Mono',monospace;color:#3d5166">Fric ×{{ frW }}%</div>
+          </div>
+        </div>
+        <!-- Presets -->
+        <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;margin-bottom:8px">Commuter Profile Preset</div>
+        <div style="display:flex;gap:8px">
+          <div onClick="{{ setPresetCommuter }}" style="{{ pre1S }}"><span style="{{ pre1TS }}">Commuter</span><span style="font:400 7px 'Space Mono',monospace;color:#3d5166;margin-top:1px;display:block">Bus 60% · Taxi 30%</span></div>
+          <div onClick="{{ setPresetBudget }}" style="{{ pre2S }}"><span style="{{ pre2TS }}">Budget Buyer</span><span style="font:400 7px 'Space Mono',monospace;color:#3d5166;margin-top:1px;display:block">Price 40% · Bus 35%</span></div>
+          <div onClick="{{ setPresetDefault }}" style="{{ pre3S }}"><span style="{{ pre3TS }}">Balanced</span><span style="font:400 7px 'Space Mono',monospace;color:#3d5166;margin-top:1px;display:block">50% · 30% · 20%</span></div>
+        </div>
+      </div>
+      <div style="padding:20px">
+        <div style="font:600 7px 'Space Mono',monospace;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px">Adjust Weights · Total: {{ totalW }}%</div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:7px"><span style="font:600 10px 'Space Mono',monospace;color:#1e293b">Bus Frequency</span><span style="font:700 10px 'Space Mono',monospace;color:#22c55e">{{ busW }}%</span></div>
+            <input type="range" min="10" max="80" value="{{ busW }}" onChange="{{ setBusW }}"/>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:7px"><span style="font:600 10px 'Space Mono',monospace;color:#1e293b">Taxi Stability</span><span style="font:700 10px 'Space Mono',monospace;color:#38bdf8">{{ taxiW }}%</span></div>
+            <input type="range" min="5" max="70" value="{{ taxiW }}" onChange="{{ setTaxiW }}"/>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:7px"><span style="font:600 10px 'Space Mono',monospace;color:#1e293b">Taxi Friction (penalty)</span><span style="font:700 10px 'Space Mono',monospace;color:#ef4444">{{ frW }}%</span></div>
+            <input type="range" min="5" max="60" value="{{ frW }}" onChange="{{ setFrW }}"/>
+          </div>
+        </div>
+        <div onClick="{{ toggleFormula }}" style="height:40px;background:linear-gradient(135deg,#0ea5e9,#38bdf8);border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:18px" style-hover="filter:brightness(1.08)">
+          <span style="font:700 10px 'Space Mono',monospace;color:#fff">Apply &amp; Recalculate All Districts →</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+</div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  TILES = {
+    voyager:  {url:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',   label:'Voyager',   bg:'#e8f0f8'},
+    dark:     {url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',              label:'Dark',      bg:'#0d1520'},
+    light:    {url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',             label:'Minimal',   bg:'#f4f7f9'},
+    street:   {url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',                         label:'Street',    bg:'#aad3df'},
+    satellite:{url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', label:'Satellite', bg:'#1a1a1a'},
+  };
+  COORDS = {
+    'Woodlands':   [1.437, 103.786],
+    'Yishun':      [1.429, 103.835],
+    'Ang Mo Kio':  [1.370, 103.849],
+    'Sengkang':    [1.392, 103.895],
+    'Punggol':     [1.405, 103.909],
+    'Pasir Ris':   [1.372, 103.949],
+    'Jurong East': [1.333, 103.742],
+    'Bishan':      [1.351, 103.848],
+    'Toa Payoh':   [1.332, 103.847],
+    'Tampines':    [1.354, 103.944],
+    'Bedok':       [1.324, 103.930],
+    'Marine Pde':  [1.302, 103.906],
+    'Jurong West': [1.340, 103.706],
+    'Queenstown':  [1.295, 103.806],
+    'CBD':         [1.287, 103.852],
+    'Geylang':     [1.318, 103.872],
+    'Bedok South': [1.310, 103.932],
+    'Kallang':     [1.311, 103.862],
+  };
+  PRICE_DATA = {
+    'Central Area':   {avg:1091709, median:1194444, txn:72},
+    'Queenstown':     {avg:1003366, median:1000000, txn:255},
+    'Toa Payoh':      {avg:929497,  median:990000,  txn:408},
+    'Bukit Merah':    {avg:883314,  median:937500,  txn:356},
+    'Kallang':        {avg:883134,  median:908000,  txn:277},
+    'Bukit Timah':    {avg:867118,  median:922500,  txn:16},
+    'Clementi':       {avg:838652,  median:876000,  txn:216},
+    'Bishan':         {avg:791582,  median:790000,  txn:181},
+    'Geylang':        {avg:780709,  median:700000,  txn:239},
+    'Ang Mo Kio':     {avg:723106,  median:609444,  txn:290},
+    'Tampines':       {avg:650000,  median:635000,  txn:312},
+    'Bedok':          {avg:638000,  median:622000,  txn:298},
+    'Woodlands':      {avg:563467,  median:550000,  txn:187},
+    'Jurong East':    {avg:563406,  median:548000,  txn:203},
+    'Yishun':         {avg:561777,  median:545000,  txn:244},
+    'Chua Chu Kang':  {avg:558530,  median:542000,  txn:168},
+    'Jurong West':    {avg:552840,  median:538000,  txn:221},
+    'Sengkang':       {avg:590000,  median:575000,  txn:310},
+    'Punggol':        {avg:580000,  median:565000,  txn:289},
+    'Pasir Ris':      {avg:575000,  median:560000,  txn:145},
+    'Hougang':        {avg:629888,  median:615000,  txn:199},
+    'Marine Pde':     {avg:647124,  median:615333,  txn:349},
+  };
+  VFM_DATA = [
+    {town:'Jurong West',  vfm:75.0, avg:'S$552,840', verdict:'Great value'},
+    {town:'Chua Chu Kang',vfm:74.5, avg:'S$558,530', verdict:'Great value'},
+    {town:'Yishun',       vfm:74.2, avg:'S$561,777', verdict:'Great value'},
+    {town:'Woodlands',    vfm:74.2, avg:'S$563,467', verdict:'Great value'},
+    {town:'Jurong East',  vfm:74.0, avg:'S$563,406', verdict:'Great value'},
+    {town:'Bukit Panjang',vfm:72.3, avg:'S$582,237', verdict:'Great value'},
+    {town:'Sembawang',    vfm:69.0, avg:'S$617,144', verdict:'Great value'},
+    {town:'Bukit Batok',  vfm:68.2, avg:'S$626,015', verdict:'Great value'},
+    {town:'Hougang',      vfm:67.9, avg:'S$629,888', verdict:'Great value'},
+    {town:'Marine Parade',vfm:66.3, avg:'S$647,124', verdict:'Great value'},
+  ];
+  DINFO = {
+    'Woodlands':   {taxis:6,  stops:8,  mrt:'0.8km Wdlands',  svcs:['170','856','858','912','913']},
+    'Yishun':      {taxis:9,  stops:10, mrt:'0.6km Yishun',   svcs:['67','117','169','811','812']},
+    'Ang Mo Kio':  {taxis:12, stops:14, mrt:'0.3km AMK',      svcs:['26','73','88','159','261']},
+    'Sengkang':    {taxis:8,  stops:9,  mrt:'0.5km Sengkang', svcs:['34','62','68','83','86']},
+    'Punggol':     {taxis:14, stops:12, mrt:'1.2km Punggol',  svcs:['84','85','386','386E','3']},
+    'Pasir Ris':   {taxis:7,  stops:9,  mrt:'0.4km Pasir Ris',svcs:['3','6','17','89','89E']},
+    'Jurong East': {taxis:15, stops:16, mrt:'0.2km Jurong E', svcs:['52','66','98','178','333']},
+    'Bishan':      {taxis:16, stops:14, mrt:'0.3km Bishan',   svcs:['13','52','88','157','163']},
+    'Toa Payoh':   {taxis:14, stops:13, mrt:'0.4km Toa Payoh',svcs:['21','59','138','145','238']},
+    'Tampines':    {taxis:13, stops:15, mrt:'0.5km Tampines', svcs:['8','65','65A','293','296']},
+    'Bedok':       {taxis:11, stops:12, mrt:'0.4km Bedok',    svcs:['65','229','238','243','243A']},
+    'Marine Pde':  {taxis:5,  stops:6,  mrt:'2.1km Parkway',  svcs:['31','36','155','197','401']},
+    'Jurong West': {taxis:10, stops:11, mrt:'0.7km Boon Lay', svcs:['182','182E','185','240','241']},
+    'Queenstown':  {taxis:16, stops:14, mrt:'0.3km Queenstn', svcs:['51','111','175','185','970']},
+    'CBD':         {taxis:28, stops:22, mrt:'0.1km Raffles',  svcs:['106','107','131','162','196']},
+    'Geylang':     {taxis:9,  stops:8,  mrt:'0.6km Aljunied', svcs:['2','13','21','65','67']},
+    'Bedok South': {taxis:8,  stops:9,  mrt:'0.8km Bedok',    svcs:['12','65','228','243','65A']},
+    'Kallang':     {taxis:12, stops:11, mrt:'0.5km Kallang',  svcs:['11','12','16','48','67']},
+  };
+  DISTRICTS = [
+    {name:'Woodlands',   score:65,x:'1.3%', y:'3%',  w:'15.4%',h:'28%'},
+    {name:'Yishun',      score:71,x:'17.9%',y:'3%',  w:'13.7%',h:'28%'},
+    {name:'Ang Mo Kio',  score:78,x:'32.9%',y:'3%',  w:'14.5%',h:'28%'},
+    {name:'Sengkang',    score:74,x:'48.7%',y:'3%',  w:'13.7%',h:'28%'},
+    {name:'Punggol',     score:72,x:'63.6%',y:'3%',  w:'13.7%',h:'28%'},
+    {name:'Pasir Ris',   score:68,x:'78.5%',y:'3%',  w:'20.3%',h:'28%'},
+    {name:'Jurong East', score:79,x:'1.3%', y:'35%', w:'13.7%',h:'28%'},
+    {name:'Bishan',      score:88,x:'16.2%',y:'35%', w:'14.5%',h:'28%'},
+    {name:'Toa Payoh',   score:80,x:'32%',  y:'35%', w:'13.7%',h:'28%'},
+    {name:'Tampines',    score:82,x:'47%',  y:'35%', w:'13.7%',h:'28%'},
+    {name:'Bedok',       score:77,x:'61.8%',y:'35%', w:'13.7%',h:'28%'},
+    {name:'Marine Pde',  score:51,x:'76.8%',y:'35%', w:'22.2%',h:'28%'},
+    {name:'Jurong West', score:71,x:'1.3%', y:'68%', w:'13.7%',h:'28%'},
+    {name:'Queenstown',  score:85,x:'16.2%',y:'68%', w:'13.7%',h:'28%'},
+    {name:'CBD',         score:94,x:'31.1%',y:'68%', w:'16.3%',h:'28%'},
+    {name:'Geylang',     score:63,x:'48.7%',y:'68%', w:'12.8%',h:'28%'},
+    {name:'Bedok South', score:70,x:'62.7%',y:'68%', w:'12.8%',h:'28%'},
+    {name:'Kallang',     score:76,x:'76.8%',y:'68%', w:'22.2%',h:'28%'},
+  ];
+  TIMES=['7:30am','8:30am','12pm','5pm','7pm'];
+  DAYS=['Mon','Tue','Wed','Thu','Fri'];
+  TMULT={'7:30am':1,'8:30am':.82,'12pm':1.15,'5pm':.94,'7pm':.87};
+  POSTAL={
+    '825234':{block:'Blk 234E Punggol Way',unit:'#10-234',district:'Punggol',stops:[
+      {id:'65189',name:'Punggol Rd (Opp Blk 267A)',services:[{no:'84',e1:4,e2:14},{no:'85',e1:9,e2:22},{no:'386E',e1:2,e2:17}]},
+      {id:'65191',name:'Punggol Rd (Blk 270A)',services:[{no:'84',e1:6,e2:18},{no:'85',e1:11,e2:24}]},
+      {id:'65199',name:'Punggol Station Exit A',services:[{no:'34',e1:3,e2:10},{no:'62',e1:8,e2:19}]},
+    ],taxis:{250:3,500:8,1000:14},sc:{250:2,500:5,1000:9}},
+    '820413':{block:'Blk 413A Punggol Central',unit:'#12-24',district:'Punggol',stops:[
+      {id:'65401',name:'Punggol Central (B1)',services:[{no:'386',e1:3,e2:9},{no:'387',e1:7,e2:16}]},
+      {id:'65402',name:'Punggol Central (B2)',services:[{no:'386E',e1:5,e2:14},{no:'388',e1:4,e2:11},{no:'3',e1:12,e2:25}]},
+      {id:'65211',name:'Blk 414 Punggol Central',services:[{no:'386',e1:8,e2:19},{no:'3',e1:4,e2:13}]},
+    ],taxis:{250:5,500:12,1000:19},sc:{250:3,500:6,1000:11}},
+    '570033':{block:'Blk 33 Bishan St 13',unit:'#08-182',district:'Bishan',stops:[
+      {id:'52321',name:'Bishan Int (B1)',services:[{no:'13',e1:1,e2:5},{no:'52',e1:3,e2:9},{no:'88',e1:6,e2:14}]},
+      {id:'52322',name:'Bishan Int (B2)',services:[{no:'157',e1:2,e2:8},{no:'163',e1:7,e2:17}]},
+      {id:'52211',name:'Blk 283 Bishan St 22',services:[{no:'13',e1:5,e2:12},{no:'52',e1:8,e2:19}]},
+    ],taxis:{250:6,500:14,1000:22},sc:{250:3,500:7,1000:12}},
+    '730207':{block:'Blk 207 Ang Mo Kio Ave 3',unit:'#05-1072',district:'Ang Mo Kio',stops:[
+      {id:'54161',name:'Ang Mo Kio Ave 3 (B1)',services:[{no:'26',e1:2,e2:7},{no:'88',e1:5,e2:14},{no:'73',e1:8,e2:17}]},
+      {id:'54162',name:'Ang Mo Kio Ave 3 (B2)',services:[{no:'26',e1:4,e2:11},{no:'265',e1:6,e2:16}]},
+    ],taxis:{250:4,500:11,1000:18},sc:{250:2,500:5,1000:10}},
+    '150033':{block:'Blk 33 Queenstown Rd',unit:'#06-888',district:'Queenstown',stops:[
+      {id:'11401',name:'Queenstown Stn (B1)',services:[{no:'51',e1:1,e2:6},{no:'111',e1:4,e2:12},{no:'175',e1:3,e2:9}]},
+      {id:'11402',name:'Queenstown Stn (B2)',services:[{no:'51',e1:3,e2:8},{no:'185',e1:5,e2:13}]},
+    ],taxis:{250:7,500:16,1000:25},sc:{250:3,500:7,1000:13}},
+  };
+
+  // moved to top of class — see PRICE_DATA and VFM_DATA above
+
+  state={
+    screen:'onboarding',
+    district:'Ang Mo Kio',
+    dayIdx:1,timeIdx:0,
+    busW:50,taxiW:30,frW:20,
+    preset:'default',
+    liveTaxis:184,
+    tab:'overview',
+    showFormula:false,
+    hoverD:null,
+    ddTab:'transport',
+    fcDayIdx:1,
+    searchQ:'',
+    radius:500,postalResult:null,postalQ:'',
+    showDayPicker:false,showTimePicker:false,showDistrictPicker:false,
+    mapStyle:'voyager',
+    scoreExpanded:false,
+    alertIdx:0, // 0=none, 1=LOW_TAX, 2=HIGH_FLUX, 3=BUS_GAP
+    tick:0,
+  };
+
+  componentDidMount(){
+    this._t=setInterval(()=>this.setState(s=>({
+      liveTaxis:Math.max(5,Math.min(26,s.liveTaxis+(Math.random()>.4?1:-1)*(Math.random()>.5?2:1))),
+      tick:s.tick+1,
+    })),2500);
+    this._initLeaflet();
+  }
+  componentDidUpdate(pp,ps){
+    if(this._map){
+      if(ps.mapStyle!==this.state.mapStyle) this._switchTiles();
+      if(ps.district!==this.state.district||ps.timeIdx!==this.state.timeIdx||ps.dayIdx!==this.state.dayIdx||ps.busW!==this.state.busW||ps.taxiW!==this.state.taxiW||ps.frW!==this.state.frW||ps.tick!==this.state.tick){
+        this._updateMarkers();
+      }
+    }
+  }
+  _switchTiles(){
+    const L=window.L; if(!L||!this._map)return;
+    if(this._tileLayer){this._map.removeLayer(this._tileLayer);}
+    const t=this.TILES[this.state.mapStyle]||this.TILES.voyager;
+    this._tileLayer=L.tileLayer(t.url,{maxZoom:18}).addTo(this._map);
+    this._map.getContainer().style.background=t.bg;
+  }
+  componentWillUnmount(){clearInterval(this._t);if(this._map){this._map.remove();this._map=null;}}
+  SG_OUTLINE=[[103.638,1.264],[103.655,1.205],[103.705,1.195],[103.753,1.210],[103.820,1.197],[103.880,1.200],[103.940,1.225],[103.988,1.272],[104.010,1.315],[103.995,1.365],[103.970,1.430],[103.910,1.448],[103.850,1.468],[103.790,1.460],[103.740,1.448],[103.695,1.432],[103.655,1.405],[103.628,1.365],[103.615,1.320],[103.638,1.264]];
+  _initLeaflet(){
+    const L=window.L;
+    if(!L){setTimeout(()=>this._initLeaflet(),200);return;}
+    const el=document.getElementById('sg-live-map');
+    if(!el||this._map)return;
+    this._map=L.map(el,{center:[1.352,103.82],zoom:12,zoomControl:false,attributionControl:false});
+    const t=this.TILES[this.state.mapStyle]||this.TILES.voyager;
+    this._tileLayer=L.tileLayer(t.url,{maxZoom:18,crossOrigin:true}).addTo(this._map);
+    // Singapore island outline fallback layer
+    const outline=this.SG_OUTLINE.map(c=>[c[1],c[0]]);
+    this._outlineLayer=L.polygon(outline,{fillColor:'#c4d8e4',fillOpacity:.35,color:'#7fa8c0',weight:2,dashArray:'4,3'}).addTo(this._map);
+    // Johor strait water hint
+    L.rectangle([[1.47,103.60],[1.50,104.05]],{fillColor:'#a8cde0',fillOpacity:.25,color:'none',weight:0}).addTo(this._map);
+    L.control.zoom({position:'bottomright'}).addTo(this._map);
+    this._markers={};
+    this._updateMarkers();
+    // apply bg colour from style
+    el.style.background=t.bg;
+  }
+  _markerHtml(name,score,color,isActive){
+    return `<div class="sg-marker${isActive?' active':''}" style="border:${isActive?`2.5px solid ${color}`:`1.5px solid ${color}99`};box-shadow:${isActive?`0 4px 20px ${color}55`:'0 2px 8px rgba(0,0,0,.18)'}"><span class="mn">${name}</span><span class="ms" style="color:${color}">${score}</span></div>`;
+  }
+  _updateMarkers(){
+    const L=window.L;
+    if(!L||!this._map)return;
+    const s=this.state;
+    this.DISTRICTS.forEach(d=>{
+      const sc=this.sc(d.name);
+      const col=this.scC(sc);
+      const isA=d.name===s.district;
+      const coords=this.COORDS[d.name];
+      if(!coords)return;
+      const html=this._markerHtml(d.name,sc,col,isA);
+      const icon=L.divIcon({html,className:'',iconSize:[86,44],iconAnchor:[43,22]});
+      if(this._markers[d.name]){
+        this._markers[d.name].setIcon(icon);
+        if(isA) this._markers[d.name].setZIndexOffset(1000);
+      } else {
+        const m=L.marker(coords,{icon,zIndexOffset:isA?1000:0});
+        m.on('click',()=>this.setState({district:d.name,hoverD:null}));
+        m.on('mouseover',()=>this.setState({hoverD:d.name}));
+        m.on('mouseout',()=>this.setState({hoverD:null}));
+        m.addTo(this._map);
+        this._markers[d.name]=m;
+      }
+    });
+  }
+
+  sc(name){
+    const d=this.DISTRICTS.find(x=>x.name===name);
+    if(!d) return 70;
+    const s=this.state;
+    const mult=this.TMULT[this.TIMES[s.timeIdx]]||1;
+    const adj=(s.busW-50)*.1+(s.taxiW-30)*.08-(s.frW-20)*.12;
+    return Math.max(10,Math.min(99,Math.round(d.score*mult+adj)));
+  }
+  scC(n){return n>=80?'#059669':n>=65?'#d97706':'#dc2626';}
+  scPastel(n){return n>=80?'#ecfdf5':n>=65?'#fffbeb':'#fff1f2';}
+  scBorder(n){return n>=80?'#6ee7b7':n>=65?'#fcd34d':'#fca5a5';}
+  scL(n){return n>=80?'GOOD':n>=65?'MODERATE':'POOR';}
+
+  tS(a){return{padding:'0 15px',height:40,display:'flex',alignItems:'center',cursor:'pointer',flexShrink:0,background:'#fff',borderBottom:`2px solid ${a?'#0ea5e9':'transparent'}`};}
+  tTS(a){return{font:`${a?700:400} 9px 'Space Mono',monospace`,color:a?'#0ea5e9':'#64748b'};}
+  pS(a){return{height:26,padding:'0 10px',background:a?'rgba(14,165,233,.12)':'#f1f5f9',border:`1.5px solid ${a?'#0ea5e9':'#e2e8f0'}`,borderRadius:6,display:'flex',alignItems:'center',cursor:'pointer'};}
+  pTS(a){return{font:"700 8px 'Space Mono',monospace",color:a?'#0ea5e9':'#64748b'};}
+  preS(a){return{flex:1,border:`1.5px solid ${a?'#0ea5e9':'#e2e8f0'}`,background:a?'rgba(14,165,233,.07)':'#f8fafc',borderRadius:8,padding:'9px 10px',cursor:'pointer'};}
+  preTS(a){return{font:"700 9px 'Space Mono',monospace",color:a?'#0ea5e9':'#334155',display:'block',marginBottom:1};}
+  ringS(c){return{width:54,height:54,borderRadius:'50%',border:`3.5px solid ${c}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:`0 0 16px ${c}44`};}
+
+  renderVals(){
+    const s=this.state;
+    const day=this.DAYS[s.dayIdx], time=this.TIMES[s.timeIdx];
+    const selSc=this.sc(s.district), selC=this.scC(selSc), selL=this.scL(selSc);
+
+    const mapDistricts=this.DISTRICTS.map(d=>{
+      const sc=this.sc(d.name);
+      const isA=d.name===s.district, isH=d.name===s.hoverD;
+      const col=this.scC(sc);
+      return{
+        name:d.name, score:sc, label:this.scL(sc),
+        cS:{position:'absolute',left:d.x,top:d.y,width:d.w,height:d.h,cursor:'pointer',
+          background:isA?'rgba(255,255,255,.92)':isH?'rgba(255,255,255,.82)':'rgba(255,255,255,.55)',
+          border:isA?`2.5px solid ${col}`:isH?`2px solid ${col}`:`.5px solid ${col}55`,
+          borderRadius:7,padding:'0 12px',transition:'all .12s ease',
+          boxShadow:isA?`0 4px 20px ${col}44,0 0 0 1px ${col}22`:isH?`0 2px 10px ${col}22`:'none',
+          display:'flex',flexDirection:'column',justifyContent:'center',gap:2},
+        nS:{font:"600 8px 'Space Mono',monospace",color:'#334155',letterSpacing:'.03em',lineHeight:1},
+        scS:{font:"700 26px 'Space Mono',monospace",color:col,lineHeight:1},
+        lS:{display:'none'},
+        click:()=>this.setState({district:d.name}),
+        over:()=>this.setState({hoverD:d.name}),
+        out:()=>this.setState({hoverD:null}),
+      };
+    });
+
+    const isOv=s.tab==='overview', isFc=s.tab==='forecast', isPr=s.tab==='price', isCp=s.tab==='compare';
+    const isDdTr=s.ddTab==='transport', isDd24=s.ddTab==='24h', isDd3=s.ddTab==='price', isDd4=s.ddTab==='compare';
+    const isMon=s.fcDayIdx===0, isTue=s.fcDayIdx===1, isWed=s.fcDayIdx===2;
+    // Fix formula so busComp + taxiComp - frComp = selSc exactly
+    const frictionVal=Math.max(0,Math.sin(s.tick*.15)*.012);
+    const frComp=Math.round(frictionVal*s.frW*10);
+    const remaining=selSc+frComp;
+    const busComp=Math.round(remaining*s.busW/(s.busW+s.taxiW));
+    const taxiComp=remaining-busComp;
+    // Percentages for bars
+    const busBarPct=Math.round(busComp/selSc*100);
+    const taxiBarPct=Math.round(taxiComp/selSc*100);
+    const fScore=Math.max(10,Math.min(99,busComp+taxiComp-frComp));
+    const fColor=this.scC(fScore);
+
+    const bsSc=this.sc('Bishan'), mpSc=this.sc('Marine Pde');
+    const skSc=this.sc('Sengkang'), tpSc=this.sc('Tampines');
+    const isPre1=s.preset==='commuter', isPre2=s.preset==='budget', isPre3=s.preset==='default';
+    const dispD=s.hoverD||s.district;
+    const dispSc=this.sc(dispD), dispC=this.scC(dispSc), dispL=this.scL(dispSc);
+    const postalStopsData=s.postalResult?s.postalResult.stops.slice(0,s.radius===250?1:s.radius===500?2:3).map(stop=>({
+      id:stop.id,name:stop.name,
+      svcs:stop.services.map(svc=>{
+        const c1=svc.e1<=5?'#22c55e':svc.e1<=10?'#f59e0b':'#64748b';
+        const c2=svc.e2<=5?'#22c55e':svc.e2<=10?'#f59e0b':'#64748b';
+        return{no:svc.no,e1:`${svc.e1} min`,e2:`${svc.e2} min`,
+          e1S:{padding:'3px 9px',background:c1+'1a',border:`1px solid ${c1}55`,borderRadius:5,display:'flex',alignItems:'center'},
+          e1TS:{font:"700 9px 'Space Mono',monospace",color:c1},
+          e2S:{padding:'3px 9px',background:c2+'12',border:`1px solid ${c2}33`,borderRadius:5,display:'flex',alignItems:'center'},
+          e2TS:{font:"400 9px 'Space Mono',monospace",color:c2},
+          dotS:{width:8,height:8,borderRadius:'50%',background:c1,flexShrink:0}};
+      })
+    })):[];
+
+    return{
+      isOnboarding:s.screen==='onboarding',
+      isApp:s.screen!=='onboarding',
+      isDashboard:s.screen==='dashboard',
+      isDeepDive:s.screen==='deepdive',
+      district:s.district, day, time,
+      selScore:selSc, selColor:selC, selLabel:selL,
+      liveTaxis:s.liveTaxis,
+      mapDistricts,
+      isOv, isFc, isPr, isCp,
+      isDdTr, isDd24, isDd3, isDd4,
+      t1S:this.tS(isOv), t1TS:this.tTS(isOv),
+      t2S:this.tS(isFc), t2TS:this.tTS(isFc),
+      t3S:this.tS(isPr), t3TS:this.tTS(isPr),
+      t4S:this.tS(isCp), t4TS:this.tTS(isCp),
+      dd1S:this.tS(isDdTr), dd1TS:this.tTS(isDdTr),
+      dd2S:this.tS(isDd24), dd2TS:this.tTS(isDd24),
+      dd3S:this.tS(isDd3),  dd3TS:this.tTS(isDd3),
+      dd4S:this.tS(isDd4),  dd4TS:this.tTS(isDd4),
+      fcD1S:this.pS(isMon), fcD1TS:this.pTS(isMon),
+      fcD2S:this.pS(isTue), fcD2TS:this.pTS(isTue),
+      fcD3S:this.pS(isWed), fcD3TS:this.pTS(isWed),
+      fcDay:this.DAYS[s.fcDayIdx],
+      pre1S:this.preS(isPre1), pre1TS:this.preTS(isPre1),
+      pre2S:this.preS(isPre2), pre2TS:this.preTS(isPre2),
+      pre3S:this.preS(isPre3), pre3TS:this.preTS(isPre3),
+      showFormula:s.showFormula,
+      busW:s.busW, taxiW:s.taxiW, frW:s.frW,
+      busComp, taxiComp, frComp,
+      fScore, fColor,
+      totalW:s.busW+s.taxiW+s.frW,
+      busBarStyle:{height:5,background:'#22c55e',borderRadius:3,width:`${s.busW}%`},
+      taxiBarStyle:{height:5,background:'#38bdf8',borderRadius:3,width:`${s.taxiW}%`},
+      frBarStyle:{height:5,background:'#ef4444',borderRadius:3,width:`${s.frW}%`},
+      scoreRingStyle:this.ringS(selC),
+      scoreLabelStyle:{font:"700 11px 'Space Mono',monospace",color:selC,marginBottom:2},
+      dispD, dispSc, dispC, dispL,
+      isHovering:!!s.hoverD,
+      notHovering:!s.hoverD,
+      dispRingStyle:this.ringS(dispC),
+      dispLabelStyle:{font:"700 11px 'Space Mono',monospace",color:dispC,marginBottom:2},
+      dispBorder:'rgba(14,165,233,.35)',
+      floatCardBg:'rgba(255,255,255,.97)',
+      dispTaxis:(this.DINFO[dispD]||{taxis:10}).taxis,
+      dispBusStops:(this.DINFO[dispD]||{stops:8}).stops,
+      dispMrt:(this.DINFO[dispD]||{mrt:'–'}).mrt,
+      dispBusSvcs:((this.DINFO[dispD]||{svcs:[]}).svcs).map(no=>({
+        no,
+        pS:{padding:'2px 7px',background:'rgba(56,189,248,.1)',border:'1px solid rgba(56,189,248,.22)',borderRadius:4,font:"700 8px 'Space Mono',monospace",color:'#38bdf8'}
+      })),
+      cardCta:s.hoverD?`Explore ${s.hoverD} →`:'View Deep Dive →',
+      bigRingStyle:{width:58,height:58,borderRadius:'50%',border:`4px solid ${selC}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:`0 0 18px ${selC}44`},
+      connCardStyle:{flex:1.4,background:this.scPastel(selSc),border:`2px solid ${this.scBorder(selSc)}`,borderRadius:9,padding:'8px 12px',boxShadow:`0 0 12px ${selC}18`},
+      connLabelStyle:{font:"700 10px 'Space Mono',monospace",color:selC,letterSpacing:'.04em'},
+      connRingStyle:{width:38,height:38,borderRadius:'50%',border:`2.5px solid ${selC}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,background:`${selC}18`},
+      scorePastel:this.scPastel(selSc),
+      scoreBorder:this.scBorder(selSc),
+      ddRingStyle:this.ringS(selC),
+      ddBarStyle:{height:6,background:`linear-gradient(to right,#ef4444,#f59e0b,#22c55e)`,borderRadius:3,width:`${selSc}%`},
+      ddTitleStyle:{font:"700 16px 'Space Mono',monospace",color:'#1e293b',marginBottom:4},
+      ddSubStyle:{font:"400 8px 'Space Mono',monospace",color:'#94a3b8',marginBottom:2},
+      fmlRingStyle:this.ringS(fColor),
+      // Alert state
+      alertIdx:s.alertIdx,
+      hasAlerts:s.alertIdx>0,
+      noAlerts:s.alertIdx===0,
+      alertCount:s.alertIdx>0?1:0,
+      cycleAlert:()=>this.setState(p=>({alertIdx:(p.alertIdx+1)%4})),
+      alertBannerS:(()=>{
+        const colors={1:{bg:'#dc2626',border:'#b91c1c'},2:{bg:'#d97706',border:'#b45309'},3:{bg:'#0284c7',border:'#0369a1'}};
+        const c=colors[s.alertIdx]||colors[1];
+        return{background:c.bg,border:`1.5px solid ${c.border}`,borderRadius:10,padding:'12px 14px',boxShadow:`0 4px 20px ${c.bg}66`};
+      })(),
+      alertIcon:['','🔴','🟡','🔵'][s.alertIdx]||'🔴',
+      alertTitle:['','LOW_TAX — Taxis suddenly scarce!','HIGH_FLUX — Taxi surge/drop detected!','BUS_GAP — Bus wait > 8 min!'][s.alertIdx]||'',
+      alertDesc:['','Count dropped below mean − 2σ. Possible: rain, event, peak demand. +30min forecast: 6 taxis.','Flux > ±10 in 1 min. Peak hour starting or taxis fleeing area.','Bus 65 avg headway now 11 min. Possible breakdown or congestion on route.'][s.alertIdx]||'',
+
+      isCardRef:s.screen==='cardref',
+      goToCardRef:()=>this.setState({screen:'cardref',showFormula:false}),
+
+      // Score breakdown collapsible
+      scoreExpanded:s.scoreExpanded,
+      scoreBreakdownLabel:s.scoreExpanded?'Collapse':'Formula ↓',
+      scoreChevron:s.scoreExpanded?'M1 6l3.5-3.5L8 6':'M1 3l3.5 3.5L8 3',
+      toggleScoreBreakdown:()=>this.setState(p=>({scoreExpanded:!p.scoreExpanded})),
+
+      // 7×24 Heatmap data
+      heatmapHours:['12a','1','2','3','4','5','6','7','8','9','10','11','12p','1','2','3','4','5','6','7','8','9','10','11'],
+      heatmapRows:(()=>{
+        const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+        // Pattern: low overnight, moderate day, peak squeeze 7-9am + 6-8pm
+        const pattern=[5,4,3,3,4,5,10,22,30,55,62,65,68,65,60,62,65,72,78,55,38,22,14,8];
+        const max=Math.max(...pattern);
+        const colorFn=(v)=>{
+          const pct=v/max;
+          if(pct>0.8) return '#22c55e';
+          if(pct>0.6) return '#86efac';
+          if(pct>0.4) return '#fde68a';
+          if(pct>0.2) return '#fdba74';
+          return '#fca5a5';
+        };
+        return days.map((day,di)=>({
+          day,
+          cells:pattern.map((v,hi)=>{
+            // Weekend has different pattern
+            const wkndMult=di>=5?1.3:1;
+            // Add some variation per day
+            const dayMult=1+Math.sin(di*1.3+hi*.2)*.15;
+            const val=Math.min(max,Math.round(v*wkndMult*dayMult));
+            const isNowSlot=di===s.dayIdx&&Math.round(hi)===s.timeIdx*4;
+            return{
+              cS:{height:'14px',borderRadius:'2px',background:colorFn(val),
+                border:isNowSlot?'1.5px solid #0ea5e9':'none',
+                cursor:'default',transition:'opacity .1s'},
+            };
+          }),
+        }));
+      })(),
+
+      // Metrics strip — real prototype values
+      fluxBadge:`+${Math.max(1,Math.round(45+(s.tick%7)-3))} flux`,
+      meanWindow:(156.5+Math.sin(s.tick*.2)*2.1).toFixed(1),
+      friction:(0.000+Math.max(0,Math.sin(s.tick*.15)*.012)).toFixed(3),
+      alertCount:0,
+
+      // Leaderboard
+      leaderboardBars:(()=>{
+        const sorted=[...this.DISTRICTS].sort((a,b)=>this.sc(b.name)-this.sc(a.name));
+        const top=sorted.slice(0,10);
+        const maxSc=this.sc(top[0].name)||1;
+        return top.map(d=>{
+          const sc=this.sc(d.name),col=this.scC(sc);
+          const isA=d.name===s.district;
+          return{
+            name:d.name.length>8?d.name.substring(0,8)+'…':d.name,
+            score:sc,
+            colS:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',cursor:'pointer'},
+            scoreS:{font:"700 7px 'Space Mono',monospace",color:col,marginBottom:2,textAlign:'center'},
+            barS:{width:'100%',height:`${Math.round(sc/maxSc*68)}px`,background:isA?col:`${col}88`,borderRadius:'3px 3px 0 0',border:isA?`2px solid ${col}`:'none',transition:'height .3s ease'},
+            nameS:{font:"400 6px 'Space Mono',monospace",color:isA?'#1e293b':'#94a3b8',marginTop:4,textAlign:'center',lineHeight:1.2,whiteSpace:'nowrap',overflow:'hidden',maxWidth:'100%'},
+          };
+        });
+      })(),
+      leaderboardRows:(()=>{
+        const sorted=[...this.DISTRICTS].sort((a,b)=>this.sc(b.name)-this.sc(a.name));
+        return sorted.slice(0,8).map((d,i)=>{
+          const sc=this.sc(d.name),col=this.scC(sc);
+          const isA=d.name===s.district;
+          const verdict=sc>=75?'Well connected':sc>=50?'Moderate':'Poor';
+          return{
+            name:d.name, score:sc, verdict,
+            rowS:{display:'grid',gridTemplateColumns:'1fr 64px 110px',padding:'7px 12px',borderBottom:i<7?'1px solid #f1f5f9':'none',background:isA?'#f0f9ff':'transparent'},
+            nameS:{font:`${isA?700:400} 9px 'Space Mono',monospace`,color:isA?'#0284c7':'#334155'},
+            scS:{font:"700 9px 'Space Mono',monospace",color:col},
+            dotS:{width:7,height:7,borderRadius:'50%',background:col,flexShrink:0},
+            vtS:{font:"400 8px 'Space Mono',monospace",color:col},
+          };
+        });
+      })(),
+
+      // Price snapshot for overview
+      vfmTop5:this.VFM_DATA.slice(0,5).map((v,i)=>({rank:i+1,town:v.town,vfm:v.vfm.toFixed(1),avg:v.avg})),
+      distAvg:(()=>{const d=this.PRICE_DATA[s.district]||this.PRICE_DATA['Ang Mo Kio'];return'S$'+Math.round(d.avg/1000)+'k';})(),
+      distMedian:(()=>{const d=this.PRICE_DATA[s.district]||this.PRICE_DATA['Ang Mo Kio'];return'S$'+Math.round(d.median/1000)+'k';})(),
+      distTxn:(()=>{const d=this.PRICE_DATA[s.district]||this.PRICE_DATA['Ang Mo Kio'];return d.txn;})(),
+
+      // Price tab real data
+      priceRows:Object.entries(this.PRICE_DATA).map(([town,d],i)=>({
+        town, 
+        avg:`S$${d.avg.toLocaleString()}`,
+        median:`S$${d.median.toLocaleString()}`,
+        txn:d.txn,
+        rowS:{display:'grid',gridTemplateColumns:'1.4fr 1fr 1fr 80px',padding:'7px 14px',borderBottom:'1px solid #f1f5f9',background:town===s.district?'#f0f9ff':'transparent'},
+        nameS:{font:`${town===s.district?700:400} 9px 'Space Mono',monospace`,color:town===s.district?'#0284c7':'#334155'},
+      })),
+      vfmRows:this.VFM_DATA.map((d,i)=>({
+        ...d,
+        rowS:{display:'grid',gridTemplateColumns:'1.4fr 1fr 80px 120px',padding:'7px 14px',borderBottom:i<this.VFM_DATA.length-1?'1px solid #f1f5f9':'none'},
+      })),
+
+      isGlossary:s.screen==='glossary',
+      goToGlossary:()=>this.setState({screen:'glossary',showFormula:false}),
+
+      bsSc, mpSc, skSc, tpSc,
+      isPostalResult:s.screen==='postalresult',
+      postalQ:s.postalQ||'',
+      postalBlock:s.postalResult?s.postalResult.block:'',
+      postalUnit:s.postalResult?s.postalResult.unit:'',
+      postalDistrict:s.postalResult?s.postalResult.district:'',
+      postalTaxis:s.postalResult?(s.postalResult.taxis[s.radius]||0):0,
+      postalStopsCount:s.postalResult?(s.postalResult.sc[s.radius]||0):0,
+      radiusLabel:s.radius===250?'250m':s.radius===500?'500m':'1 km',
+      r250S:this.pS(s.radius===250),r250TS:this.pTS(s.radius===250),
+      r500S:this.pS(s.radius===500),r500TS:this.pTS(s.radius===500),
+      r1kS:this.pS(s.radius===1000),r1kTS:this.pTS(s.radius===1000),
+      postalStopsData,
+      setR250:()=>this.setState({radius:250}),
+      setR500:()=>this.setState({radius:500}),
+      setR1k:()=>this.setState({radius:1000}),
+      goToPostalDeepDive:()=>this.setState({screen:'deepdive',ddTab:'transport'}),
+      searchQ:s.searchQ,
+
+      startExploring:()=>this.setState({screen:'dashboard'}),
+      goHome:()=>this.setState({screen:'dashboard',showFormula:false,showDistrictPicker:false,showDayPicker:false,showTimePicker:false}),
+      goToDeepDive:()=>this.setState({screen:'deepdive',ddTab:'transport',district:s.hoverD||s.district}),
+      toggleFormula:()=>this.setState(p=>({showFormula:!p.showFormula})),
+      stopPropagation:(e)=>e.stopPropagation(),
+      mapStyleOptions:Object.entries(this.TILES).map(([k,v])=>{
+        const isA=s.mapStyle===k;
+        return{
+          label:v.label,
+          btnS:{padding:'4px 9px',background:isA?'rgba(14,165,233,.9)':'rgba(7,12,26,.82)',border:`1px solid ${isA?'#0ea5e9':'rgba(255,255,255,.18)'}`,borderRadius:5,cursor:'pointer',opacity:isA?1:.7,transition:'all .15s'},
+          txtS:{font:`${isA?700:400} 8px 'Space Mono',monospace`,color:isA?'#fff':'rgba(255,255,255,.7)'},
+          select:()=>this.setState({mapStyle:k}),
+        };
+      }),
+      toggleDistrictPicker:()=>this.setState(p=>({showDistrictPicker:!p.showDistrictPicker,showDayPicker:false,showTimePicker:false})),
+      showDistrictPicker:s.showDistrictPicker,
+      districtOptions:this.DISTRICTS.map(d=>{
+        const sc=this.sc(d.name);
+        const col=this.scC(sc);
+        const isA=d.name===s.district;
+        return{
+          label:d.name, sc, active:isA,
+          rowS:{padding:'8px 14px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,background:isA?'rgba(14,165,233,.1)':'transparent',borderBottom:'1px solid #1e293b'},
+          textS:{font:`${isA?700:400} 9px 'Space Mono',monospace`,color:isA?'#38bdf8':'rgba(255,255,255,.6)'},
+          dotS:{width:7,height:7,borderRadius:'50%',background:col,flexShrink:0},
+          scS:{font:"700 9px 'Space Mono',monospace",color:col},
+          select:()=>this.setState({district:d.name,showDistrictPicker:false},()=>this._updateMarkers()),
+        };
+      }),
+      toggleDayPicker:()=>this.setState(p=>({showDayPicker:!p.showDayPicker,showTimePicker:false,showDistrictPicker:false})),
+      toggleTimePicker:()=>this.setState(p=>({showTimePicker:!p.showTimePicker,showDayPicker:false})),
+      dayOptions:this.DAYS.map((d,i)=>({
+        label:d, active:i===s.dayIdx,
+        rowS:{padding:'9px 14px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,background:i===s.dayIdx?'rgba(14,165,233,.1)':'transparent',borderBottom:'1px solid #1e293b'},
+        textS:{font:`${i===s.dayIdx?700:400} 10px 'Space Mono',monospace`,color:i===s.dayIdx?'#38bdf8':'rgba(255,255,255,.6)'},
+        select:()=>this.setState({dayIdx:i,showDayPicker:false}),
+      })),
+      timeOptions:this.TIMES.map((t,i)=>({
+        label:t, active:i===s.timeIdx,
+        rowS:{padding:'9px 14px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,background:i===s.timeIdx?'rgba(14,165,233,.1)':'transparent',borderBottom:'1px solid #1e293b'},
+        textS:{font:`${i===s.timeIdx?700:400} 10px 'Space Mono',monospace`,color:i===s.timeIdx?'#38bdf8':'rgba(255,255,255,.6)'},
+        select:()=>this.setState({timeIdx:i,showTimePicker:false}),
+      })),
+      showDayPicker:s.showDayPicker,
+      showTimePicker:s.showTimePicker,
+      cycleDay:()=>this.setState(p=>({dayIdx:(p.dayIdx+1)%this.DAYS.length})),
+      cycleTime:()=>this.setState(p=>({timeIdx:(p.timeIdx+1)%this.TIMES.length})),
+      setOvTab:()=>this.setState({tab:'overview'}),
+      setFcTab:()=>this.setState({tab:'forecast'}),
+      setPrTab:()=>this.setState({tab:'price'}),
+      setCpTab:()=>this.setState({tab:'compare'}),
+      setDdTr:()=>this.setState({ddTab:'transport'}),
+      setDd24:()=>this.setState({ddTab:'24h'}),
+      setDd3:()=>this.setState({ddTab:'price'}),
+      setDd4:()=>this.setState({ddTab:'compare'}),
+      setFcMon:()=>this.setState({fcDayIdx:0}),
+      setFcTue:()=>this.setState({fcDayIdx:1}),
+      setFcWed:()=>this.setState({fcDayIdx:2}),
+      setPresetCommuter:()=>this.setState({busW:60,taxiW:30,frW:10,preset:'commuter'}),
+      setPresetBudget:()=>this.setState({busW:35,taxiW:25,frW:40,preset:'budget'}),
+      setPresetDefault:()=>this.setState({busW:50,taxiW:30,frW:20,preset:'default'}),
+      setBusW:(e)=>{
+        const v=parseInt(e.target.value), rem=100-v;
+        const t=this.state.taxiW, f=this.state.frW, tf=t+f;
+        this.setState({busW:v,taxiW:tf>0?Math.round(t/tf*rem):Math.floor(rem/2),frW:tf>0?rem-Math.round(t/tf*rem):Math.ceil(rem/2),preset:'custom'});
+      },
+      setTaxiW:(e)=>{
+        const v=parseInt(e.target.value), rem=100-v;
+        const b=this.state.busW, f=this.state.frW, bf=b+f;
+        this.setState({taxiW:v,busW:bf>0?Math.round(b/bf*rem):Math.floor(rem/2),frW:bf>0?rem-Math.round(b/bf*rem):Math.ceil(rem/2),preset:'custom'});
+      },
+      setFrW:(e)=>{
+        const v=parseInt(e.target.value), rem=100-v;
+        const b=this.state.busW, t=this.state.taxiW, bt=b+t;
+        this.setState({frW:v,busW:bt>0?Math.round(b/bt*rem):Math.floor(rem/2),taxiW:bt>0?rem-Math.round(b/bt*rem):Math.ceil(rem/2),preset:'custom'});
+      },
+      setSearch:(e)=>this.setState({searchQ:e.target.value}),
+      handleSearch:(e)=>{
+        if(e.key==='Enter'&&e.target.value.trim()){
+          const q=e.target.value.trim();
+          if(/^\d{6}$/.test(q)){
+            const data=this.POSTAL[q]||{block:`Blk (postal ${q})`,unit:'',district:'Punggol',
+              stops:[{id:'00001',name:'Nearest Bus Stop',services:[{no:'--',e1:5,e2:12},{no:'--',e1:8,e2:20}]}],
+              taxis:{250:2,500:6,1000:11},sc:{250:1,500:3,1000:7}};
+            this.setState({screen:'postalresult',postalResult:data,postalQ:q,searchQ:'',district:data.district});
+          } else {
+            const m=this.DISTRICTS.find(d=>d.name.toLowerCase().includes(q.toLowerCase()));
+            if(m) this.setState({district:m.name,screen:'deepdive',searchQ:'',ddTab:'transport'});
+          }
+        }
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>

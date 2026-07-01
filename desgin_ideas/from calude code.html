@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HDB Liveability Dashboard</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Space Mono',monospace;background:#0d1520;color:#e2e8f0;min-height:100vh;overflow-x:hidden}
+#app{min-height:100vh}
+button{font-family:'Space Mono',monospace;cursor:pointer;border:none;outline:none}
+input{font-family:'Space Mono',monospace;outline:none}
+select{font-family:'Space Mono',monospace;cursor:pointer}
+
+/* Onboarding */
+.onboarding{min-height:100vh;background:linear-gradient(135deg,#0d1520 0%,#1a2540 50%,#0d1520 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center}
+.ob-logo{width:80px;height:80px;background:linear-gradient(135deg,#3b82f6,#6366f1);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 2rem;font-size:2rem}
+.ob-title{font-size:2.2rem;font-weight:700;color:#fff;margin-bottom:.5rem}
+.ob-subtitle{font-size:.9rem;color:#94a3b8;margin-bottom:3rem;max-width:400px;line-height:1.6}
+.ob-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;max-width:600px;width:100%;margin-bottom:3rem}
+.ob-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:1.2rem;text-align:left}
+.ob-card-icon{font-size:1.5rem;margin-bottom:.5rem}
+.ob-card-title{font-size:.75rem;font-weight:700;color:#fff;margin-bottom:.3rem}
+.ob-card-desc{font-size:.65rem;color:#64748b;line-height:1.5}
+.ob-btn{background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:.9rem;font-weight:700;padding:.9rem 2.5rem;border-radius:10px;border:none;cursor:pointer;transition:opacity .2s}
+.ob-btn:hover{opacity:.9}
+.ob-note{font-size:.65rem;color:#475569;margin-top:1rem}
+
+/* Navbar */
+.navbar{background:#111827;border-bottom:1px solid #1e293b;padding:.6rem 1rem;display:flex;align-items:center;gap:.6rem;position:sticky;top:0;z-index:100;flex-wrap:wrap}
+.nav-back{background:rgba(255,255,255,.08);color:#94a3b8;font-size:.7rem;padding:.35rem .7rem;border-radius:6px;border:1px solid #1e293b;display:flex;align-items:center;gap:.3rem;cursor:pointer}
+.nav-back:hover{background:rgba(255,255,255,.12)}
+.nav-search{flex:1;min-width:140px;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:.4rem .7rem;color:#e2e8f0;font-size:.75rem}
+.nav-search::placeholder{color:#475569}
+.nav-select{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:.4rem .5rem;color:#e2e8f0;font-size:.72rem}
+.nav-icon-btn{background:rgba(255,255,255,.05);border:1px solid #1e293b;border-radius:8px;padding:.4rem .6rem;color:#94a3b8;font-size:.9rem;cursor:pointer}
+.nav-icon-btn:hover{background:rgba(255,255,255,.1)}
+
+/* Map */
+.map-hero{position:relative;height:380px}
+#map{width:100%;height:100%}
+.map-score-card{position:absolute;top:12px;left:12px;z-index:400;background:rgba(17,24,39,.92);border:1px solid #334155;border-radius:12px;padding:.8rem 1rem;min-width:160px;backdrop-filter:blur(8px)}
+.msc-district{font-size:.65rem;color:#64748b;margin-bottom:.2rem;text-transform:uppercase;letter-spacing:.05em}
+.msc-score{font-size:2rem;font-weight:700;line-height:1}
+.msc-label{font-size:.65rem;font-weight:700;margin-top:.2rem;text-transform:uppercase;letter-spacing:.05em}
+.msc-formula{font-size:.55rem;color:#64748b;margin-top:.3rem}
+.map-style-picker{position:absolute;top:12px;right:12px;z-index:400;display:flex;flex-direction:column;gap:.3rem}
+.msp-btn{background:rgba(17,24,39,.88);border:1px solid #334155;border-radius:6px;padding:.3rem .5rem;color:#94a3b8;font-size:.6rem;cursor:pointer;text-align:center;transition:all .15s}
+.msp-btn.active,.msp-btn:hover{background:#3b82f6;color:#fff;border-color:#3b82f6}
+.map-legend{position:absolute;bottom:12px;left:12px;z-index:400;background:rgba(17,24,39,.88);border:1px solid #334155;border-radius:8px;padding:.5rem .7rem;backdrop-filter:blur(4px)}
+.ml-item{display:flex;align-items:center;gap:.4rem;font-size:.6rem;color:#94a3b8;margin-bottom:.2rem}
+.ml-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* Metrics strip */
+.metrics-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#0d1520;border-bottom:1px solid #1e293b}
+@media(min-width:600px){.metrics-strip{grid-template-columns:repeat(6,1fr)}}
+.metric-card{background:#111827;padding:.8rem .6rem;text-align:center}
+.mc-label{font-size:.55rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem}
+.mc-value{font-size:1.1rem;font-weight:700;color:#e2e8f0}
+.mc-unit{font-size:.6rem;color:#475569;margin-top:.1rem}
+.mc-trend{font-size:.6rem;margin-top:.2rem}
+
+/* Tab bar */
+.tab-bar{display:flex;background:#111827;border-bottom:1px solid #1e293b;overflow-x:auto}
+.tab-btn{flex:1;min-width:80px;padding:.7rem .4rem;font-size:.65rem;font-weight:700;color:#475569;text-align:center;cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;text-transform:uppercase;letter-spacing:.04em}
+.tab-btn.active{color:#3b82f6;border-bottom-color:#3b82f6}
+.tab-btn:hover:not(.active){color:#94a3b8}
+
+/* Tab content */
+.tab-content{padding:1rem;background:#0d1520;min-height:300px}
+
+/* Overview */
+.section-title{font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.8rem}
+.alert-banner{border-radius:8px;padding:.7rem .9rem;margin-bottom:1rem;display:flex;align-items:center;gap:.6rem;font-size:.72rem}
+.ab-clear{background:#0f2027;border:1px solid #164e63;color:#67e8f9}
+.ab-low{background:#2d1515;border:1px solid #7f1d1d;color:#fca5a5}
+.ab-flux{background:#2d2208;border:1px solid #713f12;color:#fcd34d}
+.ab-bus{background:#0f1b3a;border:1px solid #1e3a5f;color:#93c5fd}
+.bus-svc-list{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem}
+.bus-svc{background:#1e293b;border:1px solid #334155;border-radius:6px;padding:.3rem .6rem;font-size:.7rem;color:#e2e8f0}
+.chart-placeholder{background:#111827;border:1px solid #1e293b;border-radius:8px;height:140px;display:flex;align-items:center;justify-content:center;color:#334155;font-size:.75rem;margin-bottom:1rem;position:relative;overflow:hidden}
+.bar-chart{display:flex;align-items:flex-end;gap:2px;height:100%;width:100%;padding:.5rem}
+.bar{flex:1;border-radius:2px 2px 0 0;min-height:4px;transition:height .3s}
+.activity-list{display:flex;flex-direction:column;gap:.5rem}
+.activity-item{background:#111827;border:1px solid #1e293b;border-radius:8px;padding:.6rem .8rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.ai-left{display:flex;align-items:center;gap:.6rem}
+.ai-icon{font-size:1rem;width:28px;text-align:center}
+.ai-text{font-size:.7rem;color:#e2e8f0}
+.ai-sub{font-size:.6rem;color:#475569}
+.ai-badge{font-size:.6rem;font-weight:700;padding:.2rem .5rem;border-radius:20px}
+.badge-good{background:#ecfdf5;color:#059669}
+.badge-mod{background:#fffbeb;color:#d97706}
+.badge-poor{background:#fff1f2;color:#dc2626}
+
+/* Heatmap */
+.heatmap-grid{display:grid;grid-template-columns:auto repeat(7,1fr);gap:2px;font-size:.55rem}
+.hm-header{color:#475569;text-align:center;padding:.2rem;font-weight:700}
+.hm-row-label{color:#475569;padding:.2rem .4rem;display:flex;align-items:center;white-space:nowrap;font-size:.55rem}
+.hm-cell{height:28px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:.5rem;font-weight:700;color:rgba(255,255,255,.8);cursor:pointer;transition:transform .1s}
+.hm-cell:hover{transform:scale(1.1);z-index:10;position:relative;box-shadow:0 0 8px rgba(0,0,0,.5)}
+
+/* Price Trends */
+.price-row{display:flex;align-items:center;gap:.5rem;padding:.5rem 0;border-bottom:1px solid #1e293b;font-size:.72rem}
+.price-rank{color:#475569;width:20px;text-align:right;flex-shrink:0}
+.price-town{flex:1;color:#e2e8f0;min-width:80px}
+.price-bar-wrap{width:80px;height:8px;background:#1e293b;border-radius:4px;overflow:hidden;flex-shrink:0}
+.price-bar{height:100%;border-radius:4px}
+.price-val{width:70px;text-align:right;color:#94a3b8;font-size:.6rem}
+
+/* Compare */
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.compare-card{border-radius:10px;padding:1rem;border:1px solid}
+.cc-name{font-size:.75rem;font-weight:700;margin-bottom:.3rem}
+.cc-score{font-size:1.8rem;font-weight:700;margin-bottom:.3rem}
+.cc-stat{font-size:.65rem;margin-bottom:.2rem}
+
+/* Deep Dive */
+.dd-hero{background:linear-gradient(135deg,#1a2540,#0d1520);padding:1.2rem;border-bottom:1px solid #1e293b}
+.score-bar-row{margin-bottom:.8rem}
+.sbr-label{display:flex;justify-content:space-between;font-size:.65rem;margin-bottom:.3rem}
+.sbr-label span:first-child{color:#94a3b8}
+.sbr-label span:last-child{font-weight:700}
+.sbr-track{height:8px;background:#1e293b;border-radius:4px;overflow:hidden}
+.sbr-fill{height:100%;border-radius:4px}
+
+/* Postal */
+.postal-hero{background:#111827;border-bottom:1px solid #1e293b;padding:1rem}
+.radius-tabs{display:flex;gap:.4rem;margin-bottom:1rem}
+.radius-tab{padding:.3rem .7rem;border-radius:6px;font-size:.65rem;font-weight:700;cursor:pointer;border:1px solid #334155;background:#1e293b;color:#64748b}
+.radius-tab.active{background:#3b82f6;border-color:#3b82f6;color:#fff}
+.stop-list{display:flex;flex-direction:column;gap:.4rem}
+.stop-item{background:#111827;border:1px solid #1e293b;border-radius:8px;padding:.6rem .8rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
+.si-name{font-size:.72rem;color:#e2e8f0}
+.si-dist{font-size:.6rem;color:#475569}
+.si-svcs{display:flex;gap:.3rem;flex-wrap:wrap}
+.si-svc{background:#1e293b;border-radius:4px;padding:.15rem .35rem;font-size:.55rem;color:#94a3b8}
+
+/* Glossary */
+.gloss-list{display:flex;flex-direction:column;gap:.5rem}
+.gloss-item{background:#111827;border:1px solid #1e293b;border-radius:8px;padding:.8rem}
+.gloss-term{font-size:.75rem;font-weight:700;color:#3b82f6;margin-bottom:.3rem}
+.gloss-def{font-size:.68rem;color:#94a3b8;line-height:1.6}
+.gloss-formula{background:#0d1520;border:1px solid #334155;border-radius:6px;padding:.5rem;margin-top:.4rem;font-size:.6rem;color:#67e8f9;font-family:'Space Mono',monospace}
+
+/* Card Layout */
+.cl-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem}
+.cl-card{border-radius:10px;padding:1rem;border:1px solid}
+.cl-card-title{font-size:.75rem;font-weight:700;margin-bottom:.3rem}
+.cl-card-score{font-size:2rem;font-weight:700}
+.cl-card-sub{font-size:.6rem;margin-top:.2rem}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)}
+.modal{background:#111827;border:1px solid #334155;border-radius:14px;width:100%;max-width:380px;padding:1.5rem}
+.modal-close{float:right;background:rgba(255,255,255,.1);border:none;color:#94a3b8;cursor:pointer;border-radius:6px;padding:.2rem .5rem;font-size:.8rem}
+
+/* District marker */
+.dist-marker{background:#fff;border-radius:8px;padding:2px 5px;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;border:2px solid;cursor:pointer;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3);transition:transform .1s;line-height:1.4}
+.dist-marker:hover{transform:scale(1.1)}
+
+.ticker-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite;vertical-align:middle}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.live-row{display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;font-size:.7rem;color:#94a3b8}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+const TILES = {
+  voyager:{url:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',label:'Voyager'},
+  dark:{url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',label:'Dark'},
+  light:{url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',label:'Minimal'},
+  street:{url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',label:'Street'},
+  satellite:{url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',label:'Satellite'},
+};
+
+const COORDS = {
+  'Woodlands':[1.437,103.786],'Yishun':[1.429,103.835],'Ang Mo Kio':[1.370,103.849],
+  'Sengkang':[1.392,103.895],'Punggol':[1.405,103.909],'Pasir Ris':[1.372,103.949],
+  'Jurong East':[1.333,103.742],'Bishan':[1.351,103.848],'Toa Payoh':[1.332,103.847],
+  'Tampines':[1.354,103.944],'Bedok':[1.324,103.930],'Marine Pde':[1.302,103.906],
+  'Jurong West':[1.340,103.706],'Queenstown':[1.295,103.806],'CBD':[1.287,103.852],
+  'Geylang':[1.318,103.872],'Bedok South':[1.310,103.932],'Kallang':[1.311,103.862],
+};
+
+const DISTRICTS = [
+  {name:'Woodlands',score:65},{name:'Yishun',score:71},{name:'Ang Mo Kio',score:78},
+  {name:'Sengkang',score:74},{name:'Punggol',score:72},{name:'Pasir Ris',score:68},
+  {name:'Jurong East',score:79},{name:'Bishan',score:88},{name:'Toa Payoh',score:80},
+  {name:'Tampines',score:82},{name:'Bedok',score:77},{name:'Marine Pde',score:51},
+  {name:'Jurong West',score:71},{name:'Queenstown',score:85},{name:'CBD',score:94},
+  {name:'Geylang',score:63},{name:'Bedok South',score:70},{name:'Kallang',score:76},
+];
+
+const DINFO = {
+  'Woodlands':{taxis:6,stops:8,mrt:'0.8km Wdlands',svcs:['170','856','858','912','913']},
+  'Yishun':{taxis:9,stops:10,mrt:'0.6km Yishun',svcs:['67','117','169','811','812']},
+  'Ang Mo Kio':{taxis:12,stops:14,mrt:'0.3km AMK',svcs:['26','73','88','159','261']},
+  'Sengkang':{taxis:8,stops:9,mrt:'0.5km Sengkang',svcs:['34','62','68','83','86']},
+  'Punggol':{taxis:14,stops:12,mrt:'1.2km Punggol',svcs:['84','85','386','386E','3']},
+  'Pasir Ris':{taxis:7,stops:9,mrt:'0.4km Pasir Ris',svcs:['3','6','17','89','89E']},
+  'Jurong East':{taxis:15,stops:16,mrt:'0.2km Jurong E',svcs:['52','66','98','178','333']},
+  'Bishan':{taxis:16,stops:14,mrt:'0.3km Bishan',svcs:['13','52','88','157','163']},
+  'Toa Payoh':{taxis:14,stops:13,mrt:'0.4km Toa Payoh',svcs:['21','59','138','145','238']},
+  'Tampines':{taxis:13,stops:15,mrt:'0.5km Tampines',svcs:['8','65','65A','293','296']},
+  'Bedok':{taxis:11,stops:12,mrt:'0.4km Bedok',svcs:['65','229','238','243','243A']},
+  'Marine Pde':{taxis:5,stops:6,mrt:'2.1km Parkway',svcs:['31','36','155','197','401']},
+  'Jurong West':{taxis:10,stops:11,mrt:'0.7km Boon Lay',svcs:['182','182E','185','240','241']},
+  'Queenstown':{taxis:16,stops:14,mrt:'0.3km Queenstn',svcs:['51','111','175','185','970']},
+  'CBD':{taxis:28,stops:22,mrt:'0.1km Raffles',svcs:['106','107','131','162','196']},
+  'Geylang':{taxis:9,stops:8,mrt:'0.6km Aljunied',svcs:['2','13','21','65','67']},
+  'Bedok South':{taxis:8,stops:9,mrt:'0.8km Bedok',svcs:['12','65','228','243','65A']},
+  'Kallang':{taxis:12,stops:11,mrt:'0.5km Kallang',svcs:['11','12','16','48','67']},
+};
+
+const PRICE_DATA = {
+  'Central Area':{avg:1091709,median:1194444,txn:72},'Queenstown':{avg:1003366,median:1000000,txn:255},
+  'Toa Payoh':{avg:929497,median:990000,txn:408},'Bukit Merah':{avg:883314,median:937500,txn:356},
+  'Kallang':{avg:883134,median:908000,txn:277},'Bukit Timah':{avg:867118,median:922500,txn:16},
+  'Clementi':{avg:838652,median:876000,txn:216},'Bishan':{avg:791582,median:790000,txn:181},
+  'Geylang':{avg:780709,median:700000,txn:239},'Ang Mo Kio':{avg:723106,median:609444,txn:290},
+  'Tampines':{avg:650000,median:635000,txn:312},'Bedok':{avg:638000,median:622000,txn:298},
+  'Woodlands':{avg:563467,median:550000,txn:187},'Jurong East':{avg:563406,median:548000,txn:203},
+  'Yishun':{avg:561777,median:545000,txn:244},'Chua Chu Kang':{avg:558530,median:542000,txn:168},
+  'Jurong West':{avg:552840,median:538000,txn:221},'Sengkang':{avg:590000,median:575000,txn:310},
+  'Punggol':{avg:580000,median:565000,txn:289},'Pasir Ris':{avg:575000,median:560000,txn:145},
+  'Hougang':{avg:629888,median:615000,txn:199},'Marine Pde':{avg:647124,median:615333,txn:349},
+};
+
+const VFM_DATA = [
+  {town:'Jurong West',vfm:75.0,avg:'S$552,840',verdict:'Great value'},
+  {town:'Chua Chu Kang',vfm:74.5,avg:'S$558,530',verdict:'Great value'},
+  {town:'Yishun',vfm:74.2,avg:'S$561,777',verdict:'Great value'},
+  {town:'Woodlands',vfm:74.2,avg:'S$563,467',verdict:'Great value'},
+  {town:'Jurong East',vfm:74.0,avg:'S$563,406',verdict:'Great value'},
+  {town:'Bukit Panjang',vfm:72.3,avg:'S$582,237',verdict:'Great value'},
+  {town:'Sembawang',vfm:69.0,avg:'S$617,144',verdict:'Great value'},
+  {town:'Bukit Batok',vfm:68.2,avg:'S$626,015',verdict:'Great value'},
+  {town:'Hougang',vfm:67.9,avg:'S$629,888',verdict:'Great value'},
+  {town:'Marine Parade',vfm:66.3,avg:'S$647,124',verdict:'Great value'},
+];
+
+const POSTAL = {
+  '825234':{block:'Blk 234E Punggol Way',unit:'#10-234',district:'Punggol',
+    stops:[
+      {name:'Punggol MRT/LRT Stn',dist:'180m',svcs:['LRT','PG','PCE']},
+      {name:'Blk 234E Bus Stop',dist:'50m',svcs:['84','85','386']},
+      {name:'Punggol Central Int',dist:'320m',svcs:['83','84E','386E']},
+    ],taxis:{250:3,500:8,1000:14},sc:{250:2,500:5,1000:9}},
+  '820413':{block:'Blk 413A Punggol Central',unit:'#12-24',district:'Punggol',
+    stops:[
+      {name:'Punggol Central Stn',dist:'120m',svcs:['LRT','PG']},
+      {name:'Blk 413 Bus Stop',dist:'80m',svcs:['84','386','386E']},
+      {name:'Oasis LRT Station',dist:'400m',svcs:['LRT']},
+    ],taxis:{250:5,500:12,1000:19},sc:{250:3,500:6,1000:11}},
+  '570033':{block:'Blk 33 Bishan St 13',unit:'#08-182',district:'Bishan',
+    stops:[
+      {name:'Bishan MRT Station',dist:'200m',svcs:['NSL','CCL']},
+      {name:'Blk 33 Bus Stop',dist:'60m',svcs:['13','52','88']},
+      {name:'Bishan Bus Interchange',dist:'350m',svcs:['157','163','165']},
+    ],taxis:{250:6,500:14,1000:22},sc:{250:3,500:7,1000:12}},
+  '730207':{block:'Blk 207 Ang Mo Kio Ave 3',unit:'#05-1072',district:'Ang Mo Kio',
+    stops:[
+      {name:'Ang Mo Kio MRT',dist:'250m',svcs:['NSL']},
+      {name:'Blk 207 Bus Stop',dist:'40m',svcs:['26','73','88']},
+      {name:'AMK Hub Bus Stop',dist:'300m',svcs:['159','261','265']},
+    ],taxis:{250:4,500:11,1000:18},sc:{250:2,500:5,1000:10}},
+  '150033':{block:'Blk 33 Queenstown Rd',unit:'#06-888',district:'Queenstown',
+    stops:[
+      {name:'Queenstown MRT Stn',dist:'150m',svcs:['EWL']},
+      {name:'Blk 33 QT Bus Stop',dist:'90m',svcs:['51','111','185']},
+      {name:'Commonwealth Ave Stop',dist:'280m',svcs:['175','970']},
+    ],taxis:{250:7,500:16,1000:25},sc:{250:3,500:7,1000:13}},
+};
+
+const DAYS_SHORT = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const TIMES_FULL = ['6–8am','8–10am','10am–12pm','12–2pm','2–4pm','4–6pm','6–8pm'];
+
+const GLOSSARY = [
+  {term:'Liveability Score',def:'A composite index (0–100) measuring how well-connected and transport-accessible an HDB district is. Combines public bus coverage, taxi availability, and friction factors.',formula:'Score = Bus×50% + Taxi×30% − Friction×20%'},
+  {term:'Bus Index (50%)',def:'Weighted by number of unique services passing through district bus stops, proximity of stops to residential blocks, and frequency during peak hours.'},
+  {term:'Taxi Index (30%)',def:'Represents real-time taxi availability within 500m radius. Updated every 2.5s from LTA DataMall. Higher counts reflect better on-demand mobility.'},
+  {term:'Friction Factor (20%)',def:'Penalises districts with traffic congestion, long waiting times at bus stops, or poor pedestrian connectivity between MRT exits and residences.'},
+  {term:'GOOD (≥80)',def:'District has excellent transport connectivity. Residents can reliably access public transit within a 5-minute walk during all periods including off-peak.'},
+  {term:'MODERATE (65–79)',def:'District has acceptable transport options but may experience gaps during off-peak hours or in sub-zones further from the MRT/interchange.'},
+  {term:'POOR (<65)',def:'District has limited or unreliable transport. May lack MRT access, have infrequent bus services, or experience chronic taxi shortfalls during peak demand.'},
+  {term:'Value-for-Money (VFM)',def:'Composite of liveability score divided by median resale price (per sqm normalised). Higher VFM means better transport access per dollar spent.'},
+  {term:'7×24 Heatmap',def:'Visualises taxi demand patterns across 7 time slots and 7 days of the week. Darker colours = higher demand; red = critically high demand.'},
+  {term:'Anomaly Alert',def:'System flag when live metrics deviate >2σ from 30-day baseline. LOW_TAX = taxi shortage, HIGH_FLUX = unusual demand surge, BUS_GAP = service disruption.'},
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const state = {
+  screen: 'onboarding',
+  district: 'Bishan',
+  day: 'Mon',
+  time: '8–10am',
+  tab: 'overview',
+  tileKey: 'dark',
+  anomaly: 0,
+  showWeightsModal: false,
+  postalRadius: 500,
+  postalCode: '570033',
+  postalSearch: '',
+  liveTaxis: {},
+};
+
+DISTRICTS.forEach(d => { state.liveTaxis[d.name] = DINFO[d.name].taxis; });
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function grade(score) { return score >= 80 ? 'GOOD' : score >= 65 ? 'MODERATE' : 'POOR'; }
+function gradeColor(score) { return score >= 80 ? '#059669' : score >= 65 ? '#d97706' : '#dc2626'; }
+function gradePastel(score) { return score >= 80 ? '#ecfdf5' : score >= 65 ? '#fffbeb' : '#fff1f2'; }
+function gradeBorder(score) { return score >= 80 ? '#6ee7b7' : score >= 65 ? '#fcd34d' : '#fca5a5'; }
+function gradeBadge(score) { return score >= 80 ? 'badge-good' : score >= 65 ? 'badge-mod' : 'badge-poor'; }
+function getScore(name) { const d = DISTRICTS.find(x => x.name === name); return d ? d.score : 75; }
+
+function fmt(n) {
+  return n >= 1000000 ? 'S$' + (n/1000000).toFixed(2) + 'M' : 'S$' + n.toLocaleString();
+}
+
+function heatVal(t, d) {
+  const ti = TIMES_FULL.indexOf(t);
+  const di = DAYS_SHORT.indexOf(d);
+  const base = 35 + Math.sin(ti * 0.9) * 28 + Math.cos(di * 0.55) * 15;
+  const weekend = (d === 'Sat' || d === 'Sun') ? -18 : 0;
+  const peak = (t === '8–10am' || t === '6–8pm') ? 28 : 0;
+  return Math.max(8, Math.min(98, Math.round(base + weekend + peak)));
+}
+
+function heatColor(v) {
+  if (v >= 78) return `rgba(239,68,68,${0.5 + v/200})`;
+  if (v >= 58) return `rgba(251,146,60,${0.4 + v/200})`;
+  if (v >= 38) return `rgba(250,204,21,${0.35 + v/200})`;
+  return `rgba(59,130,246,${0.25 + v/200})`;
+}
+
+// ─── LEAFLET MAP ──────────────────────────────────────────────────────────────
+let _map = null, _tileLayer = null, _markers = {};
+
+function initMap() {
+  if (_map) return;
+  _map = L.map('map', {
+    center: [1.352, 103.82],
+    zoom: 11.5,
+    zoomControl: false,
+    attributionControl: false,
+  });
+  L.control.zoom({ position: 'bottomright' }).addTo(_map);
+  _tileLayer = L.tileLayer(TILES[state.tileKey].url, { maxZoom: 18 }).addTo(_map);
+  DISTRICTS.forEach(d => addMarker(d.name));
+}
+
+function addMarker(name) {
+  if (!COORDS[name]) return;
+  const [lat, lng] = COORDS[name];
+  const s = getScore(name);
+  const el = document.createElement('div');
+  el.className = 'dist-marker';
+  el.style.cssText = `color:${gradeColor(s)};border-color:${gradeBorder(s)};background:${gradePastel(s)}`;
+  el.innerHTML = `<span style="color:#374151;font-size:9px">${name}</span>&nbsp;<strong style="color:${gradeColor(s)}">${s}</strong>`;
+  el.addEventListener('click', () => window.app.selectDistrict(name));
+  const icon = L.divIcon({ html: el, iconSize: null, className: '' });
+  _markers[name] = L.marker([lat, lng], { icon }).addTo(_map);
+}
+
+function refreshMarker(name) {
+  if (!_markers[name] || !_map) return;
+  const s = getScore(name);
+  const el = document.createElement('div');
+  el.className = 'dist-marker';
+  el.style.cssText = `color:${gradeColor(s)};border-color:${gradeBorder(s)};background:${gradePastel(s)}`;
+  el.innerHTML = `<span style="color:#374151;font-size:9px">${name}</span>&nbsp;<strong style="color:${gradeColor(s)}">${s}</strong>`;
+  el.addEventListener('click', () => window.app.selectDistrict(name));
+  _markers[name].setIcon(L.divIcon({ html: el, iconSize: null, className: '' }));
+}
+
+function updateMapTile() {
+  if (!_map) return;
+  if (_tileLayer) _map.removeLayer(_tileLayer);
+  _tileLayer = L.tileLayer(TILES[state.tileKey].url, { maxZoom: 18 }).addTo(_map);
+}
+
+function panToDistrict(name) {
+  if (_map && COORDS[name]) _map.panTo(COORDS[name], { animate: true, duration: 0.4 });
+}
+
+// ─── NAV ──────────────────────────────────────────────────────────────────────
+function renderNav(showBack, backTarget) {
+  return `<div class="navbar">
+    ${showBack ? `<button class="nav-back" onclick="window.app.goTo('${backTarget}')">&#8592; Back</button>` : ''}
+    <input class="nav-search" placeholder="Enter postal code..." value="${state.postalSearch}"
+      oninput="window.app.updatePostalSearch(this.value)"
+      onkeydown="if(event.key==='Enter')window.app.searchPostal()">
+    <select class="nav-select" onchange="window.app.selectDistrict(this.value)">
+      ${DISTRICTS.map(x => `<option${x.name === state.district ? ' selected' : ''}>${x.name}</option>`).join('')}
+    </select>
+    <select class="nav-select" onchange="window.app.setDay(this.value)">
+      ${DAYS_SHORT.map(x => `<option${x === state.day ? ' selected' : ''}>${x}</option>`).join('')}
+    </select>
+    <select class="nav-select" onchange="window.app.setTime(this.value)">
+      ${TIMES_FULL.map(x => `<option${x === state.time ? ' selected' : ''}>${x}</option>`).join('')}
+    </select>
+    <span class="ticker-dot"></span>
+    <span style="font-size:.6rem;color:#475569">LIVE</span>
+    <button class="nav-icon-btn" onclick="window.app.goTo('glossary')" title="Glossary">?</button>
+    <button class="nav-icon-btn" onclick="window.app.goTo('cardlayout')" title="Card Reference">&#9783;</button>
+  </div>`;
+}
+
+// ─── ANOMALY BANNER ───────────────────────────────────────────────────────────
+function renderAnomalyBanner() {
+  const cfgs = [
+    {cls:'ab-clear',icon:'✅',msg:'All systems normal — no anomalies detected in the past 30 minutes.'},
+    {cls:'ab-low', icon:'🚨',msg:`LOW_TAXI ALERT — Only ${state.liveTaxis[state.district]||4} taxis within 500m. Demand exceeds supply.`},
+    {cls:'ab-flux',icon:'⚡',msg:'HIGH_FLUX ALERT — Unusual taxi demand surge detected. Prices may spike.'},
+    {cls:'ab-bus', icon:'🔵',msg:'BUS_GAP ALERT — Service disruption on route 88. Delays of 12–18 min expected.'},
+  ];
+  const c = cfgs[state.anomaly];
+  return `<div class="alert-banner ${c.cls}" onclick="window.app.cycleAnomaly()" style="cursor:pointer">
+    <span>${c.icon}</span>
+    <span style="flex:1">${c.msg}</span>
+    <span style="font-size:.55rem;opacity:.7">tap to cycle</span>
+  </div>`;
+}
+
+// ─── OVERVIEW TAB ─────────────────────────────────────────────────────────────
+function renderOverview() {
+  const d = state.district;
+  const info = DINFO[d];
+  const bars = [52,68,71,65,88,74,59,82,76,61,85,90,73,65,58,80,77,69];
+  return `<div class="tab-content">
+    ${renderAnomalyBanner()}
+    <div class="section-title">Bus Services — ${d}</div>
+    <div class="bus-svc-list">${info.svcs.map(s => `<span class="bus-svc">${s}</span>`).join('')}</div>
+    <div class="section-title">Taxi Availability — Last 18 Hours</div>
+    <div class="chart-placeholder">
+      <div class="bar-chart">
+        ${bars.map((v,i) => `<div class="bar" style="height:${v}%;background:${i===bars.length-1?'#3b82f6':'rgba(59,130,246,.35)'}"></div>`).join('')}
+      </div>
+    </div>
+    <div class="live-row">
+      <span class="ticker-dot"></span>
+      <span>Live taxis within 500m: <strong style="color:#e2e8f0" id="live-taxi-count">${state.liveTaxis[d]||info.taxis}</strong></span>
+    </div>
+    <div class="section-title">All Districts at a Glance</div>
+    <div class="activity-list">
+      ${DISTRICTS.slice(0,8).map(x => `
+        <div class="activity-item" onclick="window.app.selectDistrict('${x.name}')" style="cursor:pointer">
+          <div class="ai-left">
+            <span class="ai-icon">🏘</span>
+            <div>
+              <div class="ai-text">${x.name}</div>
+              <div class="ai-sub">${state.liveTaxis[x.name]||DINFO[x.name].taxis} taxis · ${DINFO[x.name].stops} stops · ${DINFO[x.name].mrt}</div>
+            </div>
+          </div>
+          <span class="ai-badge ${gradeBadge(x.score)}">${x.score} ${grade(x.score)}</span>
+        </div>`).join('')}
+      <div style="text-align:center;padding:.6rem 0">
+        <button onclick="window.app.goTo('deepdive')" style="background:#1e293b;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:.65rem;padding:.4rem 1rem;cursor:pointer;font-family:inherit">
+          Deep Dive — all 18 districts &#8594;
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── FORECAST TAB ─────────────────────────────────────────────────────────────
+function renderForecast() {
+  return `<div class="tab-content">
+    <div class="section-title">7-Day Taxi Demand Heatmap</div>
+    <div style="overflow-x:auto">
+      <div class="heatmap-grid" style="min-width:500px">
+        <div class="hm-header"></div>
+        ${DAYS_SHORT.map(d => `<div class="hm-header">${d}</div>`).join('')}
+        ${TIMES_FULL.map(t => `
+          <div class="hm-row-label">${t}</div>
+          ${DAYS_SHORT.map(d => {
+            const v = heatVal(t, d);
+            return `<div class="hm-cell" style="background:${heatColor(v)}" title="${d} ${t}: ${v}%">${v}</div>`;
+          }).join('')}
+        `).join('')}
+      </div>
+    </div>
+    <div style="margin-top:.7rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+      <span style="font-size:.6rem;color:#475569">Demand intensity:</span>
+      ${[8,35,58,78,95].map(v => `<span style="display:inline-flex;align-items:center;gap:.2rem;font-size:.55rem;color:#94a3b8"><span style="width:12px;height:12px;border-radius:2px;background:${heatColor(v)};display:inline-block"></span>${v}%</span>`).join('')}
+    </div>
+    <div class="section-title" style="margin-top:1rem">Forecast Summary — ${state.district}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+      ${[
+        {l:'Peak Demand',v:'8–10am Tue',c:'#ef4444'},
+        {l:'Lowest Demand',v:'10am–12pm Sun',c:'#3b82f6'},
+        {l:'Best Availability',v:'10am–12pm Sat',c:'#22c55e'},
+        {l:'Live Taxis (500m)',v:`${state.liveTaxis[state.district]||12}`,c:'#e2e8f0'},
+      ].map(x => `<div style="background:#111827;border:1px solid #1e293b;border-radius:8px;padding:.7rem">
+        <div style="font-size:.55rem;color:#475569;text-transform:uppercase;letter-spacing:.04em">${x.l}</div>
+        <div style="font-size:.85rem;font-weight:700;color:${x.c};margin-top:.2rem">${x.v}</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ─── PRICE TAB ────────────────────────────────────────────────────────────────
+function renderPrice() {
+  const entries = Object.entries(PRICE_DATA).sort((a,b) => b[1].avg - a[1].avg);
+  const maxAvg = entries[0][1].avg;
+  return `<div class="tab-content">
+    <div class="section-title">HDB Resale Prices by Town</div>
+    <div style="background:#111827;border:1px solid #1e293b;border-radius:8px;padding:.5rem;overflow-y:auto;max-height:300px">
+      ${entries.map(([town,p],i) => `
+        <div class="price-row">
+          <span class="price-rank">${i+1}</span>
+          <span class="price-town">${town}</span>
+          <div class="price-bar-wrap"><div class="price-bar" style="width:${(p.avg/maxAvg*100).toFixed(0)}%;background:${p.avg>900000?'#ef4444':p.avg>700000?'#f97316':'#3b82f6'}"></div></div>
+          <span class="price-val">${fmt(p.avg)}</span>
+        </div>`).join('')}
+    </div>
+    <div class="section-title" style="margin-top:1rem">Value-for-Money Ranking</div>
+    <div style="display:flex;flex-direction:column;gap:.4rem">
+      ${VFM_DATA.map((x,i) => `
+        <div style="background:#111827;border:1px solid #1e293b;border-radius:8px;padding:.6rem .8rem;display:flex;align-items:center;gap:.5rem">
+          <span style="color:#475569;font-size:.65rem;width:18px">${i+1}</span>
+          <span style="flex:1;font-size:.72rem;color:#e2e8f0">${x.town}</span>
+          <div style="width:80px;height:6px;background:#1e293b;border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${x.vfm}%;background:#3b82f6;border-radius:3px"></div>
+          </div>
+          <span style="font-size:.6rem;color:#475569;min-width:75px;text-align:right">${x.avg}</span>
+          <span style="font-size:.55rem;color:#059669;font-weight:700">${x.verdict}</span>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ─── COMPARE TAB ──────────────────────────────────────────────────────────────
+function renderCompare() {
+  const sorted = DISTRICTS.slice().sort((a,b) => b.score - a.score);
+  const top4 = sorted.slice(0, 4);
+  return `<div class="tab-content">
+    <div class="section-title">Top 4 Districts — Liveability Leaders</div>
+    <div class="compare-grid" style="margin-bottom:1rem">
+      ${top4.map(d => `
+        <div class="compare-card" style="background:${gradePastel(d.score)};border-color:${gradeBorder(d.score)};cursor:pointer" onclick="window.app.selectDistrict('${d.name}')">
+          <div class="cc-name" style="color:#111">${d.name}</div>
+          <div class="cc-score" style="color:${gradeColor(d.score)}">${d.score}</div>
+          <div style="font-size:.6rem;font-weight:700;color:${gradeColor(d.score)}">${grade(d.score)}</div>
+          <div class="cc-stat" style="color:#374151;margin-top:.5rem">🚕 ${state.liveTaxis[d.name]||DINFO[d.name].taxis} taxis</div>
+          <div class="cc-stat" style="color:#374151">🚌 ${DINFO[d.name].stops} stops</div>
+          <div class="cc-stat" style="color:#374151">🚇 ${DINFO[d.name].mrt}</div>
+        </div>`).join('')}
+    </div>
+    <div class="section-title">Full Ranking — All 18 Districts</div>
+    <div style="display:flex;flex-direction:column;gap:.3rem;max-height:300px;overflow-y:auto">
+      ${sorted.map((d,i) => `
+        <div onclick="window.app.selectDistrict('${d.name}')" style="background:#111827;border:1px solid #1e293b;border-radius:8px;padding:.5rem .8rem;display:flex;align-items:center;gap:.5rem;cursor:pointer">
+          <span style="color:#475569;font-size:.65rem;width:20px">${i+1}</span>
+          <span style="flex:1;font-size:.72rem;color:#e2e8f0">${d.name}</span>
+          <div style="width:80px;height:6px;background:#1e293b;border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${d.score}%;background:${gradeColor(d.score)};border-radius:3px"></div>
+          </div>
+          <span style="font-size:.7rem;font-weight:700;color:${gradeColor(d.score)};width:28px;text-align:right">${d.score}</span>
+          <span class="ai-badge ${gradeBadge(d.score)}" style="font-size:.55rem">${grade(d.score)}</span>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const s = getScore(state.district);
+  const info = DINFO[state.district];
+  const taxis = state.liveTaxis[state.district] || info.taxis;
+  const friction = Math.round((100 - s) * 0.25);
+
+  const tabContent = state.tab === 'overview' ? renderOverview()
+    : state.tab === 'forecast' ? renderForecast()
+    : state.tab === 'price' ? renderPrice()
+    : renderCompare();
+
+  return `
+    ${renderNav(false)}
+    <div class="map-hero">
+      <div id="map"></div>
+      <div class="map-score-card">
+        <div class="msc-district">${state.district}</div>
+        <div class="msc-score" style="color:${gradeColor(s)}">${s}</div>
+        <div class="msc-label" style="color:${gradeColor(s)}">${grade(s)}</div>
+        <div class="msc-formula">Bus×50% + Taxi×30% − Friction×20%</div>
+        <div style="margin-top:.4rem;font-size:.6rem;color:#64748b">
+          Taxis nearby: <strong id="card-taxis" style="color:#e2e8f0">${taxis}</strong>
+          <span class="ticker-dot" style="margin-left:.3rem"></span>
+        </div>
+        <button onclick="window.app.goTo('deepdive')" style="margin-top:.5rem;width:100%;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:.3rem;color:#94a3b8;font-size:.6rem;cursor:pointer;font-family:inherit">
+          Deep Dive &#8594;
+        </button>
+        <button onclick="window.app.showWeights()" style="margin-top:.3rem;width:100%;background:transparent;border:1px solid #334155;border-radius:6px;padding:.3rem;color:#475569;font-size:.55rem;cursor:pointer;font-family:inherit">
+          Score Weights
+        </button>
+      </div>
+      <div class="map-style-picker">
+        ${Object.entries(TILES).map(([k,v]) => `<button class="msp-btn${state.tileKey===k?' active':''}" onclick="window.app.setTile('${k}')">${v.label}</button>`).join('')}
+      </div>
+      <div class="map-legend">
+        <div class="ml-item"><span class="ml-dot" style="background:#059669"></span>GOOD ≥80</div>
+        <div class="ml-item"><span class="ml-dot" style="background:#d97706"></span>MOD 65–79</div>
+        <div class="ml-item"><span class="ml-dot" style="background:#dc2626"></span>POOR &lt;65</div>
+      </div>
+    </div>
+    <div class="metrics-strip">
+      <div class="metric-card">
+        <div class="mc-label">Score</div>
+        <div class="mc-value" style="color:${gradeColor(s)}">${s}</div>
+        <div class="mc-unit">${grade(s)}</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-label">Live Taxis</div>
+        <div class="mc-value" id="metric-taxis">${taxis}</div>
+        <div class="mc-unit">within 500m</div>
+        <div class="mc-trend" style="color:#22c55e"><span class="ticker-dot"></span> Live</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-label">Bus Stops</div>
+        <div class="mc-value">${info.stops}</div>
+        <div class="mc-unit">in district</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-label">Nearest MRT</div>
+        <div class="mc-value" style="font-size:.7rem">${info.mrt}</div>
+        <div class="mc-unit">on foot</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-label">Bus Services</div>
+        <div class="mc-value">${info.svcs.length}</div>
+        <div class="mc-unit">routes</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-label">Friction</div>
+        <div class="mc-value" style="color:#f87171">${friction}%</div>
+        <div class="mc-unit">penalty</div>
+      </div>
+    </div>
+    <div class="tab-bar">
+      ${[['overview','Overview'],['forecast','Forecast'],['price','Prices'],['compare','Compare']].map(([k,l]) =>
+        `<button class="tab-btn${state.tab===k?' active':''}" onclick="window.app.setTab('${k}')">${l}</button>`
+      ).join('')}
+    </div>
+    ${tabContent}
+    ${renderWeightsModal()}
+  `;
+}
+
+// ─── DEEP DIVE ────────────────────────────────────────────────────────────────
+function renderDeepDive() {
+  const sorted = DISTRICTS.slice().sort((a,b) => b.score - a.score);
+  return `
+    ${renderNav(true, 'dashboard')}
+    <div class="dd-hero">
+      <div style="font-size:.65rem;color:#64748b;text-transform:uppercase;margin-bottom:.3rem">Deep Dive</div>
+      <div style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:.2rem">All 18 Districts</div>
+      <div style="font-size:.7rem;color:#64748b">Click any district to open it on the map</div>
+    </div>
+    <div style="padding:1rem">
+      <div class="section-title">District Score Breakdown</div>
+      <div style="display:flex;flex-direction:column;gap:.8rem">
+        ${sorted.map(d => {
+          const info = DINFO[d.name];
+          const s = d.score;
+          const busScore = Math.round(s * 0.55 + 5);
+          const taxiScore = Math.min(98, Math.round(info.taxis * 4.2));
+          const frictionPct = Math.round((100 - s) * 0.25);
+          return `<div style="background:#111827;border:1px solid ${gradeBorder(s)};border-radius:10px;padding:.9rem;cursor:pointer" onclick="window.app.selectDistrict('${d.name}');window.app.goTo('dashboard')">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
+              <div>
+                <div style="font-size:.85rem;font-weight:700;color:#e2e8f0">${d.name}</div>
+                <div style="font-size:.6rem;color:#64748b;margin-top:.15rem">${info.mrt} · ${info.stops} stops · ${info.svcs.length} bus services</div>
+                <div style="margin-top:.3rem;display:flex;gap:.25rem;flex-wrap:wrap">
+                  ${info.svcs.map(sv => `<span style="background:#1e293b;border:1px solid #334155;border-radius:4px;padding:.1rem .3rem;font-size:.5rem;color:#94a3b8">${sv}</span>`).join('')}
+                </div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;margin-left:.5rem">
+                <div style="font-size:1.8rem;font-weight:700;color:${gradeColor(s)}">${s}</div>
+                <span class="ai-badge ${gradeBadge(s)}">${grade(s)}</span>
+              </div>
+            </div>
+            <div class="score-bar-row">
+              <div class="sbr-label"><span>Bus Index</span><span style="color:#3b82f6">${busScore}%</span></div>
+              <div class="sbr-track"><div class="sbr-fill" style="width:${busScore}%;background:#3b82f6"></div></div>
+            </div>
+            <div class="score-bar-row">
+              <div class="sbr-label"><span>Taxi Index</span><span style="color:#22c55e">${taxiScore}%</span></div>
+              <div class="sbr-track"><div class="sbr-fill" style="width:${taxiScore}%;background:#22c55e"></div></div>
+            </div>
+            <div class="score-bar-row" style="margin-bottom:0">
+              <div class="sbr-label"><span>Friction Penalty</span><span style="color:#ef4444">−${frictionPct}%</span></div>
+              <div class="sbr-track"><div class="sbr-fill" style="width:${frictionPct}%;background:#ef4444"></div></div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+    ${renderWeightsModal()}
+  `;
+}
+
+// ─── POSTAL RESULT ────────────────────────────────────────────────────────────
+function renderPostalResult() {
+  const code = state.postalCode;
+  const p = POSTAL[code];
+  if (!p) {
+    return `${renderNav(true, 'dashboard')}
+      <div style="padding:2rem;text-align:center">
+        <div style="color:#64748b;font-size:.8rem;margin-bottom:.5rem">Postal code not found</div>
+        <div style="font-size:.7rem;color:#334155">Try: 825234 · 820413 · 570033 · 730207 · 150033</div>
+      </div>`;
+  }
+  const r = state.postalRadius;
+  const taxis = p.taxis[r] || p.taxis[500];
+  const sc_count = p.sc[r] || p.sc[500];
+  const ds = getScore(p.district);
+  return `
+    ${renderNav(true, 'dashboard')}
+    <div class="postal-hero">
+      <div style="font-size:.6rem;color:#64748b;margin-bottom:.2rem;text-transform:uppercase">Postal Code · ${code}</div>
+      <div style="font-size:1rem;font-weight:700;color:#fff">${p.block}</div>
+      <div style="font-size:.7rem;color:#64748b;margin-bottom:.4rem">${p.unit}</div>
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+        <span style="font-size:1.3rem;font-weight:700;color:${gradeColor(ds)}">${ds}</span>
+        <span class="ai-badge ${gradeBadge(ds)}">${grade(ds)}</span>
+        <span style="font-size:.6rem;color:#64748b">${p.district} district liveability</span>
+      </div>
+    </div>
+    <div style="padding:1rem">
+      <div class="section-title">Radius</div>
+      <div class="radius-tabs">
+        ${[250,500,1000].map(rv => `<button class="radius-tab${r===rv?' active':''}" onclick="window.app.setRadius(${rv})">${rv}m</button>`).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem">
+        <div style="background:#111827;border:1px solid #1e293b;border-radius:8px;padding:.8rem;text-align:center">
+          <div style="font-size:.55rem;color:#64748b;text-transform:uppercase;margin-bottom:.3rem">Taxis within ${r}m</div>
+          <div style="font-size:1.5rem;font-weight:700;color:#22c55e">${taxis}</div>
+          <span class="ticker-dot" style="margin-top:.2rem"></span>
+        </div>
+        <div style="background:#111827;border:1px solid #1e293b;border-radius:8px;padding:.8rem;text-align:center">
+          <div style="font-size:.55rem;color:#64748b;text-transform:uppercase;margin-bottom:.3rem">School/Comm Cars within ${r}m</div>
+          <div style="font-size:1.5rem;font-weight:700;color:#3b82f6">${sc_count}</div>
+          <div style="font-size:.55rem;color:#475569;margin-top:.2rem">vehicles</div>
+        </div>
+      </div>
+      <div class="section-title">Nearby Bus Stops</div>
+      <div class="stop-list">
+        ${p.stops.map(s => `
+          <div class="stop-item">
+            <div style="flex:1;min-width:0">
+              <div class="si-name">${s.name}</div>
+              <div class="si-dist">${s.dist} away</div>
+            </div>
+            <div class="si-svcs">${s.svcs.map(sv => `<span class="si-svc">${sv}</span>`).join('')}</div>
+          </div>`).join('')}
+      </div>
+      <div style="margin-top:1rem;background:#111827;border:1px solid #1e293b;border-radius:8px;padding:.7rem;text-align:center">
+        <div style="font-size:.6rem;color:#475569;margin-bottom:.4rem">Try other postal codes:</div>
+        <div style="display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap">
+          ${Object.keys(POSTAL).map(c => `<button onclick="window.app.searchPostalCode('${c}')" style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:.3rem .6rem;color:#3b82f6;font-size:.65rem;cursor:pointer;font-family:inherit">${c}</button>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ─── CARD LAYOUT REFERENCE ────────────────────────────────────────────────────
+function renderCardLayout() {
+  const examples = DISTRICTS.slice(0, 6);
+  return `
+    ${renderNav(true, 'dashboard')}
+    <div style="padding:1rem">
+      <div style="font-size:.65rem;color:#64748b;text-transform:uppercase;margin-bottom:.3rem">Card Layout Reference</div>
+      <div style="font-size:.75rem;color:#94a3b8;margin-bottom:1rem">Score card variants and design tokens</div>
+      <div class="cl-grid">
+        ${examples.map(d => `
+          <div class="cl-card" style="background:${gradePastel(d.score)};border-color:${gradeBorder(d.score)}">
+            <div class="cl-card-title" style="color:#374151">${d.name}</div>
+            <div class="cl-card-score" style="color:${gradeColor(d.score)}">${d.score}</div>
+            <div class="cl-card-sub" style="color:${gradeColor(d.score)};font-weight:700">${grade(d.score)}</div>
+            <div style="margin-top:.5rem;font-size:.5rem;color:#6b7280;line-height:1.7">
+              bg: ${gradePastel(d.score)}<br>
+              border: ${gradeBorder(d.score)}<br>
+              text: ${gradeColor(d.score)}
+            </div>
+          </div>`).join('')}
+      </div>
+      <div class="section-title" style="margin-top:1.2rem">Score Thresholds</div>
+      ${[{range:'≥ 80',label:'GOOD',c:'#059669',bg:'#ecfdf5',b:'#6ee7b7'},{range:'65–79',label:'MODERATE',c:'#d97706',bg:'#fffbeb',b:'#fcd34d'},{range:'< 65',label:'POOR',c:'#dc2626',bg:'#fff1f2',b:'#fca5a5'}].map(t => `
+        <div style="background:${t.bg};border:1px solid ${t.b};border-radius:8px;padding:.6rem .9rem;margin-bottom:.4rem;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:.85rem;font-weight:700;color:${t.c}">${t.label}</span>
+          <span style="font-size:.72rem;color:#374151">${t.range}</span>
+          <span style="font-size:.55rem;color:#6b7280;font-family:monospace">${t.c}</span>
+        </div>`).join('')}
+      <div class="section-title" style="margin-top:1.2rem">Scoring Formula</div>
+      <div style="background:#111827;border:1px solid #334155;border-radius:8px;padding:.9rem;font-family:'Space Mono',monospace;font-size:.7rem;color:#67e8f9;line-height:2">
+        Score = (Bus_Index × 0.50)<br>
+              + (Taxi_Index × 0.30)<br>
+              − (Friction × 0.20)<br>
+        <span style="color:#475569;font-size:.6rem">
+          Bus_Index  = f(stops, services, frequency)<br>
+          Taxi_Index = live_taxis_500m × normalisation<br>
+          Friction   = congestion + walk_penalty
+        </span>
+      </div>
+      <div style="text-align:center;margin-top:1rem">
+        <button onclick="window.app.showWeights()" style="background:#3b82f6;border:none;border-radius:8px;color:#fff;font-size:.7rem;font-weight:700;padding:.5rem 1.2rem;cursor:pointer;font-family:inherit">
+          View Score Weights Modal
+        </button>
+      </div>
+    </div>
+    ${renderWeightsModal()}
+  `;
+}
+
+// ─── GLOSSARY ─────────────────────────────────────────────────────────────────
+function renderGlossary() {
+  return `
+    ${renderNav(true, 'dashboard')}
+    <div style="padding:1rem">
+      <div style="font-size:.65rem;color:#64748b;text-transform:uppercase;margin-bottom:.3rem">Glossary</div>
+      <div style="font-size:.75rem;color:#94a3b8;margin-bottom:1rem">Key terms and formulae used in this dashboard</div>
+      <div class="gloss-list">
+        ${GLOSSARY.map(g => `
+          <div class="gloss-item">
+            <div class="gloss-term">${g.term}</div>
+            <div class="gloss-def">${g.def}</div>
+            ${g.formula ? `<div class="gloss-formula">${g.formula}</div>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>
+    ${renderWeightsModal()}
+  `;
+}
+
+// ─── WEIGHTS MODAL ────────────────────────────────────────────────────────────
+function renderWeightsModal() {
+  if (!state.showWeightsModal) return '';
+  return `<div class="modal-overlay" onclick="if(event.target===this)window.app.hideWeights()">
+    <div class="modal">
+      <button class="modal-close" onclick="window.app.hideWeights()">✕</button>
+      <div style="font-size:.9rem;font-weight:700;color:#fff;margin-bottom:1rem">Score Weights</div>
+      ${[{l:'Bus Index',pct:50,c:'#3b82f6'},{l:'Taxi Index',pct:30,c:'#22c55e'},{l:'Friction Penalty',pct:20,c:'#ef4444'}].map(w => `
+        <div style="margin-bottom:.9rem">
+          <div style="display:flex;justify-content:space-between;font-size:.7rem;margin-bottom:.3rem">
+            <span style="color:#e2e8f0">${w.l}</span>
+            <span style="color:${w.c};font-weight:700">${w.pct}%</span>
+          </div>
+          <div style="height:8px;background:#1e293b;border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${w.pct * 2}%;background:${w.c};border-radius:4px"></div>
+          </div>
+        </div>`).join('')}
+      <div style="background:#0d1520;border:1px solid #334155;border-radius:8px;padding:.7rem;font-family:'Space Mono',monospace;font-size:.65rem;color:#67e8f9;margin-top:.5rem">
+        Score = Bus×0.50 + Taxi×0.30 − Friction×0.20
+      </div>
+      <div style="margin-top:.8rem;font-size:.6rem;color:#475569;line-height:1.6">
+        Scores refresh every 2.5s from live LTA DataMall taxi positions. Bus and friction indices are recomputed daily from GTFS feeds.
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── ONBOARDING ───────────────────────────────────────────────────────────────
+function renderOnboarding() {
+  return `<div class="onboarding">
+    <div class="ob-logo">🏘</div>
+    <div class="ob-title">HDB Liveability</div>
+    <div class="ob-subtitle">Real-time transport connectivity scores for every HDB district in Singapore. Powered by live LTA DataMall data.</div>
+    <div class="ob-cards">
+      <div class="ob-card">
+        <div class="ob-card-icon">🗺</div>
+        <div class="ob-card-title">Live Map</div>
+        <div class="ob-card-desc">Interactive district scores updated every 2.5 seconds from live taxi positions</div>
+      </div>
+      <div class="ob-card">
+        <div class="ob-card-icon">📊</div>
+        <div class="ob-card-title">7-Day Heatmap</div>
+        <div class="ob-card-desc">Forecast taxi demand across 7 time slots and 7 days of the week</div>
+      </div>
+      <div class="ob-card">
+        <div class="ob-card-icon">🏡</div>
+        <div class="ob-card-title">Postal Search</div>
+        <div class="ob-card-desc">Enter any 6-digit Singapore postal code to check local transport access</div>
+      </div>
+    </div>
+    <button class="ob-btn" onclick="window.app.goTo('dashboard')">Explore Dashboard</button>
+    <div class="ob-note">Score = Bus×50% + Taxi×30% − Friction×20%</div>
+  </div>`;
+}
+
+// ─── MAIN RENDER ──────────────────────────────────────────────────────────────
+function render() {
+  const app = document.getElementById('app');
+  const scr = state.screen;
+
+  if (scr === 'onboarding') {
+    app.innerHTML = renderOnboarding();
+  } else if (scr === 'dashboard') {
+    app.innerHTML = renderDashboard();
+    requestAnimationFrame(() => {
+      if (!_map) {
+        initMap();
+      } else {
+        updateMapTile();
+        DISTRICTS.forEach(d => refreshMarker(d.name));
+        panToDistrict(state.district);
+      }
+      if (_map) _map.invalidateSize();
+    });
+  } else if (scr === 'deepdive') {
+    app.innerHTML = renderDeepDive();
+  } else if (scr === 'postal') {
+    app.innerHTML = renderPostalResult();
+  } else if (scr === 'cardlayout') {
+    app.innerHTML = renderCardLayout();
+  } else if (scr === 'glossary') {
+    app.innerHTML = renderGlossary();
+  }
+}
+
+// ─── WINDOW.APP HANDLERS ──────────────────────────────────────────────────────
+window.app = {
+  goTo(screen) {
+    state.screen = screen;
+    if (screen === 'dashboard') state.showWeightsModal = false;
+    render();
+    window.scrollTo(0, 0);
+  },
+  selectDistrict(name) {
+    state.district = name;
+    if (state.screen !== 'dashboard') {
+      state.screen = 'dashboard';
+    }
+    render();
+    if (_map && COORDS[name]) {
+      setTimeout(() => _map && _map.panTo(COORDS[name], { animate: true, duration: 0.4 }), 50);
+    }
+  },
+  setTab(tab) {
+    state.tab = tab;
+    render();
+  },
+  setTile(key) {
+    state.tileKey = key;
+    // Only update tile layer, re-render buttons
+    updateMapTile();
+    document.querySelectorAll('.msp-btn').forEach(btn => {
+      const k = btn.getAttribute('onclick').match(/'(\w+)'/)[1];
+      btn.classList.toggle('active', k === key);
+    });
+  },
+  setDay(day) { state.day = day; render(); },
+  setTime(time) { state.time = time; render(); },
+  cycleAnomaly() { state.anomaly = (state.anomaly + 1) % 4; render(); },
+  showWeights() { state.showWeightsModal = true; render(); },
+  hideWeights() { state.showWeightsModal = false; render(); },
+  setRadius(r) { state.postalRadius = r; render(); },
+  updatePostalSearch(v) { state.postalSearch = v; },
+  searchPostal() {
+    const code = state.postalSearch.trim();
+    if (POSTAL[code]) {
+      state.postalCode = code;
+      state.screen = 'postal';
+      render();
+    } else {
+      const el = document.querySelector('.nav-search');
+      if (el) {
+        el.style.borderColor = '#ef4444';
+        el.style.boxShadow = '0 0 0 2px rgba(239,68,68,.2)';
+        setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 1500);
+      }
+    }
+  },
+  searchPostalCode(code) {
+    state.postalCode = code;
+    state.postalSearch = code;
+    state.screen = 'postal';
+    render();
+  },
+};
+
+// ─── LIVE TICKER ──────────────────────────────────────────────────────────────
+function tickTaxis() {
+  DISTRICTS.forEach(d => {
+    const delta = Math.round((Math.random() - 0.45) * 3);
+    state.liveTaxis[d.name] = Math.max(0, Math.min(40, state.liveTaxis[d.name] + delta));
+  });
+  // Lightweight update — only patch DOM if on dashboard
+  if (state.screen === 'dashboard') {
+    const v = state.liveTaxis[state.district];
+    const el1 = document.getElementById('card-taxis');
+    const el2 = document.getElementById('metric-taxis');
+    const el3 = document.getElementById('live-taxi-count');
+    if (el1) el1.textContent = v;
+    if (el2) el2.textContent = v;
+    if (el3) el3.textContent = v;
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  render();
+  setInterval(tickTaxis, 2500);
+});
+</script>
+</body>
+</html>
