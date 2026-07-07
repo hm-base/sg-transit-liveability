@@ -6,6 +6,10 @@ extended to also write snapshots to SQLite for ML training.
 
 Key upgrades vs original:
   - DataStore.push_taxi_snapshot() also calls storage.insert_snapshot()
+  - DataStore.push_bus_arrivals() also calls storage.insert_bus_arrivals()
+    (NEW — bus arrivals used to live only in memory and vanish on restart)
+  - DataStore.set_monitored_stops() also calls storage.save_monitored_stops()
+    (NEW — so a restart no longer resets bus monitoring back to nothing)
   - BusWorker headway filter: gaps > 120 min are ignored (their fix)
   - _BaseWorker uses Event.wait() — stops instantly on stop()
 """
@@ -116,6 +120,14 @@ class DataStore:
         with self._lock:
             self.bus_arrivals[stop_code] = services
 
+        # NEW — persist to SQLite. Previously this only lived in memory and
+        # was lost on every restart; now it's a genuine historical record.
+        try:
+            from storage.database import insert_bus_arrivals
+            insert_bus_arrivals(stop_code, services)
+        except Exception as e:
+            log.warning("Bus arrival persist failed: %s", e)
+
     def get_bus_arrivals(self, stop_codes: list[str]) -> dict[str, list[dict]]:
         with self._lock:
             return {sc: self.bus_arrivals.get(sc, []) for sc in stop_codes}
@@ -131,6 +143,15 @@ class DataStore:
     def set_monitored_stops(self, codes: set[str]) -> None:
         with self._lock:
             self.monitored_stop_codes = codes
+
+        # NEW — persist which stops we're watching. This is what actually
+        # stops a restart from resetting bus coverage back to nothing —
+        # main.py reloads this list on startup via load_monitored_stops().
+        try:
+            from storage.database import save_monitored_stops
+            save_monitored_stops(codes)
+        except Exception as e:
+            log.warning("Monitored stops persist failed: %s", e)
 
     def get_monitored_stops(self) -> set[str]:
         with self._lock:

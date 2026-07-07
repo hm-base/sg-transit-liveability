@@ -51,6 +51,10 @@ DEMO_DISTRICTS = [
 
 
 # ── Mock store builder (their approach — real stop codes) ──────────────────────
+# NOTE: this DataStore() is only used by the offline `--demo` synthetic-data
+# path below (run_demo()) — it does NOT touch your live pipeline or real DB,
+# and deliberately does not restore persisted monitored stops, since it's
+# meant to be a clean, self-contained, reproducible demo every time.
 
 def _build_mock_store() -> DataStore:
     store = DataStore()
@@ -221,6 +225,20 @@ def run_server(host: str = "127.0.0.1", port: int = 8000) -> None:
         log.warning("Initial prediction run failed: %s", e)
 
     store        = DataStore()
+
+    # NEW — restore which bus stops were being monitored in the previous
+    # session, so a restart doesn't reset bus coverage back to zero across
+    # every district. This is the actual fix for districts showing a zeroed
+    # bus score right after every restart.
+    try:
+        from storage.database import load_monitored_stops
+        restored = load_monitored_stops()
+        if restored:
+            store.set_monitored_stops(restored)
+            log.info("Restored %d monitored stops from previous session", len(restored))
+    except Exception as e:
+        log.warning("Could not restore monitored stops: %s", e)
+
     batch_sched  = create_batch_scheduler()
 
     TaxiWorker(store).start()

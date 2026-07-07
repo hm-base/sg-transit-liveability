@@ -2,14 +2,19 @@
 storage/database.py
 ===================
 SQLite persistence layer. Tables:
-  taxi_snapshots  — per-district counts every 60s (for ML training)
-  predictions     — model forecasts (filled in; evaluated daily)
-  anomaly_alerts  — LOW_TAXI / HIGH_FLUX / BUS_GAP events
-  model_metrics   — daily MAE / RMSE from evaluation job
+  taxi_snapshots   — per-district counts every 60s (for ML training)
+  predictions      — model forecasts (filled in; evaluated daily)
+  anomaly_alerts   — LOW_TAXI / HIGH_FLUX / BUS_GAP events
+  model_metrics    — daily MAE / RMSE from evaluation job
+  bus_arrivals     — raw bus arrival snapshots per stop (NEW — previously
+                     lived only in memory and was lost on every restart)
+  monitored_stops  — which bus stops BusWorker should poll (NEW — persisted
+                     so restarts don't reset back to "watching nothing")
 """
 from __future__ import annotations
 
 import sqlite3
+import json
 import logging
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
@@ -66,8 +71,19 @@ def init_db(db_path: Path = DB_PATH) -> None:
                 date    TEXT PRIMARY KEY,
                 holiday TEXT
             );
+            CREATE TABLE IF NOT EXISTS bus_arrivals (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                fetched_at    TEXT    NOT NULL,
+                stop_code     TEXT    NOT NULL,
+                services_json TEXT
+            );
+            CREATE TABLE IF NOT EXISTS monitored_stops (
+                stop_code TEXT PRIMARY KEY,
+                added_at  TEXT NOT NULL
+            );
             CREATE INDEX IF NOT EXISTS idx_snap ON taxi_snapshots(district, fetched_at);
             CREATE INDEX IF NOT EXISTS idx_pred ON predictions(district, created_at);
+            CREATE INDEX IF NOT EXISTS idx_bus  ON bus_arrivals(stop_code, fetched_at);
         """)
     log.info("Database ready at %s", db_path)
 
@@ -130,6 +146,29 @@ def insert_model_metrics(district: str, mae: float, rmse: float,
         )
 
 
+def insert_bus_arrivals(stop_code: str, services: list[dict], db_path: Path = DB_PATH) -> None:
+    """Persist a raw bus-arrival snapshot for one stop. Stored as JSON rather
+    than parsed into individual columns — LTA's exact field names can vary,
+    and this way nothing breaks if they do; downstream code parses services_json."""
+    with _connect(db_path) as conn:
+        conn.execute(
+            "INSERT INTO bus_arrivals (fetched_at, stop_code, services_json) VALUES (?,?,?)",
+            (datetime.now(SGT).isoformat(), stop_code, json.dumps(services)),
+        )
+
+
+def save_monitored_stops(codes: set[str], db_path: Path = DB_PATH) -> None:
+    """Persist which stops BusWorker should be watching, so a restart doesn't
+    reset back to 'watching nothing' — this was the actual root cause of
+    every district showing a zeroed-out bus score after any restart."""
+    now = datetime.now(SGT).isoformat()
+    with _connect(db_path) as conn:
+        conn.executemany(
+            "INSERT OR IGNORE INTO monitored_stops (stop_code, added_at) VALUES (?,?)",
+            [(c, now) for c in codes],
+        )
+
+
 # ── Read ───────────────────────────────────────────────────────────────────────
 
 def fetch_snapshots(district: str, minutes: int = 120,
@@ -179,3 +218,24 @@ def fetch_latest_metrics(db_path: Path = DB_PATH) -> list[dict]:
             "(SELECT MAX(evaluated_at) FROM model_metrics GROUP BY district)"
         ).fetchall()
     return [dict(r) for r in rows]
+
+
+def fetch_bus_arrivals(stop_code: str, minutes: int = 60,
+                       db_path: Path = DB_PATH) -> list[dict]:
+    """Real persisted history for one stop — didn't exist before this change."""
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT fetched_at, services_json FROM bus_arrivals "
+            "WHERE stop_code=? AND fetched_at >= datetime('now', ? || ' minutes') "
+            "ORDER BY fetched_at DESC",
+            (stop_code, f"-{minutes}"),
+        ).fetchall()
+    return [{"fetched_at": r["fetched_at"], "services": json.loads(r["services_json"])} for r in rows]
+
+
+def load_monitored_stops(db_path: Path = DB_PATH) -> set[str]:
+    """Reload the persisted monitored-stops list on startup — this is what
+    actually stops restarts from resetting bus monitoring back to empty."""
+    with _connect(db_path) as conn:
+        rows = conn.execute("SELECT stop_code FROM monitored_stops").fetchall()
+    return {r["stop_code"] for r in rows}

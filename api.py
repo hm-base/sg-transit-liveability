@@ -7,13 +7,20 @@ FastAPI app. Exposes:
   GET /predictions/{d}   — latest ML forecasts for a district
   GET /alerts            — recent anomaly alerts
   GET /health            — liveness check
+  GET /dashboard         — the real, live SG Liveability dashboard (HTML page)
+  GET /sg_map.html       — the interactive Leaflet map, served same-origin
+                            so its own client-side fetch() calls to this API
+                            work with no CORS/sandbox issues at all.
 """
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from analytics.engine import DistrictMetrics, compute_metrics
@@ -50,6 +57,12 @@ def get_all_districts() -> dict[str, tuple]:
     return KNOWN_DISTRICTS
 
 
+def _slugify(name: str) -> str:
+    """Same slug convention used everywhere else in the project (DB rows,
+    trained model filenames, etc.)."""
+    return name.lower().replace(" ", "_").replace("/", "_")
+
+
 class ScoreResponse(BaseModel):
     bbox:                 tuple
     taxi_count:           int
@@ -75,11 +88,17 @@ class RankEntry(BaseModel):
 
 def evaluate_district(bbox: BBox, store: DataStore) -> DistrictMetrics:
     """Python-callable entry point (used by demo + tests)."""
-    # Register stops in the bbox so BusWorker knows to poll them
+    # Accumulate monitored stops across districts instead of replacing them —
+    # the monitored-stops list lives only in memory (resets on every restart),
+    # and previously every district switch wiped out whatever the last
+    # BusWorker poll cycle was building up, so no district ever got a real
+    # chance to accumulate live bus arrival data.
     from processing.spatial import filter_bus_stops_by_bbox
     stops = filter_bus_stops_by_bbox(store.get_bus_stops(), bbox)
     if not stops.empty:
-        store.set_monitored_stops(set(stops["BusStopCode"].tolist()))
+        existing = store.get_monitored_stops()
+        new_codes = set(stops["BusStopCode"].tolist())
+        store.set_monitored_stops(existing | new_codes)
     return compute_metrics(store, bbox)
 
 
@@ -87,20 +106,172 @@ def rank_districts(store: DataStore) -> list[dict]:
     """
     Tier-1 bonus: score ALL Singapore planning areas and return sorted leaderboard.
     Uses all 55 OneMap planning areas if available, falls back to 3 hardcoded districts.
+
+    Also registers bus stops for every district as monitored (same accumulation
+    logic as evaluate_district) — since this runs on nearly every page load,
+    it gets full 55-district bus coverage going within a page load or two,
+    instead of requiring someone to manually click through every district.
+    Trade-off worth knowing: registering ~5,000 stops citywide means each
+    BusWorker poll cycle takes longer than its usual 3 minutes to complete a
+    full round (more like 4-5 min) — bus data updates slightly less often,
+    but across every district instead of just one.
     """
+    from processing.spatial import filter_bus_stops_by_bbox
     districts = get_all_districts()
     results   = []
+    all_stops_seen = store.get_monitored_stops()
     for name, bbox in districts.items():
+        stops = filter_bus_stops_by_bbox(store.get_bus_stops(), bbox)
+        if not stops.empty:
+            all_stops_seen |= set(stops["BusStopCode"].tolist())
         m = compute_metrics(store, bbox)
         results.append({
             "district": name,
             "score":    m.connectivity_score,
             "verdict":  m.verdict,
         })
+    store.set_monitored_stops(all_stops_seen)
     results.sort(key=lambda x: x["score"], reverse=True)
     for i, r in enumerate(results, 1):
         r["rank"] = i
     return results
+
+
+def _build_dashboard_data(district_name: Optional[str], store: DataStore,
+                           all_districts: dict[str, tuple]) -> tuple[dict, dict]:
+    """Assemble every real number the dashboard page needs. Runs in-process —
+    no HTTP self-calls, no timeouts, no 'is the pipeline running' guessing,
+    since this function IS part of the running pipeline."""
+    from storage.database import fetch_snapshots, fetch_alerts
+
+    is_average = district_name is None or district_name not in all_districts
+
+    if is_average:
+        slugs = [_slugify(n) for n in all_districts.keys()]
+        latest_counts = []
+        for s in slugs:
+            try:
+                snaps = fetch_snapshots(s, minutes=5)
+                if snaps:
+                    latest_counts.append(snaps[-1]["taxi_count"])
+            except Exception:
+                pass
+        try:
+            alerts = fetch_alerts(None, limit=200)
+        except Exception:
+            alerts = []
+        rank = rank_districts(store)
+        conn_score = round(sum(r["score"] for r in rank) / len(rank)) if rank else None
+        verdict = "MODERATE" if conn_score and conn_score < 80 else ("GOOD" if conn_score else None)
+
+        data = dict(
+            live_taxis=sum(latest_counts) if latest_counts else 0,
+            avg_taxi=round(sum(latest_counts) / len(latest_counts), 1) if latest_counts else 0.0,
+            friction=0.0, alerts=len(alerts), alerts_list=alerts[:6],
+            conn_score=conn_score, verdict=verdict, price=None, bus=None, forecast={},
+            local_snapshot=None,
+        )
+        selected_key = "average"
+    else:
+        bbox = all_districts[district_name]
+        slug = _slugify(district_name)
+        try:
+            metrics = evaluate_district(bbox, store)
+            bus = dict(stops_in_bbox=metrics.stops_in_bbox, avg_bus_headway_min=metrics.avg_bus_headway_min,
+                       bus_frequency_score=metrics.bus_frequency_score, bus_redundancy_score=metrics.bus_redundancy_score,
+                       num_unique_routes=metrics.num_unique_routes, taxi_stability_score=metrics.taxi_stability_score)
+            conn_score, verdict = round(metrics.connectivity_score), metrics.verdict
+        except Exception:
+            bus, conn_score, verdict = None, None, None
+
+        try:
+            snaps = fetch_snapshots(slug, minutes=60)
+        except Exception:
+            snaps = []
+        live_taxis = snaps[-1]["taxi_count"] if snaps else 0
+        avg_taxi = round(sum(s["taxi_count"] for s in snaps) / len(snaps), 1) if snaps else 0.0
+        friction = snaps[-1].get("friction", 0.0) if snaps else 0.0
+
+        try:
+            alerts = fetch_alerts(slug, limit=50)
+        except Exception:
+            alerts = []
+
+        forecast = {}
+        try:
+            from ml.forecaster import TaxiForecaster
+            forecast = TaxiForecaster(slug).predict()
+        except Exception:
+            pass
+
+        local_snapshot = None
+        try:
+            from hdb.onemap_services import get_block_transport_profile
+            center_lat = (bbox[2] + bbox[3]) / 2
+            center_lng = (bbox[0] + bbox[1]) / 2
+            local_snapshot = get_block_transport_profile(center_lat, center_lng)
+        except Exception:
+            pass
+
+        price = None
+        try:
+            from hdb.analytics import get_town_summary
+            df = get_town_summary(flat_type="4 ROOM", months=12)
+            match = df[df["town"].str.lower().str.replace(" ", "_") == slug]
+            if not match.empty:
+                price = round(match["avg_price"].iloc[0], -3)
+        except Exception:
+            pass
+
+        data = dict(live_taxis=live_taxis, avg_taxi=avg_taxi, friction=friction,
+                    alerts=len(alerts), alerts_list=alerts[:6], conn_score=conn_score,
+                    verdict=verdict, price=price, bus=bus, forecast=forecast,
+                    local_snapshot=local_snapshot)
+        selected_key = district_name
+
+    # ── shared "extra" data (leaderboard, price tables) needed by every scope ──
+    extra: dict = {}
+    try:
+        extra["rank"] = rank_districts(store)
+    except Exception:
+        extra["rank"] = []
+    try:
+        from hdb.analytics import get_town_summary
+        extra["town_summary"] = get_town_summary(flat_type="4 ROOM", months=12)
+    except Exception:
+        extra["town_summary"] = None
+    try:
+        from hdb.analytics import get_available_towns, get_price_trend
+        towns = get_available_towns()
+        trend_town = towns[0] if towns else None
+        extra["trend_town"] = trend_town
+        extra["price_trend"] = get_price_trend(trend_town, "4 ROOM") if trend_town else None
+    except Exception:
+        extra["price_trend"] = None
+        extra["trend_town"] = ""
+    if extra.get("rank") and extra.get("town_summary") is not None:
+        try:
+            from hdb.analytics import get_value_for_money
+            conn_scores = {r["district"]: r["score"] for r in extra["rank"]}
+            extra["vfm"] = get_value_for_money(extra["town_summary"], conn_scores)
+        except Exception:
+            extra["vfm"] = None
+    else:
+        extra["vfm"] = None
+
+    if not is_average:
+        try:
+            from ml.extended_forecaster import DayPatternAnalyser, HourlyForecaster, PeakHourPredictor
+            extra["pattern"] = DayPatternAnalyser(slug).get_pattern()
+            extra["hourly_forecast"] = HourlyForecaster(slug).predict_24h()
+            extra["peaks"] = PeakHourPredictor(slug).predict_peaks()
+        except Exception:
+            import pandas as pd
+            extra["pattern"] = pd.DataFrame()
+            extra["hourly_forecast"] = pd.DataFrame()
+            extra["peaks"] = []
+
+    return data, extra
 
 
 def create_app(store: DataStore) -> FastAPI:
@@ -135,6 +306,17 @@ def create_app(store: DataStore) -> FastAPI:
             num_unique_routes=metrics.num_unique_routes,
             verdict=metrics.verdict,
         )
+
+    @app.get("/districts")
+    def api_districts():
+        """All known districts as {name: [min_lat, min_lon, max_lat, max_lon]} —
+        used by sg_map.html to draw all 55 real planning areas instead of the
+        3 hardcoded placeholder boxes it shipped with."""
+        districts = get_all_districts()
+        return {
+            name: [bbox[2], bbox[0], bbox[3], bbox[1]]  # convert (min_lon,max_lon,min_lat,max_lat) -> [minLat,minLon,maxLat,maxLon]
+            for name, bbox in districts.items()
+        }
 
     @app.get("/rank", response_model=list[RankEntry])
     def api_rank():
@@ -191,6 +373,30 @@ def create_app(store: DataStore) -> FastAPI:
         if not summary:
             return {"error": "Insufficient price history"}
         return summary
+
+    @app.get("/dashboard", response_class=HTMLResponse)
+    def dashboard(district: Optional[str] = None):
+        """The real, live SG Liveability dashboard — a genuine HTML page with
+        real numbers baked in server-side. No Streamlit involved at all.
+        Switch districts via ?district=Ang%20Mo%20Kio (the page's own
+        dropdown does this for you)."""
+        from dashboard.render import build_full_page
+        all_districts = get_all_districts()
+        names = sorted(all_districts.keys())
+        data, extra = _build_dashboard_data(district, store, all_districts)
+        selected_key = district if (district and district in all_districts) else "average"
+        html = build_full_page(selected_key, data, extra, names)
+        return HTMLResponse(html)
+
+    @app.get("/sg_map.html", response_class=HTMLResponse)
+    def serve_map():
+        """Serves the real Leaflet map same-origin, so its own client-side
+        fetch() calls back to this API work with zero CORS/iframe-sandbox
+        issues — that's what kept silently breaking it inside Streamlit."""
+        map_path = Path(__file__).parent / "dashboard" / "sg_map.html"
+        if not map_path.exists():
+            return HTMLResponse("<h3>dashboard/sg_map.html not found.</h3>", status_code=404)
+        return HTMLResponse(map_path.read_text(encoding="utf-8"))
 
     @app.get("/health")
     def health():

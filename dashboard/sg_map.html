@@ -221,7 +221,11 @@
 
 <script>
 // ── Config ─────────────────────────────────────────────────────────────────
-const API_BASE   = "http://127.0.0.1:8000";
+// Use whatever origin this page was actually loaded from — hardcoding
+// "127.0.0.1" here caused every fetch to silently fail with a CORS error
+// whenever the page was viewed via "localhost" instead (browsers treat
+// those as two different origins even though they're the same server).
+const API_BASE   = window.location.origin;
 const ONEMAP_URL = "https://www.onemap.gov.sg/api/common/elastic/search";
 
 // MRT line colors
@@ -276,12 +280,10 @@ const MRT_STATIONS = [
   {name:"Bedok South",    lat:1.3215,lng:103.9401,line:"TEL"},
 ];
 
-// District bboxes
-const DISTRICTS = {
-  "Marine Parade": [1.295, 103.893, 1.316, 103.935],
-  "Downtown CBD":  [1.277, 103.845, 1.295, 103.865],
-  "Tengah":        [1.360, 103.720, 1.390, 103.760],
-};
+// District bboxes — populated for real from /districts on load (55 real
+// planning areas), not the 3 hardcoded placeholders this used to have.
+let DISTRICTS = {};
+let DISTRICT_SCORES = {};  // name -> {score, verdict} from /rank, for color-coding
 
 // ── Map init ───────────────────────────────────────────────────────────────
 const map = L.map("map", {
@@ -324,21 +326,143 @@ MRT_STATIONS.forEach(station => {
    .addTo(map);
 });
 
-// ── District boxes ─────────────────────────────────────────────────────────
-Object.entries(DISTRICTS).forEach(([name, [minLat, minLon, maxLat, maxLon]]) => {
+// ── District boxes — real 55 planning areas, clickable, color-coded by live score ──
+let districtLayers = {};  // name -> {rect, label}
+
+function scoreColor(score) {
+  if (score >= 75) return "#48BB78";   // good — green
+  if (score >= 50) return "#F6AD55";   // moderate — orange
+  return "#FC8181";                     // poor — red
+}
+
+function drawDistrictBox(name, [minLat, minLon, maxLat, maxLon]) {
+  const scoreInfo = DISTRICT_SCORES[name];
+  const color = scoreInfo ? scoreColor(scoreInfo.score) : "#00BCD4";
+
   const rect = L.rectangle(
     [[minLat, minLon], [maxLat, maxLon]],
-    {color: "#00BCD4", weight: 2, fillColor: "#00BCD4", fillOpacity: 0.08}
+    {color, weight: 1, fillColor: color, fillOpacity: 0.06}
   ).addTo(map);
 
   const label = L.divIcon({
-    html: `<div class="district-label">${name}</div>`,
+    html: `<div class="district-label">${name}${scoreInfo ? ` · ${scoreInfo.score.toFixed(0)}` : ""}</div>`,
     className: "",
     iconAnchor: [0, 0],
   });
-  L.marker([(minLat + maxLat) / 2, (minLon + maxLon) / 2], {icon: label, interactive: false})
-   .addTo(map);
-});
+  const labelMarker = L.marker([(minLat + maxLat) / 2, (minLon + maxLon) / 2], {icon: label, interactive: false}).addTo(map);
+
+  // click a district box → fetch a REAL live connectivity score for its exact bbox
+  rect.on("click", async () => {
+    document.getElementById("loading").style.display = "block";
+    try {
+      const evalResp = await fetch(
+        `${API_BASE}/evaluate?min_lon=${minLon}&max_lon=${maxLon}&min_lat=${minLat}&max_lat=${maxLat}`
+      ).catch(() => null);
+      const evalData = evalResp ? await evalResp.json() : {};
+      const score = evalData.connectivity_score?.toFixed(0) ?? "—";
+      const popupHtml = `
+        <div class="popup-card">
+          <div class="popup-header">📍 ${name}</div>
+          <div class="popup-score">
+            <div class="popup-score-value">${score}</div>
+            <div class="popup-score-label">Connectivity Score / 100</div>
+          </div>
+          <div class="popup-grid">
+            <div class="popup-metric">
+              <div class="popup-metric-label">🚕 Live Taxis</div>
+              <div class="popup-metric-value">${evalData.taxi_count ?? "—"}</div>
+            </div>
+            <div class="popup-metric">
+              <div class="popup-metric-label">🚌 Bus Score</div>
+              <div class="popup-metric-value">${evalData.bus_frequency_score?.toFixed(0) ?? "—"}/100</div>
+            </div>
+            <div class="popup-metric">
+              <div class="popup-metric-label">⚡ Friction</div>
+              <div class="popup-metric-value">${evalData.friction_ratio?.toFixed(3) ?? "—"}</div>
+            </div>
+            <div class="popup-metric">
+              <div class="popup-metric-label">🚏 Bus Stops</div>
+              <div class="popup-metric-value">${evalData.stops_in_bbox ?? "—"}</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:#68d391;text-align:center;">${evalData.verdict || ""}</div>
+        </div>
+      `;
+      rect.bindPopup(popupHtml, {maxWidth: 300}).openPopup();
+    } finally {
+      document.getElementById("loading").style.display = "none";
+    }
+  });
+  rect.on("mouseover", () => rect.setStyle({fillOpacity: 0.25}));
+  rect.on("mouseout", () => rect.setStyle({fillOpacity: 0.06}));
+
+  districtLayers[name] = {rect, label: labelMarker};
+}
+
+const FALLBACK_DISTRICTS = {
+  "Marine Parade": [1.295, 103.893, 1.316, 103.935],
+  "Downtown CBD":  [1.277, 103.845, 1.295, 103.865],
+  "Tengah":        [1.360, 103.720, 1.390, 103.760],
+};
+
+function isValidDistrictsShape(obj) {
+  // Guard against accidentally treating an error response body (e.g.
+  // {"detail": "..."} from FastAPI) as a real districts map — that shape
+  // would otherwise silently break the whole rendering loop with zero boxes.
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return false;
+  const values = Object.values(obj);
+  if (values.length === 0) return false;
+  return values.every(v => Array.isArray(v) && v.length === 4 && v.every(n => typeof n === "number"));
+}
+
+async function loadDistricts() {
+  try {
+    const [districtsResp, rankResp] = await Promise.all([
+      fetch(`${API_BASE}/districts`).catch(e => { console.error("GET /districts failed:", e); return null; }),
+      fetch(`${API_BASE}/rank`).catch(e => { console.error("GET /rank failed:", e); return null; }),
+    ]);
+
+    if (districtsResp && districtsResp.ok) {
+      const parsed = await districtsResp.json();
+      if (isValidDistrictsShape(parsed)) {
+        DISTRICTS = parsed;
+        console.log(`Loaded ${Object.keys(DISTRICTS).length} real districts from /districts`);
+      } else {
+        console.error("/districts returned an unexpected shape, falling back:", parsed);
+        DISTRICTS = FALLBACK_DISTRICTS;
+      }
+    } else {
+      console.error("/districts responded with", districtsResp ? districtsResp.status : "no response", "— falling back to 3 placeholder districts.");
+      DISTRICTS = FALLBACK_DISTRICTS;
+    }
+
+    if (rankResp && rankResp.ok) {
+      const rankList = await rankResp.json();
+      if (Array.isArray(rankList)) {
+        rankList.forEach(r => { DISTRICT_SCORES[r.district] = {score: r.score, verdict: r.verdict}; });
+        console.log(`Loaded live scores for ${rankList.length} districts from /rank`);
+      }
+    } else {
+      console.warn("/rank unavailable — district boxes will be drawn without score colors.");
+    }
+  } catch (e) {
+    console.error("Unexpected error loading districts/rank — falling back to 3 placeholder districts.", e);
+    DISTRICTS = FALLBACK_DISTRICTS;
+  }
+
+  let drawn = 0, failed = 0;
+  Object.entries(DISTRICTS).forEach(([name, bbox]) => {
+    try {
+      drawDistrictBox(name, bbox);
+      drawn++;
+    } catch (e) {
+      failed++;
+      console.error(`Failed to draw district box for "${name}":`, e);
+    }
+  });
+  console.log(`District boxes: ${drawn} drawn, ${failed} failed.`);
+}
+loadDistricts();
 
 // ── Legend ─────────────────────────────────────────────────────────────────
 const legendDiv = document.createElement("div");
@@ -351,11 +475,11 @@ legendDiv.innerHTML = `
       ${line}
     </div>
   `).join("")}
-  <div style="margin-top:8px;" class="legend-title">District</div>
-  <div class="legend-item">
-    <div class="legend-line" style="background:#00BCD4"></div>
-    Monitored area
-  </div>
+  <div style="margin-top:8px;" class="legend-title">District Score</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#48BB78"></div>Good ≥75</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#F6AD55"></div>Moderate 50–74</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#FC8181"></div>Poor &lt;50</div>
+  <div style="font-size:10px;color:#718096;margin-top:6px;">Click any box for a live score</div>
 `;
 map.getContainer().appendChild(legendDiv);
 
