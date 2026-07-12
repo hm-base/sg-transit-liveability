@@ -1,3 +1,4 @@
+"""
 dashboard/app.py
 ================
 Live Streamlit dashboard with glossary page.
