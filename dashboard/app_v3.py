@@ -130,8 +130,33 @@ div[data-baseweb="select"] > div {
   background: #FFFFFF !important; border: 1px solid #D3DBE5 !important;
   border-radius: 10px !important; font-family: 'JetBrains Mono', monospace !important;
 }
-div[data-baseweb="select"] span { color: #0F172A !important; }
+/* Dark theme paints the selected value white — force dark ink on every
+   descendant (the portal dropdown list is separate and stays theme-styled). */
+div[data-baseweb="select"] span,
+div[data-baseweb="select"] div,
+div[data-baseweb="select"] input { color: #0F172A !important; }
+div[data-baseweb="select"] svg { fill: #6B7686 !important; }
 label { color: #6B7686 !important; font-family: 'JetBrains Mono', monospace !important; font-size: 11px !important; }
+
+/* Buttons: dark theme gives them a near-black fill while our
+   stMarkdownContainer rule turns their label dark → black-on-black boxes.
+   Force the light-card button look everywhere (incl. the popover trigger). */
+.stApp button[kind],
+.stApp div[data-testid="stPopover"] > button {
+  background: #FFFFFF !important; border: 1px solid #D3DBE5 !important;
+  border-radius: 10px !important; color: #0F172A !important;
+}
+.stApp button[kind] p, .stApp button[kind] span,
+.stApp div[data-testid="stPopover"] > button p { color: #0F172A !important; }
+.stApp button[kind]:hover { border-color: #2F7DED !important; color: #2F7DED !important; }
+
+/* Popover panel is a dark portal in dark theme — force the white card look
+   so its sliders/captions/formula (all dark ink) stay readable. */
+div[data-testid="stPopoverBody"] { background: #FFFFFF !important; border: 1px solid #E4E9F0 !important; }
+
+/* Text inputs (postal code) */
+div[data-baseweb="input"], div[data-baseweb="input"] > div { background: #FFFFFF !important; }
+div[data-baseweb="input"] input { background: #FFFFFF !important; color: #0F172A !important; }
 </style>
 """, unsafe_allow_html=True)
 

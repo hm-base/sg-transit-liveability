@@ -1,0 +1,6 @@
+# Accent color for native widgets (sliders, checkboxes, focus rings) so they
+# match the v3 --blue token instead of Streamlit's default red, in BOTH
+# light and dark themes. Base theme is deliberately not pinned — the v3
+# dashboard forces its own light shell via CSS regardless.
+[theme]
+primaryColor = "#2F7DED"
