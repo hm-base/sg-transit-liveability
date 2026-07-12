@@ -92,58 +92,58 @@ Conventions:
 
 Work top to bottom. Each item names the v1 source (in `dashboard/app.py`) and where it lands in v3.
 
-### 3.1 Taxi availability — history & forecast chart ⬜ MISSING in v3
+### 3.1 Taxi availability — history & forecast chart ✅ DONE
 - v1: `go.Scatter` actual-taxis line + ±2σ normal-range band + ML prediction diamonds (+30/60/120 min), ~lines 133–162.
 - v3 target: new card in the **Overview** tab (`build_overview_html`), full width above Transport Timeliness.
 - Build as SVG: history line from `fetch_snapshots(slug, minutes=history_window)`, translucent band = mean±2σ of the window, 3 diamond markers (`--amber`, purple `#A855F7`, `--teal`) at the right edge from `TaxiForecaster(slug).predict()`.
 - For `slug == "average"`: sum counts across districts per timestamp, or show `render_coming_soon` if too heavy — pick one, don't crash.
 - Legend row under the chart: 9px mono chips matching v1's legend.
 
-### 3.2 Taxi flux chart ⬜ MISSING in v3
+### 3.2 Taxi flux chart ✅ DONE
 - v1: `px.bar` of last 30 flux values (~line 167).
 - v3 target: same Overview card or a sibling card. SVG bar chart: positive bars `--teal`, negative `--red`, zero-line `--border-strong`. Caption: "Positive = taxis arriving · Negative = taxis leaving".
 
-### 3.3 Anomaly alerts list ⬜ PARTIAL in v3
+### 3.3 Anomaly alerts list ✅ DONE (24h-scoped, type chips)
 - v1: right column list of alert rows: `LOW_TAXI · <district>: only N taxis (mean=X, threshold=Y)`.
 - v3: `render_alerts` exists but shows in the Overview side column with invisible text (fixed by §1). Verify it shows type badge (`.chip.bad` for LOW_TAXI, `.chip.mid` for HIGH_FLUX / BUS_GAP), district, message, SGT timestamp via `to_sgt`-equivalent. Cap at 8 rows + "…and N more" line.
 - **Data bug to fix while here**: the ALERTS KPI shows a raw total (e.g. 200) unscoped to district/time. Scope it: `fetch_alerts` for the selected slug within the last 24h; for "average" show the 24h citywide count. Label the KPI sub accordingly ("last 24h").
 
-### 3.4 Model performance panel ⬜ MISSING in v3
+### 3.4 Model performance panel ✅ DONE (24H tab)
 - v1: `fetch_latest_metrics` → per-horizon MAE with badges (Great/Good/OK) + "Off by ~N taxis on average".
 - v3 target: small card in Overview side column, `.stat-line` rows: `+30 MIN / +60 MIN / +2 HR`, value = MAE, chip: MAE ≤3.5 `.chip.ok` "GREAT", ≤4.5 `.chip.mid` "GOOD", else "OK". Coming-soon fallback if no metrics rows.
 
-### 3.5 Forecasts panel (next taxi counts) ✅ EXISTS in v3
+### 3.5 Forecasts panel (next taxi counts) ✅ DONE (+trio card on 24H tab)
 - `render_forecast_col` already does +30/+60/+2h. Just confirm visible after §1 and shows em-dash fallbacks when the model can't predict.
 
-### 3.6 Bus connectivity breakdown ⬜ PARTIAL in v3
+### 3.6 Bus connectivity breakdown ✅ DONE (3 progress bars when live)
 - v1: bus stops count, avg frequency ("Every ~13 min" + status dot), bus score, route redundancy (+unique routes chip), connectivity score, then 3 labelled progress bars (Bus frequency / Taxi stability / Friction penalty) with score + verdict each.
 - v3: the mini-grid in `build_overview_html` covers part of this when live. Add the **3 progress bars** row: track `--bg` with `--border`, fill `--blue`, height 6px radius 3px, label left / `NN/100 — <verdict>` right in mono. Requires live `/evaluate` data; otherwise the existing coming-soon placeholder stands.
 
-### 3.7 District leaderboard ✅ EXISTS — verify only
+### 3.7 District leaderboard ✅ DONE (re-weights with score-weight sliders; verdict thresholds fixed to 75/50)
 - `render_leaderboard` bars + table already match v1's ranking. After §1, confirm bar values, district names, and table rows are visible; bar colors follow verdict colors (currently all red in screenshots because live scores were <50 — that's data, not a bug).
 
-### 3.8 Extended forecasts: 24H chart / peak ratings / day heatmap ✅ MOSTLY EXISTS
+### 3.8 Extended forecasts: 24H chart / peak ratings / day heatmap ✅ DONE (peak shading added)
 - `render_24h_line_chart`, `render_peak_ratings`, `render_heatmap` exist in the 24H Forecast tab. Verify against v1: 24h chart should mark the Peak region like v1 does (shaded band + "Peak" label); heatmap 7×24 with day labels; peak pills 🟢🟡🔴. Add the peak shading if absent. Guard the <2-points SVG bug.
 
-### 3.9 Price trend — town selector ⬜ REGRESSED in v3
+### 3.9 Price trend — town selector ✅ DONE (+flat type, months, VFM weight controls)
 - v1: dropdown to pick any town, chart updates, plus tiles: Latest avg price / Price change (+% chip) / Total transactions.
 - v3: hardcodes `towns[0]`. Fix: add a Streamlit `st.selectbox` for town (and one for flat type: reuse `get_flat_types()`) above the price-trend card inside the Map & Housing Prices tab, styled by the existing `div[data-baseweb="select"]` overrides. Re-render `render_price_trend_chart` + the 3 `.price-tile`s from the selection.
 
-### 3.10 Block transport profile (postal code + radius) ⬜ MISSING in v3
+### 3.10 Block transport profile (postal code + radius) ✅ DONE
 - v1: postal-code text input + search-radius slider + Fetch → real-time transport + HDB prices near that block.
 - v3 target: card at the bottom of Map & Housing Prices tab. Native `st.text_input` + `st.slider` + `st.button` (style the button dark-ink like `.deep-dive`), results rendered as a v3 HTML card: nearest stops `.stat-line`s, nearby HDB avg price tile, connectivity chip. Uses the same backend v1 calls (see v1 ~lines 470+ / `onemap_services`, `geocoder`). Coming-soon fallback if API/OneMap token unavailable.
 
-### 3.11 Auto-refresh + last-refresh stamp ⬜ MISSING in v3
+### 3.11 Auto-refresh + last-refresh stamp ✅ DONE (stamp + manual ↻)
 - v1: sidebar "Auto-refresh every 60s" checkbox + "Last refresh HH:MM:SS SGT".
 - v3 target: small mono caption right-aligned next to the district selector: `Last refresh 21:12 SGT · auto 60s`. Implement with `st.checkbox` (default on) + `time.sleep`-free approach: `st.autorefresh` isn't core Streamlit, so use `st_autorefresh` from `streamlit-extras`/`streamlit-autorefresh` if already in requirements; otherwise a manual "↻ Refresh" button is acceptable — do not add heavy new dependencies without noting it in requirements.txt.
 
-### 3.12 Retrain model button ⬜ MISSING in v3 (optional, low priority)
+### 3.12 Retrain model button ✅ DONE (Score Weights popover footer)
 - v1 sidebar "Retrain model now". v3: put inside the Score Weights expander or Glossary tab footer as a small outline button; call the same retrain function v1 calls. Skip if it complicates layout — mark as TODO comment instead.
 
-### 3.13 History window slider ⬜ MISSING in v3
+### 3.13 History window slider ✅ DONE (30–360 min)
 - v1: "History (minutes)" slider controls chart window. v3: `st.slider(30–360, default 60)` next to the district selector; feed it into 3.1/3.2 queries.
 
-### 3.14 Compare tab ⬜ placeholder in both — leave as coming-soon. Not part of parity.
+### 3.14 Compare tab ✅ DONE (built per mockup — user overrode the leave-as-is note)
 
 ---
 
@@ -160,11 +160,11 @@ Work top to bottom. Each item names the v1 source (in `dashboard/app.py`) and wh
 
 ## 5. Definition of done
 
-- [ ] Dark Streamlit theme shows zero invisible text anywhere in v3
-- [ ] Overview: history+forecast SVG chart, flux chart, alerts (scoped 24h), model performance, forecasts all visible with real data
-- [ ] Bus connectivity shows the 3 score-breakdown bars when live
-- [ ] 24H tab has peak shading, heatmap, peak pills
-- [ ] Price trend has town + flat-type selectors with tiles updating
-- [ ] Block transport profile works end-to-end (or clean coming-soon if OneMap token missing)
-- [ ] Refresh stamp + history slider present
-- [ ] App never throws with pipeline offline
+- [x] Dark Streamlit theme shows zero invisible text anywhere in v3
+- [x] Overview: history+forecast SVG chart, flux chart, alerts (scoped 24h), model performance, forecasts all visible with real data
+- [x] Bus connectivity shows the 3 score-breakdown bars when live
+- [x] 24H tab has peak shading, heatmap, peak pills
+- [x] Price trend has town + flat-type selectors with tiles updating
+- [x] Block transport profile works end-to-end (or clean coming-soon if OneMap token missing)
+- [x] Refresh stamp + history slider present
+- [x] App never throws with pipeline offline
