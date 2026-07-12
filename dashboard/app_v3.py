@@ -965,19 +965,75 @@ def build_forecast_html(selected: dict, data: dict, extra: dict) -> str:
         </div>"""
 
 
-def build_map_and_prices_html(extra: dict) -> str:
+@st.cache_data(ttl=300)
+def _town_summary_cached(flat_type: str, months: int) -> pd.DataFrame | None:
+    try:
+        return get_town_summary(flat_type=flat_type, months=months)
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=300)
+def _price_trend_cached(town: str, flat_type: str) -> pd.DataFrame | None:
+    try:
+        return get_price_trend(town, flat_type)
+    except Exception:
+        return None
+
+
+def build_map_and_prices_html(extra: dict, trend_town: str, flat_type: str,
+                              months: int, transport_weight: int) -> str:
     if not HDB_AVAILABLE:
         return render_coming_soon("hdb/analytics.py could not be imported — check hdb.duckdb exists in data/.")
-    trend_html = render_price_trend_chart(extra.get("price_trend"))
-    town_table_html = render_price_table(extra.get("town_summary"), n=len(extra.get("town_summary", [])) or 8)
-    vfm_html = render_vfm_table(extra.get("vfm")) if extra.get("vfm") is not None else render_coming_soon(
-        "VFM combines live connectivity score with price — needs the live pipeline running.")
+    summary = _town_summary_cached(flat_type, months)
+    trend_html = render_price_trend_chart(_price_trend_cached(trend_town, flat_type))
+    town_table_html = render_price_table(summary, n=len(summary) if summary is not None else 8)
+    vfm_html = render_coming_soon("VFM combines live connectivity score with price — needs the live pipeline running.")
+    if extra.get("rank") and summary is not None and not summary.empty:
+        try:
+            conn_scores = {r["district"]: r["score"] for r in extra["rank"]}
+            w = transport_weight / 100.0
+            vfm_html = render_vfm_table(get_value_for_money(summary, conn_scores,
+                                                            transport_weight=w, price_weight=1.0 - w))
+        except Exception:
+            pass
     return f"""
-        <div class="card"><h3>📈 Price Trend · {extra.get('trend_town','')}</h3>{trend_html}</div>
+        <div class="card"><h3>📈 Price Trend · {trend_town.title()} · {flat_type}</h3>{trend_html}</div>
         <div class="grid-2">
-          <div class="card"><h3>💰 Price by Town</h3>{town_table_html}</div>
-          <div class="card"><h3>🏆 Value-for-Money Ranking</h3>{vfm_html}</div>
+          <div class="card"><h3>💰 Price by Town</h3>
+            <div class="sub">Average {flat_type} resale price, last {months} months</div>{town_table_html}</div>
+          <div class="card"><h3>🏆 Value-for-Money Ranking</h3>
+            <div class="sub">Transport {transport_weight}% · Affordability {100 - transport_weight}%</div>{vfm_html}</div>
         </div>"""
+
+
+def render_block_profile(profile: dict) -> str:
+    """Result card for the postal-code Block Transport Profile (parity 3.10)."""
+    if not profile or profile.get("error"):
+        return render_coming_soon(profile.get("error", "No profile data returned."))
+    loc = profile.get("location") or {}
+    mrt = profile.get("nearest_mrt")
+    cbd = profile.get("cbd_commute")
+    stops = profile.get("bus_stops") or []
+    lines = ""
+    if mrt:
+        lines += (f'<div class="stat-line"><span class="l">🚇 NEAREST MRT</span>'
+                  f'<span class="v" style="font-size:12px;">{mrt.get("name", "?")} · {mrt.get("distance_label", "")}</span></div>')
+    if cbd and cbd.get("total_time_min"):
+        lines += (f'<div class="stat-line"><span class="l">🏢 CBD COMMUTE</span>'
+                  f'<span class="v" style="font-size:12px;">{cbd["total_time_min"]:.0f} min by public transport</span></div>')
+    lines += (f'<div class="stat-line"><span class="l">🚌 BUS STOPS IN RADIUS</span>'
+              f'<span class="v" style="font-size:12px;">{profile.get("num_stops", 0)}</span></div>')
+    stop_rows = ""
+    for s in stops[:5]:
+        svc = " ".join(f'<span class="svc-chip">{x.get("service_no", x) if isinstance(x, dict) else x}</span>'
+                       for x in (s.get("services") or [])[:4])
+        stop_rows += (f'<div class="stat-line"><span class="l">{s.get("description", s.get("stop_code", ""))} '
+                      f'· {s.get("distance_m", 0):.0f}m</span>'
+                      f'<span class="v" style="font-size:11px;">{svc or "—"}</span></div>')
+    addr = loc.get("address", "")
+    return (f'<div style="font-size:11.5px; color:#0F172A; font-weight:600; margin-bottom:8px;">📍 {addr}</div>'
+            f'{lines}{stop_rows}')
 
 
 def build_glossary_html() -> str:
@@ -1278,7 +1334,57 @@ with tab_map:
         components.html(MAP_HTML, height=560, scrolling=False)
     else:
         st.markdown(render_coming_soon("dashboard/sg_map.html not found next to app_v3.py."), unsafe_allow_html=True)
-    st.markdown(build_map_and_prices_html(extra), unsafe_allow_html=True)
+
+    if HDB_AVAILABLE:
+        try:
+            _flat_types = get_flat_types()
+        except Exception:
+            _flat_types = ["4 ROOM"]
+        try:
+            _towns = get_available_towns()
+        except Exception:
+            _towns = []
+        _mc1, _mc2, _mc3, _mc4 = st.columns([1.2, 1.6, 1.4, 1.6])
+        with _mc1:
+            _flat = st.selectbox("Flat type", _flat_types,
+                                 index=_flat_types.index("4 ROOM") if "4 ROOM" in _flat_types else 0)
+        with _mc2:
+            _months = st.slider("Months of data", 1, 24, 12)
+        with _mc3:
+            _tw = st.slider("Transport importance %", 0, 100, 50,
+                            help="Weight of transport connectivity vs affordability in the VFM ranking")
+        with _mc4:
+            _trend_town = st.selectbox("Town for price trend", _towns or ["—"])
+        st.markdown(build_map_and_prices_html(extra, _trend_town, _flat, _months, _tw),
+                    unsafe_allow_html=True)
+    else:
+        st.markdown(render_coming_soon("hdb/analytics.py could not be imported — check hdb.duckdb exists in data/."),
+                    unsafe_allow_html=True)
+
+    # Block Transport Profile (postal code + radius → live OneMap/LTA lookup)
+    st.markdown('<div class="card" style="margin-bottom:0;"><h3>📍 Block Transport Profile</h3>'
+                '<div class="sub">Enter a Singapore postal code to see real-time transport + nearby context</div></div>',
+                unsafe_allow_html=True)
+    _bp1, _bp2, _bp3 = st.columns([2, 2.5, 1])
+    with _bp1:
+        _postal = st.text_input("Postal code", placeholder="e.g. 440010", max_chars=6)
+    with _bp2:
+        _radius = st.slider("Search radius (m)", 100, 1000, 500, step=100)
+    with _bp3:
+        st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
+        _fetch = st.button("🔍 Fetch", use_container_width=True)
+    if _fetch and _postal.strip():
+        try:
+            from hdb.onemap_services import get_area_transport_profile
+            from config import cfg as _cfg
+            with st.spinner("Looking up transport profile…"):
+                _profile = get_area_transport_profile(_postal.strip(), radius_m=_radius,
+                                                      lta_api_key=_cfg.lta_api_key)
+            st.markdown(f'<div class="card">{render_block_profile(_profile)}</div>',
+                        unsafe_allow_html=True)
+        except Exception as e:
+            st.markdown(f'<div class="card">{render_coming_soon(f"OneMap lookup failed ({e}) — check ONEMAP_TOKEN.")}</div>',
+                        unsafe_allow_html=True)
 
 with tab_glossary:
     st.markdown(build_glossary_html(), unsafe_allow_html=True)
