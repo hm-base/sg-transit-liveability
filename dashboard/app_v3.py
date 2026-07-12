@@ -881,6 +881,62 @@ def render_forecast_trio(forecast: dict) -> str:
             f'{box("r", "+2 HR", v120)}</div>')
 
 
+@st.cache_data(ttl=60)
+def _evaluate_bbox_cached(bbox: tuple) -> dict | None:
+    return call_api("/evaluate", {"min_lon": bbox[0], "max_lon": bbox[1],
+                                  "min_lat": bbox[2], "max_lat": bbox[3]}, timeout=6.0)
+
+
+def build_compare_html(a: dict, b: dict, weights: dict) -> str:
+    """Side-by-side district comparison (mockup Compare tab). Every metric
+    row degrades to an em-dash independently."""
+    def side(o: dict) -> dict:
+        ev = _evaluate_bbox_cached(o["bbox"]) if o.get("bbox") else None
+        s = apply_weights(ev, weights) if ev else None
+        bx = o["bbox"]
+        ctx = (_onemap_local_context(o["slug"], (bx[2] + bx[3]) / 2, (bx[0] + bx[1]) / 2)
+               if bx else {"mrt": None, "cbd": None})
+        return {"ev": ev or {}, "score": s, "price": get_avg_price(o["slug"]), "ctx": ctx}
+
+    A, B = side(a), side(b)
+
+    def score_cell(s):
+        if s is None:
+            return '<td style="color:#8B95A5;">—</td>'
+        _, color = verdict_for(s)
+        return f'<td style="color:{color}; font-weight:700;">{s:.0f}</td>'
+
+    def num_cell(v, fmt="{:.0f}"):
+        return f'<td>{fmt.format(v)}</td>' if v is not None else '<td style="color:#8B95A5;">—</td>'
+
+    def mrt_cell(ctx):
+        m = ctx.get("mrt")
+        return (f'<td>{m["name"]} · {m.get("distance_label", "")}</td>' if m
+                else '<td style="color:#8B95A5;">—</td>')
+
+    def cbd_cell(ctx):
+        c = ctx.get("cbd")
+        return (f'<td>{c["total_time_min"]:.0f} min</td>' if c and c.get("total_time_min")
+                else '<td style="color:#8B95A5;">—</td>')
+
+    rows = (
+        f'<tr><td>Connectivity Score</td>{score_cell(A["score"])}{score_cell(B["score"])}</tr>'
+        f'<tr><td>Bus Score</td>{num_cell(A["ev"].get("bus_frequency_score"))}{num_cell(B["ev"].get("bus_frequency_score"))}</tr>'
+        f'<tr><td>Taxi Stability</td>{num_cell(A["ev"].get("taxi_stability_score"))}{num_cell(B["ev"].get("taxi_stability_score"))}</tr>'
+        f'<tr><td>Friction</td>{num_cell(A["ev"].get("friction_ratio"), "{:.3f}")}{num_cell(B["ev"].get("friction_ratio"), "{:.3f}")}</tr>'
+        f'<tr><td>Live Taxis</td>{num_cell(A["ev"].get("taxi_count"))}{num_cell(B["ev"].get("taxi_count"))}</tr>'
+        f'<tr><td>Bus Stops</td>{num_cell(A["ev"].get("stops_in_bbox"))}{num_cell(B["ev"].get("stops_in_bbox"))}</tr>'
+        f'<tr><td>Avg Price (4R, 12mo)</td>{num_cell(A["price"], "S${:,.0f}")}{num_cell(B["price"], "S${:,.0f}")}</tr>'
+        f'<tr><td>Nearest MRT</td>{mrt_cell(A["ctx"])}{mrt_cell(B["ctx"])}</tr>'
+        f'<tr><td>Commute to CBD</td>{cbd_cell(A["ctx"])}{cbd_cell(B["ctx"])}</tr>')
+
+    offline_note = ("" if A["ev"] or B["ev"] else
+                    '<div class="sub">Live metrics need the pipeline (python main.py) running — showing what\'s available offline.</div>')
+    return (f'<div class="card"><h3>⚖ Compare Districts</h3>'
+            f'<div class="sub">Live metrics per district · scores use your current weight settings</div>{offline_note}'
+            f'<table class="sg-table"><tr><th>Metric</th><th>{a["label"]}</th><th>{b["label"]}</th></tr>{rows}</table></div>')
+
+
 def build_forecast_html(selected: dict, data: dict, extra: dict) -> str:
     selected_label = selected["label"]
     if selected["slug"] == "average":
@@ -1194,8 +1250,24 @@ with tab_forecast:
     st.markdown(build_forecast_html(selected, data, extra), unsafe_allow_html=True)
 
 with tab_compare:
-    st.markdown(f'<div class="card">{render_coming_soon("Side-by-side district comparison, coming after this tab is fully wired.")}</div>',
-                unsafe_allow_html=True)
+    _non_avg = [o for o in options if o["slug"] != "average"]
+    _names = [o["label"] for o in _non_avg]
+
+    def _cmp_default(name: str, fallback: int = 0) -> int:
+        return _names.index(name) if name in _names else fallback
+
+    _ca, _cb = st.columns(2)
+    with _ca:
+        _a_label = st.selectbox("District A", _names, index=_cmp_default("Ang Mo Kio"), key="cmp_a")
+    with _cb:
+        _b_label = st.selectbox("District B", _names, index=_cmp_default("Bishan", 1), key="cmp_b")
+    _a = next(o for o in _non_avg if o["label"] == _a_label)
+    _b = next(o for o in _non_avg if o["label"] == _b_label)
+    try:
+        st.markdown(build_compare_html(_a, _b, weights), unsafe_allow_html=True)
+    except Exception:
+        st.markdown(f'<div class="card">{render_coming_soon("Comparison failed — check the pipeline and try again.")}</div>',
+                    unsafe_allow_html=True)
 
 with tab_map:
     st.markdown('<div class="card"><h3>🗺 Live Interactive Map</h3>'
