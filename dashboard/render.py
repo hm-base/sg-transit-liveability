@@ -68,28 +68,40 @@ select.district-select{
 
 main{padding:22px 24px 60px; max-width:1500px; margin:0 auto;}
 
-.hero-map-row{ display:flex; gap:16px; align-items:stretch; margin:16px 0; flex-wrap:wrap; }
-.hero-map{ flex:2; min-width:320px; min-height:340px; }
-.hero-summary-side{ flex:1; min-width:220px; flex-direction:column; align-items:flex-start; margin:0; justify-content:center; }
-.hero-stats-stacked{ flex-direction:column; gap:10px; margin-left:0; margin-top:10px; width:100%; }
-.hero-stats-stacked > div{ flex-direction:row; justify-content:space-between; width:100%; }
-.hero-summary{ display:flex; align-items:center; gap:20px; background:#fff; border:1px solid var(--border);
-  border-radius:var(--radius); padding:16px 20px; margin:16px 0; box-shadow:var(--shadow); flex-wrap:wrap; }
-.hero-ring{ width:56px; height:56px; border-radius:50%; border:5px solid var(--amber); flex-shrink:0;
-  display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-weight:800; font-size:20px; }
-.hero-stats{ display:flex; gap:22px; margin-left:auto; flex-wrap:wrap; }
-.hero-stats > div{ display:flex; flex-direction:column; }
-.hero-stat-label{ font-size:9.5px; color:var(--muted); font-family:'JetBrains Mono',monospace; }
-.hero-stat-val{ font-family:'JetBrains Mono',monospace; font-weight:800; font-size:17px; }
-.fc-verdict{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:13px;}
-.fc-verdict-sub{font-size:11px; color:var(--muted); margin-bottom:2px;}
-.fc-verdict-desc{font-size:10.5px; color:var(--muted); line-height:1.4; margin-top:4px; max-width:220px;}
+.hero-map-row{ display:flex; gap:16px; align-items:flex-start; margin:16px 0; flex-wrap:wrap; }
+.map-wrap{ flex:1; min-width:320px; position:relative; }
+.hero-map{ width:100%; height:400px; min-height:340px; transition:height .28s ease; }
+.hero-map.expanded{ height:78vh; }
+.map-expand-btn{ position:absolute; top:12px; right:12px; z-index:10; background:#fff; border:1px solid var(--border-strong);
+  font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; padding:8px 13px; border-radius:8px;
+  color:var(--blue-dark); box-shadow:var(--shadow); cursor:pointer; }
+.map-expand-btn:hover{ background:var(--blue-pale); }
+
+.float-card{
+  width:270px; flex-shrink:0; background:#fff; border:1px solid var(--border-strong);
+  border-radius:var(--radius); box-shadow:var(--shadow); padding:18px;
+}
+.ring-center{ display:flex; justify-content:center; margin-bottom:6px; }
+.ring{ width:76px; height:76px; border-radius:50%; border-width:6px; border-style:solid;
+  display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace;
+  font-weight:800; font-size:24px; }
+.fc-verdict{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:13px; text-align:center; }
+.fc-verdict-sub{ font-size:11px; color:var(--muted); margin-bottom:10px; text-align:center; }
+.fc-verdict-desc{ font-size:10.5px; color:var(--muted); line-height:1.4; margin:2px 0 10px; text-align:center; }
+.fc-row{ display:flex; justify-content:space-between; font-size:11.5px; padding:7px 0; border-top:1px dashed var(--border); }
+.fc-row span:first-child{ color:var(--muted); }
+.fc-row span:last-child{ font-weight:700; font-family:'JetBrains Mono',monospace; }
+.fc-head{ font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:.4px;
+  margin-bottom:8px; text-align:center; }
+.hero-missing-note{ font-size:9.5px; color:var(--muted-2); font-family:'JetBrains Mono',monospace;
+  margin:10px 0; line-height:1.5; }
+.deep-dive-btn{ width:100%; background:var(--text); color:#fff; border:none; padding:11px; border-radius:9px;
+  font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:700; cursor:pointer; }
+
 .local-snapshot-list .local-row{padding:10px 0; border-bottom:1px solid var(--border);}
 .local-snapshot-list .local-row:last-child{border-bottom:none;}
 .local-title{font-weight:700; font-size:12.5px;}
 .local-sub{font-size:11px; color:var(--muted); margin-top:2px;}
-.fc-head{font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:.4px; margin-bottom:8px;}
-.hero-missing-note{font-size:10px; color:var(--muted-2); font-family:'JetBrains Mono',monospace; margin-top:10px; line-height:1.5;}
 .deep-dive-btn{width:100%; background:var(--text); color:#fff; border:none; padding:10px; border-radius:9px;
   font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:700; margin-top:12px; cursor:pointer;}
 
@@ -181,6 +193,31 @@ input[type=range]{width:100%; accent-color:var(--blue);}
 """
 
 JS_BLOCK = r"""
+let mapWasExpandedAtScroll = 0;
+let mapExpandCooldown = false;
+function toggleMapExpand(){
+  const m = document.getElementById('mapEmbed');
+  const btn = document.getElementById('mapExpandBtn');
+  if(!m || !btn) return;  // no-op if this page has no map (e.g. the score-weights widget)
+  m.classList.toggle('expanded');
+  const expanded = m.classList.contains('expanded');
+  btn.innerText = expanded ? '✕ Collapse map' : '⤢ Expand map';
+  if(expanded){
+    mapExpandCooldown = true;
+    m.scrollIntoView({behavior:'smooth', block:'start'});
+    setTimeout(function(){ mapWasExpandedAtScroll = window.scrollY; mapExpandCooldown = false; }, 700);
+  }
+}
+window.addEventListener('scroll', function(){
+  const m = document.getElementById('mapEmbed');
+  if(!m || mapExpandCooldown) return;
+  if(m.classList.contains('expanded') && Math.abs(window.scrollY - mapWasExpandedAtScroll) > 60){
+    m.classList.remove('expanded');
+    const btn = document.getElementById('mapExpandBtn');
+    if(btn) btn.innerText = '⤢ Expand map';
+  }
+}, {passive:true});
+
 function showTab(id, el){
   document.querySelectorAll('.tabpanel').forEach(p=>p.style.display='none');
   document.getElementById('tab-'+id).style.display='block';
@@ -446,6 +483,13 @@ def build_full_page(selected_name: str, data: dict, extra: dict, district_names:
     raw_score = data["conn_score"]
     verdict_sentence = data["verdict"] or ""  # the full descriptive sentence, e.g. "❌ Poor connectivity — transit friction is high"
 
+    # Every real Singapore district has bus stops — if the system found zero,
+    # that's almost certainly bus data still loading (BusWorker hasn't
+    # finished seeding yet), not a genuine "this district has no buses"
+    # finding. Showing a confident red POOR in that case is misleading, so
+    # this is called out explicitly instead of asserting a false verdict.
+    bus_data_still_loading = bool(data.get("bus")) and data["bus"].get("stops_in_bbox", 0) == 0
+
     if is_average:
         # Averaging 55 districts' scores together isn't very meaningful, and
         # right now most districts read near-0 anyway (bus data hasn't been
@@ -457,6 +501,11 @@ def build_full_page(selected_name: str, data: dict, extra: dict, district_names:
     elif raw_score is None:
         score_txt = "—"
         short_verdict, verdict_color = "N/A", "#8B95A5"
+    elif bus_data_still_loading:
+        score_txt = raw_score
+        short_verdict, verdict_color = "LOADING", "#8B95A5"
+        verdict_sentence = ("Bus data is still loading for this district (0 stops found so far) — "
+                            "the score above only reflects taxis right now. Give it a few minutes.")
     else:
         score_txt = raw_score
         if raw_score >= 75:
@@ -557,20 +606,21 @@ def build_full_page(selected_name: str, data: dict, extra: dict, district_names:
 
 <main>
   <div class="hero-map-row">
-    <iframe src="/sg_map.html" class="map-embed hero-map"></iframe>
-    <div class="hero-summary hero-summary-side">
+    <div class="map-wrap" id="mapWrap">
+      <button class="map-expand-btn" onclick="toggleMapExpand()" id="mapExpandBtn">⤢ Expand map</button>
+      <iframe src="/sg_map.html" class="map-embed hero-map" id="mapEmbed"></iframe>
+    </div>
+    <div class="float-card">
       <div class="fc-head">{display_name.upper()} · {now_str}</div>
-      <div class="hero-ring" style="border-color:{verdict_color}; color:{verdict_color};">{score_txt}</div>
-      <div>
-        <div class="fc-verdict" style="color:{verdict_color};">{verdict_txt}</div>
-        <div class="fc-verdict-sub">Connectivity Score</div>
-        {f'<div class="fc-verdict-desc">{verdict_sentence}</div>' if verdict_sentence else ''}
+      <div class="ring-center">
+        <div class="ring" style="border-color:{verdict_color}; color:{verdict_color};">{score_txt}</div>
       </div>
-      <div class="hero-stats hero-stats-stacked">
-        <div><span class="hero-stat-label">🚕 taxis nearby</span><span class="hero-stat-val">{data['live_taxis']}</span></div>
-        <div><span class="hero-stat-label">🚌 bus stops</span><span class="hero-stat-val">{data['bus']['stops_in_bbox'] if data.get('bus') else '—'}</span></div>
-        <div><span class="hero-stat-label">🚨 active alerts</span><span class="hero-stat-val">{data['alerts']}</span></div>
-      </div>
+      <div class="fc-verdict" style="color:{verdict_color};">{verdict_txt}</div>
+      <div class="fc-verdict-sub">Connectivity Score</div>
+      {f'<div class="fc-verdict-desc">{verdict_sentence}</div>' if verdict_sentence else ''}
+      <div class="fc-row"><span>🚕 taxis nearby</span><span>{data['live_taxis']}</span></div>
+      <div class="fc-row"><span>🚌 bus stops</span><span>{data['bus']['stops_in_bbox'] if data.get('bus') else '—'}</span></div>
+      <div class="fc-row"><span>🚨 active alerts</span><span>{data['alerts']}</span></div>
       <div class="hero-missing-note">📍 Nearest MRT + bus stop now live in Local Snapshot below · specific bus route numbers still not wired.</div>
       <button class="deep-dive-btn" onclick="deepDive()">View Deep Dive →</button>
     </div>

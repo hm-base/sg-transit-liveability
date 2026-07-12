@@ -280,6 +280,14 @@ def create_app(store: DataStore) -> FastAPI:
         description="Real-time transit friction scoring for Singapore districts.",
         version="2.0.0",
     )
+    # The dashboard map is also embedded as an iframe inside Streamlit
+    # (localhost:8502 / srcdoc), so its fetches to this API are cross-origin.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["GET"],
+        allow_headers=["*"],
+    )
 
     @app.get("/evaluate", response_model=ScoreResponse)
     def api_evaluate(min_lon: float, max_lon: float,
@@ -306,6 +314,17 @@ def create_app(store: DataStore) -> FastAPI:
             num_unique_routes=metrics.num_unique_routes,
             verdict=metrics.verdict,
         )
+
+    @app.get("/planning_areas.geojson")
+    def serve_planning_areas_geojson():
+        """Real Master Plan 2019 planning area boundaries (data.gov.sg) —
+        used by sg_map.html to draw actual district shapes instead of
+        crude bounding-box rectangles."""
+        geo_path = Path(__file__).parent / "dashboard" / "planning_areas.geojson"
+        if not geo_path.exists():
+            return HTMLResponse('{"type":"FeatureCollection","features":[]}',
+                               media_type="application/json", status_code=404)
+        return HTMLResponse(geo_path.read_text(encoding="utf-8"), media_type="application/json")
 
     @app.get("/districts")
     def api_districts():

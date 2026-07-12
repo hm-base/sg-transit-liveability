@@ -78,8 +78,49 @@ st.markdown("""
    a dark Streamlit theme otherwise clashes badly with the light dashboard
    embedded below it. */
 .stApp { background: #F3F6FA !important; }
-#MainMenu, footer, header[data-testid="stHeader"] { visibility: hidden; }
+/* Keep Streamlit's header visible so the ⋮ menu (theme switcher etc.) stays
+   reachable — only the footer is hidden. */
+footer { visibility: hidden; }
+header[data-testid="stHeader"] { background: transparent; }
+/* Our shell is always light — force dark ink on the header icons so they
+   don't go white-on-white when the Streamlit theme is dark. */
+header[data-testid="stHeader"] svg { color: #0F172A !important; fill: #0F172A !important; }
+/* Keep our sticky topnav below the now-visible Streamlit header. */
+header.topnav { top: 3.75rem !important; }
 .block-container { padding-top: 1rem; max-width: 1500px; }
+
+/* Streamlit's DARK theme sets color:white on its containers, and any of our
+   elements without an explicit color inherit it → white-on-white. Force dark
+   ink at the markdown-container level so inheritance resolves to our palette. */
+div[data-testid="stMarkdownContainer"] { color: #0F172A; }
+div[data-testid="stMarkdownContainer"] p { color: inherit; }
+
+/* Belt-and-braces: the classes that relied on inheritance */
+.kpi-val, .card h3, .card h4, .brand,
+.stat-line .v, .bar-val, .sg-bar-val,
+.row-title, .fc-row span:last-child,
+.price-tile .v, .sg-price-tile .v,
+table td, table.sg-table td,
+.acc-head, .modal { color: #0F172A; }
+
+/* Streamlit's tab labels + caption also go white-on-white in dark theme */
+button[data-baseweb="tab"] { color: #6B7686 !important; }
+button[data-baseweb="tab"][aria-selected="true"] { color: #2F7DED !important; }
+div[data-testid="stCaptionContainer"] { color: #6B7686 !important; }
+/* Expander: Streamlit's dark theme paints the <summary> header near-black —
+   force the whole widget onto the light card palette. */
+div[data-testid="stExpander"],
+div[data-testid="stExpander"] > details,
+div[data-testid="stExpander"] summary {
+  background: #FFFFFF !important;
+  border-color: #E4E9F0 !important;
+}
+div[data-testid="stExpander"] > details { border-radius: 10px; }
+div[data-testid="stExpander"] summary,
+div[data-testid="stExpander"] summary p,
+div[data-testid="stExpander"] summary span { color: #0F172A !important; }
+div[data-testid="stExpander"] summary svg { fill: #0F172A !important; color: #0F172A !important; }
+
 div[data-baseweb="select"] > div {
   background: #FFFFFF !important; border: 1px solid #D3DBE5 !important;
   border-radius: 10px !important; font-family: 'JetBrains Mono', monospace !important;
@@ -468,26 +509,29 @@ def build_chrome_and_kpis(selected: dict, data: dict) -> tuple[str, dict]:
     scope_text = ("🇸🇬 Singapore Average · across 55 planning areas" if is_average
                   else f"📍 {selected_label} · district detail")
 
-    html = f"""
+    topnav_html = f"""
   <header class="topnav">
     <div class="brand"><div class="mark">A</div>SG Liveability</div>
     <div class="nav-right" style="margin-left:auto;">
       <div class="pill-select"><span class="dotmark"></span>{selected_label}</div>
     </div>
   </header>
+"""
 
-  <div class="hero-summary">
-    <div class="hero-ring" style="border-color:{verdict_color}; color:{verdict_color};">{score_txt}</div>
-    <div>
-      <div class="fc-verdict" style="color:{verdict_color}; text-align:left;">{verdict_txt}</div>
-      <div class="fc-verdict-sub" style="text-align:left; margin-bottom:0;">Connectivity Score · {selected_label}</div>
-    </div>
-    <div class="hero-stats">
-      <div><span class="hero-stat-label">🚕 taxis nearby</span><span class="hero-stat-val">{data['live_taxis']}</span></div>
-      <div><span class="hero-stat-label">🚌 bus stops</span><span class="hero-stat-val">{data['bus']['stops_in_bbox'] if data.get('bus') else '—'}</span></div>
-      <div><span class="hero-stat-label">🚨 active alerts</span><span class="hero-stat-val">{data['alerts']}</span></div>
-    </div>
+    floatcard_html = f"""
+  <div class="float-card" style="width:100%;">
+    <div class="fc-head">{selected_label.upper()} · LIVE</div>
+    <div class="ring" style="border-color:{verdict_color}; color:{verdict_color};">{score_txt}</div>
+    <div class="fc-verdict" style="color:{verdict_color};">{verdict_txt}</div>
+    <div class="fc-verdict-sub">Connectivity Score · {selected_label}</div>
+    <div class="fc-row"><span>🚕 taxis nearby</span><span>{data['live_taxis']}</span></div>
+    <div class="fc-row"><span>🚌 bus stops</span><span>{data['bus']['stops_in_bbox'] if data.get('bus') else '—'}</span></div>
+    <div class="fc-row"><span>🚨 active alerts</span><span>{data['alerts']}</span></div>
   </div>
+"""
+
+    kpis_html = f"""
+  <div class="map-hint">💡 Click anywhere on the map for a live connectivity score — or search a postal code.</div>
 
   <div class="scope-badge">{scope_text}</div>
 
@@ -508,7 +552,7 @@ def build_chrome_and_kpis(selected: dict, data: dict) -> tuple[str, dict]:
                         friction=min(1.0, data['friction']))
     else:
         baseline = dict(bus=0.73, stability=0.87, friction=0.68)
-    return html, baseline
+    return topnav_html, floatcard_html, kpis_html, baseline
 
 
 def build_overview_html(selected: dict, data: dict, extra: dict) -> str:
@@ -705,8 +749,23 @@ if EXTENDED_FORECASTER_AVAILABLE and selected["slug"] != "average":
     except Exception:
         extra["peaks"] = []
 
-chrome_html, baseline = build_chrome_and_kpis(selected, data)
-st.markdown(chrome_html, unsafe_allow_html=True)
+topnav_html, floatcard_html, kpis_html, baseline = build_chrome_and_kpis(selected, data)
+st.markdown(topnav_html, unsafe_allow_html=True)
+
+# Top-of-page live map strip + floating connectivity card (mockup layout).
+_map_src = Path(__file__).parent / "sg_map.html"
+MAP_HTML = _map_src.read_text(encoding="utf-8") if _map_src.exists() else None
+map_col, card_col = st.columns([2.9, 1.1], gap="small")
+with map_col:
+    if MAP_HTML:
+        components.html(MAP_HTML, height=330, scrolling=False)
+    else:
+        st.markdown(render_coming_soon("dashboard/sg_map.html not found next to app_v3.py."),
+                    unsafe_allow_html=True)
+with card_col:
+    st.markdown(floatcard_html, unsafe_allow_html=True)
+
+st.markdown(kpis_html, unsafe_allow_html=True)
 
 if not data["live"]:
     st.caption("🔌 Connectivity score / leaderboard need the live pipeline (`python main.py`) running.")
@@ -730,12 +789,11 @@ with tab_compare:
 
 with tab_map:
     st.markdown('<div class="card"><h3>🗺 Live Interactive Map</h3>'
-                '<div class="sub">Your real sg_map.html — click anywhere for a live connectivity score, '
-                'or search a postal code. Dark-themed on purpose (its own design), currently shows 3 '
-                'illustrative district boxes.</div></div>', unsafe_allow_html=True)
-    map_src = Path(__file__).parent / "sg_map.html"
-    if map_src.exists():
-        components.html(map_src.read_text(encoding="utf-8"), height=560, scrolling=False)
+                '<div class="sub">Full-size view of the live map — real planning-area polygons, '
+                'click anywhere for a live connectivity score, or search a postal code. '
+                'Dark-themed on purpose (its own design).</div></div>', unsafe_allow_html=True)
+    if MAP_HTML:
+        components.html(MAP_HTML, height=560, scrolling=False)
     else:
         st.markdown(render_coming_soon("dashboard/sg_map.html not found next to app_v3.py."), unsafe_allow_html=True)
     st.markdown(build_map_and_prices_html(extra), unsafe_allow_html=True)

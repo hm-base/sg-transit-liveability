@@ -22,7 +22,9 @@
 
   #map {
     width: 100%;
-    height: 520px;
+    /* Fill whatever viewport this page gets — the full window when served
+       standalone by FastAPI, or the iframe height Streamlit embeds it at. */
+    height: 100vh;
     border-radius: 8px;
     z-index: 1;
   }
@@ -217,15 +219,27 @@
 <div style="position:relative;">
   <div id="map"></div>
   <div id="loading">⏳ Loading transport data...</div>
+  <div id="postal-search-box" style="position:absolute; top:10px; left:50px; z-index:1000;
+       background:rgba(26,29,39,0.95); border:1px solid #2d3748; border-radius:8px; padding:8px;
+       display:flex; gap:6px;">
+    <input id="postal-input" type="text" placeholder="Search postal code…" maxlength="6"
+      style="background:#0e1117; border:1px solid #2d3748; border-radius:6px; color:#fafafa;
+             padding:6px 10px; font-size:13px; width:150px;">
+    <button id="postal-search-btn"
+      style="background:#2b6cb0; color:white; border:none; border-radius:6px; padding:6px 14px;
+             font-size:13px; font-weight:600; cursor:pointer;">Search</button>
+  </div>
 </div>
 
 <script>
 // ── Config ─────────────────────────────────────────────────────────────────
-// Use whatever origin this page was actually loaded from — hardcoding
-// "127.0.0.1" here caused every fetch to silently fail with a CORS error
-// whenever the page was viewed via "localhost" instead (browsers treat
-// those as two different origins even though they're the same server).
-const API_BASE   = window.location.origin;
+// Use whatever origin this page was actually loaded from when served by
+// FastAPI directly. Inside Streamlit's components.html the page lives in a
+// srcdoc iframe whose origin is the literal string "null" — fall back to
+// the FastAPI server there (its CORS middleware allows this).
+const API_BASE   = window.location.origin.startsWith("http")
+  ? window.location.origin
+  : "http://127.0.0.1:8000";
 const ONEMAP_URL = "https://www.onemap.gov.sg/api/common/elastic/search";
 
 // MRT line colors
@@ -326,8 +340,10 @@ MRT_STATIONS.forEach(station => {
    .addTo(map);
 });
 
-// ── District boxes — real 55 planning areas, clickable, color-coded by live score ──
-let districtLayers = {};  // name -> {rect, label}
+// ── District shapes — real 55 planning area polygons (Master Plan 2019,
+// data.gov.sg), clickable, color-coded by live score. Falls back to crude
+// bounding-box rectangles only if the real GeoJSON can't be loaded. ──
+let districtLayers = {};  // name -> Leaflet layer
 
 function scoreColor(score) {
   if (score >= 75) return "#48BB78";   // good — green
@@ -335,68 +351,94 @@ function scoreColor(score) {
   return "#FC8181";                     // poor — red
 }
 
-function drawDistrictBox(name, [minLat, minLon, maxLat, maxLon]) {
-  const scoreInfo = DISTRICT_SCORES[name];
+function buildPopup(name, evalData) {
+  const score = evalData.connectivity_score?.toFixed(0) ?? "—";
+  return `
+    <div class="popup-card">
+      <div class="popup-header">📍 ${name}</div>
+      <div class="popup-score">
+        <div class="popup-score-value">${score}</div>
+        <div class="popup-score-label">Connectivity Score / 100</div>
+      </div>
+      <div class="popup-grid">
+        <div class="popup-metric">
+          <div class="popup-metric-label">🚕 Live Taxis</div>
+          <div class="popup-metric-value">${evalData.taxi_count ?? "—"}</div>
+        </div>
+        <div class="popup-metric">
+          <div class="popup-metric-label">🚌 Bus Score</div>
+          <div class="popup-metric-value">${evalData.bus_frequency_score?.toFixed(0) ?? "—"}/100</div>
+        </div>
+        <div class="popup-metric">
+          <div class="popup-metric-label">⚡ Friction</div>
+          <div class="popup-metric-value">${evalData.friction_ratio?.toFixed(3) ?? "—"}</div>
+        </div>
+        <div class="popup-metric">
+          <div class="popup-metric-label">🚏 Bus Stops</div>
+          <div class="popup-metric-value">${evalData.stops_in_bbox ?? "—"}</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#68d391;text-align:center;">${evalData.verdict || ""}</div>
+    </div>
+  `;
+}
+
+async function evaluateAndShowPopup(layer, name, bounds) {
+  document.getElementById("loading").style.display = "block";
+  try {
+    const evalResp = await fetch(
+      `${API_BASE}/evaluate?min_lon=${bounds.getWest()}&max_lon=${bounds.getEast()}&min_lat=${bounds.getSouth()}&max_lat=${bounds.getNorth()}`
+    ).catch(() => null);
+    const evalData = evalResp ? await evalResp.json() : {};
+    layer.bindPopup(buildPopup(name, evalData), {maxWidth: 300}).openPopup();
+  } finally {
+    document.getElementById("loading").style.display = "none";
+  }
+}
+
+function drawDistrictPolygon(feature) {
+  const name = feature.properties.PLN_AREA_N;  // e.g. "BEDOK" — matches your district names exactly
+  const scoreInfo = DISTRICT_SCORES[name] || DISTRICT_SCORES[toTitleCase(name)];
   const color = scoreInfo ? scoreColor(scoreInfo.score) : "#00BCD4";
 
+  const layer = L.geoJSON(feature, {
+    style: {color, weight: 1.5, fillColor: color, fillOpacity: 0.15},
+  }).addTo(map);
+
+  const bounds = layer.getBounds();
+  const label = L.divIcon({
+    html: `<div class="district-label">${toTitleCase(name)}${scoreInfo ? ` · ${scoreInfo.score.toFixed(0)}` : ""}</div>`,
+    className: "",
+    iconAnchor: [0, 0],
+  });
+  const labelMarker = L.marker(bounds.getCenter(), {icon: label, interactive: false}).addTo(map);
+
+  layer.on("click", () => evaluateAndShowPopup(layer, toTitleCase(name), bounds));
+  layer.on("mouseover", () => layer.setStyle({fillOpacity: 0.35}));
+  layer.on("mouseout", () => layer.setStyle({fillOpacity: 0.15}));
+
+  districtLayers[name] = {layer, label: labelMarker};
+}
+
+function toTitleCase(s) {
+  return s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function drawDistrictBoxFallback(name, [minLat, minLon, maxLat, maxLon]) {
+  // Only used if the real GeoJSON polygons can't be loaded at all.
+  const scoreInfo = DISTRICT_SCORES[name];
+  const color = scoreInfo ? scoreColor(scoreInfo.score) : "#00BCD4";
   const rect = L.rectangle(
     [[minLat, minLon], [maxLat, maxLon]],
     {color, weight: 1, fillColor: color, fillOpacity: 0.06}
   ).addTo(map);
-
   const label = L.divIcon({
     html: `<div class="district-label">${name}${scoreInfo ? ` · ${scoreInfo.score.toFixed(0)}` : ""}</div>`,
-    className: "",
-    iconAnchor: [0, 0],
+    className: "", iconAnchor: [0, 0],
   });
-  const labelMarker = L.marker([(minLat + maxLat) / 2, (minLon + maxLon) / 2], {icon: label, interactive: false}).addTo(map);
-
-  // click a district box → fetch a REAL live connectivity score for its exact bbox
-  rect.on("click", async () => {
-    document.getElementById("loading").style.display = "block";
-    try {
-      const evalResp = await fetch(
-        `${API_BASE}/evaluate?min_lon=${minLon}&max_lon=${maxLon}&min_lat=${minLat}&max_lat=${maxLat}`
-      ).catch(() => null);
-      const evalData = evalResp ? await evalResp.json() : {};
-      const score = evalData.connectivity_score?.toFixed(0) ?? "—";
-      const popupHtml = `
-        <div class="popup-card">
-          <div class="popup-header">📍 ${name}</div>
-          <div class="popup-score">
-            <div class="popup-score-value">${score}</div>
-            <div class="popup-score-label">Connectivity Score / 100</div>
-          </div>
-          <div class="popup-grid">
-            <div class="popup-metric">
-              <div class="popup-metric-label">🚕 Live Taxis</div>
-              <div class="popup-metric-value">${evalData.taxi_count ?? "—"}</div>
-            </div>
-            <div class="popup-metric">
-              <div class="popup-metric-label">🚌 Bus Score</div>
-              <div class="popup-metric-value">${evalData.bus_frequency_score?.toFixed(0) ?? "—"}/100</div>
-            </div>
-            <div class="popup-metric">
-              <div class="popup-metric-label">⚡ Friction</div>
-              <div class="popup-metric-value">${evalData.friction_ratio?.toFixed(3) ?? "—"}</div>
-            </div>
-            <div class="popup-metric">
-              <div class="popup-metric-label">🚏 Bus Stops</div>
-              <div class="popup-metric-value">${evalData.stops_in_bbox ?? "—"}</div>
-            </div>
-          </div>
-          <div style="font-size:11px;color:#68d391;text-align:center;">${evalData.verdict || ""}</div>
-        </div>
-      `;
-      rect.bindPopup(popupHtml, {maxWidth: 300}).openPopup();
-    } finally {
-      document.getElementById("loading").style.display = "none";
-    }
-  });
-  rect.on("mouseover", () => rect.setStyle({fillOpacity: 0.25}));
-  rect.on("mouseout", () => rect.setStyle({fillOpacity: 0.06}));
-
-  districtLayers[name] = {rect, label: labelMarker};
+  L.marker([(minLat + maxLat) / 2, (minLon + maxLon) / 2], {icon: label, interactive: false}).addTo(map);
+  rect.on("click", () => evaluateAndShowPopup(rect, name, rect.getBounds()));
+  districtLayers[name] = {layer: rect};
 }
 
 const FALLBACK_DISTRICTS = {
@@ -405,37 +447,10 @@ const FALLBACK_DISTRICTS = {
   "Tengah":        [1.360, 103.720, 1.390, 103.760],
 };
 
-function isValidDistrictsShape(obj) {
-  // Guard against accidentally treating an error response body (e.g.
-  // {"detail": "..."} from FastAPI) as a real districts map — that shape
-  // would otherwise silently break the whole rendering loop with zero boxes.
-  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return false;
-  const values = Object.values(obj);
-  if (values.length === 0) return false;
-  return values.every(v => Array.isArray(v) && v.length === 4 && v.every(n => typeof n === "number"));
-}
-
 async function loadDistricts() {
+  // 1. Get live scores first (used to color whichever shape source we end up with)
   try {
-    const [districtsResp, rankResp] = await Promise.all([
-      fetch(`${API_BASE}/districts`).catch(e => { console.error("GET /districts failed:", e); return null; }),
-      fetch(`${API_BASE}/rank`).catch(e => { console.error("GET /rank failed:", e); return null; }),
-    ]);
-
-    if (districtsResp && districtsResp.ok) {
-      const parsed = await districtsResp.json();
-      if (isValidDistrictsShape(parsed)) {
-        DISTRICTS = parsed;
-        console.log(`Loaded ${Object.keys(DISTRICTS).length} real districts from /districts`);
-      } else {
-        console.error("/districts returned an unexpected shape, falling back:", parsed);
-        DISTRICTS = FALLBACK_DISTRICTS;
-      }
-    } else {
-      console.error("/districts responded with", districtsResp ? districtsResp.status : "no response", "— falling back to 3 placeholder districts.");
-      DISTRICTS = FALLBACK_DISTRICTS;
-    }
-
+    const rankResp = await fetch(`${API_BASE}/rank`).catch(e => { console.error("GET /rank failed:", e); return null; });
     if (rankResp && rankResp.ok) {
       const rankList = await rankResp.json();
       if (Array.isArray(rankList)) {
@@ -443,24 +458,47 @@ async function loadDistricts() {
         console.log(`Loaded live scores for ${rankList.length} districts from /rank`);
       }
     } else {
-      console.warn("/rank unavailable — district boxes will be drawn without score colors.");
+      console.warn("/rank unavailable — districts will be drawn without score colors.");
     }
   } catch (e) {
-    console.error("Unexpected error loading districts/rank — falling back to 3 placeholder districts.", e);
-    DISTRICTS = FALLBACK_DISTRICTS;
+    console.error("Unexpected error loading /rank:", e);
   }
 
+  // 2. Try real polygon boundaries first
+  try {
+    const geoResp = await fetch(`${API_BASE}/planning_areas.geojson`).catch(e => { console.error("GET /planning_areas.geojson failed:", e); return null; });
+    if (geoResp && geoResp.ok) {
+      const geojson = await geoResp.json();
+      if (geojson && Array.isArray(geojson.features) && geojson.features.length > 0) {
+        let drawn = 0, failed = 0;
+        geojson.features.forEach(feature => {
+          try { drawDistrictPolygon(feature); drawn++; }
+          catch (e) { failed++; console.error("Failed to draw polygon for a feature:", e); }
+        });
+        console.log(`Real district polygons: ${drawn} drawn, ${failed} failed.`);
+        return;  // success — don't fall through to rectangles
+      }
+      console.error("/planning_areas.geojson returned no features, falling back to rectangles.");
+    } else {
+      console.error("/planning_areas.geojson responded with", geoResp ? geoResp.status : "no response", "— falling back to rectangles.");
+    }
+  } catch (e) {
+    console.error("Unexpected error loading planning_areas.geojson — falling back to rectangles.", e);
+  }
+
+  // 3. Fall back to real bboxes from /districts, or the 3 hardcoded ones as a last resort
+  try {
+    const districtsResp = await fetch(`${API_BASE}/districts`).catch(() => null);
+    DISTRICTS = (districtsResp && districtsResp.ok) ? await districtsResp.json() : FALLBACK_DISTRICTS;
+  } catch (e) {
+    DISTRICTS = FALLBACK_DISTRICTS;
+  }
   let drawn = 0, failed = 0;
   Object.entries(DISTRICTS).forEach(([name, bbox]) => {
-    try {
-      drawDistrictBox(name, bbox);
-      drawn++;
-    } catch (e) {
-      failed++;
-      console.error(`Failed to draw district box for "${name}":`, e);
-    }
+    try { drawDistrictBoxFallback(name, bbox); drawn++; }
+    catch (e) { failed++; console.error(`Failed to draw fallback box for "${name}":`, e); }
   });
-  console.log(`District boxes: ${drawn} drawn, ${failed} failed.`);
+  console.log(`Fallback bounding boxes: ${drawn} drawn, ${failed} failed.`);
 }
 loadDistricts();
 
@@ -662,6 +700,19 @@ map.on("click", async (e) => {
 });
 
 // Notify parent that map is ready
+// ── Direct postal search wiring (the search box is now part of this page
+// itself, not something a Streamlit host sends in via postMessage) ──
+document.getElementById("postal-search-btn").addEventListener("click", () => {
+  const val = document.getElementById("postal-input").value.trim();
+  if (val) searchPostal(val);
+});
+document.getElementById("postal-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    const val = e.target.value.trim();
+    if (val) searchPostal(val);
+  }
+});
+
 window.parent.postMessage({type: "map_ready"}, "*");
 </script>
 </body>
