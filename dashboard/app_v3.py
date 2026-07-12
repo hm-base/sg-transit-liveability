@@ -674,6 +674,33 @@ def build_local_snapshot(selected: dict, data: dict, extra: dict) -> str:
             + row("blue", "🏢", "Commute to CBD", cbd_sub, cbd_badge, cbd_cls, pad="12px 0 0"))
 
 
+def render_score_breakdown_bars(bus: dict, friction: float) -> str:
+    """3 labelled progress bars under the timeliness grid (parity 3.6)."""
+    fric_pct = min(100.0, friction * 100.0)
+    items = [
+        ("Bus frequency", bus.get("bus_frequency_score") or 0.0, False),
+        ("Taxi stability", bus.get("taxi_stability_score") or 0.0, False),
+        ("Friction penalty", fric_pct, True),
+    ]
+    bars = ""
+    for label, val, inverse in items:
+        if inverse:
+            verdict = "High" if val > 50 else "Low"
+            v_color = "#EF4444" if val > 50 else "#10B981"
+        else:
+            v_label, v_color = verdict_for(val)[0].title(), verdict_for(val)[1]
+            verdict = v_label
+        bars += (
+            f'<div style="flex:1;">'
+            f'<div style="display:flex; justify-content:space-between; font-size:10px; '
+            f"font-family:'JetBrains Mono',monospace; color:#6B7686; margin-bottom:4px;\">"
+            f'<span>{label}</span><span style="color:{v_color}; font-weight:700;">{val:.1f}/100 — {verdict}</span></div>'
+            f'<div style="height:6px; border-radius:3px; background:var(--bg); border:1px solid var(--border);">'
+            f'<div style="width:{min(100.0, val):.1f}%; height:100%; border-radius:3px; background:var(--blue);"></div>'
+            f'</div></div>')
+    return f'<div style="display:flex; gap:16px; margin-top:14px;">{bars}</div>'
+
+
 def build_price_snapshot(selected: dict, extra: dict) -> str:
     """Mockup Price Snapshot: 3 tiles + Top-5 value-for-money list."""
     ts = extra.get("town_summary")
@@ -737,7 +764,8 @@ def build_overview_html(selected: dict, data: dict, extra: dict) -> str:
           <div class="mini-col"><div class="mini-col-title">🔮 TAXI FORECAST</div>
             {render_forecast_col(data['forecast'])}
           </div>
-        </div>"""
+        </div>
+        {render_score_breakdown_bars(b, data['friction'])}"""
     else:
         timeliness_html = render_coming_soon("Bus + live connectivity detail needs the live pipeline "
                                              "(python main.py) running. Taxi numbers above are still real.")
