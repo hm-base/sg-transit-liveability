@@ -62,6 +62,14 @@ score-weights JS widget and the `sg_map.html` embed.
   of relying solely on scattered per-card fallbacks (which remain).
 - **First-load spinner:** `st.spinner("Scoring 55 districts…")` around the
   first uncached `/rank` call.
+- **District polygons always visible (user request):** the map must draw the
+  55 real planning-area borders in every state, not only when FastAPI is up.
+  When v3 reads `sg_map.html` for embedding, it injects the local
+  `dashboard/planning_areas.geojson` inline (replacing a
+  `/*__INLINE_GEOJSON__*/` placeholder in the map script); the map's loader
+  uses inline data first and only falls back to the API fetch when absent
+  (standalone serving). Score coloring still comes from `/rank` when live;
+  offline, polygons render neutral borders with name labels.
 
 ### 2. Score Weights popover — REACTIVE (updated per user)
 
