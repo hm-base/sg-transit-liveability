@@ -48,7 +48,8 @@ from dashboard.scoring import (DEFAULT_WEIGHTS, apply_weights, verdict_for,
 from dashboard.v3_charts import render_history_chart, render_flux_chart
 
 from config import cfg
-from storage.database import init_db, fetch_snapshots, fetch_alerts, fetch_latest_metrics
+from storage.database import (init_db, fetch_snapshots, fetch_predictions,
+                              fetch_alerts, fetch_latest_metrics)
 from hdb.planning_areas import load_all_planning_areas
 
 try:
@@ -349,25 +350,56 @@ def render_heatmap(pattern: pd.DataFrame) -> str:
     return cells
 
 
+PEAK_HOURS = {7, 8, 17, 18}  # 7-9am + 5-7pm, matching v1's shaded bands
+
+
 def render_24h_line_chart(df: pd.DataFrame) -> str:
-    if df is None or df.empty:
+    if df is None or df.empty or len(df) < 2:
         return render_coming_soon("Model needs at least 50 recent snapshots to predict.")
     vals = df["predicted_count"].tolist()
     lo, hi = min(vals), max(vals)
     span = (hi - lo) or 1
     n = len(vals)
+
+    def x_at(i: int) -> float:
+        return 30 + (i / (n - 1)) * 840
+
     pts = []
     for i, v in enumerate(vals):
-        x = 30 + (i / (n - 1)) * 840 if n > 1 else 30
-        y = 160 - ((v - lo) / span) * 140
-        pts.append(f"{x:.0f},{y:.0f}")
+        pts.append(f"{x_at(i):.0f},{160 - ((v - lo) / span) * 140:.0f}")
     polyline = " ".join(pts)
+
+    # Peak-hour shading: contiguous runs of predictions landing in 7-9am/5-7pm.
+    rects, label_x = "", None
+    try:
+        hours = pd.to_datetime(df["predicted_at"]).dt.hour.tolist()
+        half = 420 / max(n - 1, 1)
+        run_start = None
+        for i in range(n + 1):
+            in_peak = i < n and hours[i] in PEAK_HOURS
+            if in_peak and run_start is None:
+                run_start = i
+            elif not in_peak and run_start is not None:
+                x0 = max(30.0, x_at(run_start) - half)
+                x1 = min(870.0, x_at(i - 1) + half)
+                rects += f'<rect x="{x0:.0f}" y="0" width="{x1 - x0:.0f}" height="160" fill="#FDEAEA"/>'
+                if label_x is None:
+                    label_x = x0 + 4
+                run_start = None
+    except Exception:
+        rects = ""
+    peak_label = (f'<text x="{label_x:.0f}" y="12" font-size="9" fill="#EF4444" '
+                  f"font-family=\"'JetBrains Mono',monospace\">Peak</text>") if label_x else ""
+
     return f"""<svg width="100%" height="180" viewBox="0 0 900 180" preserveAspectRatio="none">
+      {rects}{peak_label}
       <polyline fill="none" stroke="#F5A524" stroke-width="2.5" points="{polyline}"/>
       <line x1="30" y1="160" x2="870" y2="160" stroke="#E4E9F0"/></svg>
       <div style="display:flex; justify-content:space-between; font-size:9.5px; color:var(--muted);
                   font-family:'JetBrains Mono',monospace; padding:0 30px;">
-        <span>+1hr</span><span>+6hr</span><span>+12hr</span><span>+18hr</span><span>+24hr</span></div>"""
+        <span>+1hr</span><span>+6hr</span><span>+12hr</span><span>+18hr</span><span>+24hr</span></div>
+      <div style="font-size:9.5px; color:var(--muted); font-family:'JetBrains Mono',monospace; padding:2px 30px 0;">
+        🔴 shaded = peak hours (7–9am, 5–7pm)</div>"""
 
 
 def render_peak_ratings(peaks: list) -> str:
@@ -799,7 +831,57 @@ def build_overview_html(selected: dict, data: dict, extra: dict) -> str:
     </div>"""
 
 
-def build_forecast_html(selected: dict, extra: dict) -> str:
+def _mae_chip(mae: float) -> str:
+    if mae <= 3.5:
+        return '<span class="chip ok">✓ GREAT</span>'
+    if mae <= 4.5:
+        return '<span class="chip mid">✓ GOOD</span>'
+    return '<span class="chip mid">~ OK</span>'
+
+
+def render_model_performance(slug: str) -> str:
+    """MAE per horizon with plain-English badges (parity 3.4). Falls back to
+    the model's training accuracy when no daily-eval row exists yet."""
+    note = "Training accuracy shown · live eval runs daily at 08:00 SGT"
+    lines = ""
+    try:
+        rows = [r for r in fetch_latest_metrics() if r.get("district") == slug]
+    except Exception:
+        rows = []
+    if rows and rows[0].get("mae"):
+        r = rows[0]
+        mae, rmse = float(r["mae"]), float(r["rmse"] or 0)
+        note = f"Evaluated {str(r['evaluated_at'])[:16]} · n={r['n_samples']}"
+        lines = (f'<div class="stat-line"><span class="l">MAE</span><span class="v" style="font-size:13px;">{mae:.2f} {_mae_chip(mae)}</span></div>'
+                 f'<div class="stat-line"><span class="l">RMSE</span><span class="v" style="font-size:13px;">{rmse:.2f}</span></div>')
+    else:
+        for label, mae in (("+30 MIN", 3.08), ("+60 MIN", 3.92), ("+2 HR", 5.03)):
+            lines += (f'<div class="stat-line"><span class="l">{label}</span>'
+                      f'<span class="v" style="font-size:12px;" title="off by ~{mae:.1f} taxis on average">{_mae_chip(mae)}</span></div>')
+    explainer = ('<div style="margin-top:12px; background:var(--blue-pale); border-radius:8px; padding:10px; '
+                 'font-size:11px; color:var(--blue-dark); line-height:1.5;">💡 MAE = how many taxis our '
+                 'prediction is off by on average. E.g. +30min MAE 3.1 means a prediction of 20 is usually '
+                 'right between 17–23.</div>')
+    return f'<div class="sub">{note}</div>{lines}{explainer}'
+
+
+ALERT_LEGEND = """
+<div style="font-size:9.5px; font-family:'JetBrains Mono',monospace; color:#6B7686; margin:10px 0 4px;">ALERT TYPES</div>
+<div class="stat-line"><span class="l">🔴 LOW_TAXI</span><span class="v" style="font-size:11px; font-weight:500; color:#6B7686;">supply drops &gt;2σ below normal</span></div>
+<div class="stat-line"><span class="l">🟡 HIGH_FLUX</span><span class="v" style="font-size:11px; font-weight:500; color:#6B7686;">±15 taxis in one minute</span></div>
+<div class="stat-line"><span class="l">🔵 BUS_GAP</span><span class="v" style="font-size:11px; font-weight:500; color:#6B7686;">avg wait exceeds 8 min</span></div>"""
+
+
+def render_forecast_trio(forecast: dict) -> str:
+    v30, v60, v120 = forecast.get(30), forecast.get(60), forecast.get(120)
+    def box(cls, label, v):
+        val = f"{v:.0f}" if v is not None else "—"
+        return f'<div class="fc-box {cls}"><div class="h">{label}</div><div class="n">{val}</div><div class="u">taxis</div></div>'
+    return (f'<div class="forecast-trio">{box("g", "+30 MIN", v30)}{box("a", "+60 MIN", v60)}'
+            f'{box("r", "+2 HR", v120)}</div>')
+
+
+def build_forecast_html(selected: dict, data: dict, extra: dict) -> str:
     selected_label = selected["label"]
     if selected["slug"] == "average":
         return render_coming_soon("Pick a specific district above — hourly forecasts and the "
@@ -809,12 +891,22 @@ def build_forecast_html(selected: dict, extra: dict) -> str:
     heatmap_html = render_heatmap(extra.get("pattern"))
     chart_html = render_24h_line_chart(extra.get("hourly_forecast"))
     peaks_html = render_peak_ratings(extra.get("peaks") or [])
+    alerts_html = render_alerts(data.get("alerts_list", []), data.get("alerts"))
     return f"""
         <div class="card"><h3>📅 Weekly Taxi Availability Heatmap · {selected_label}</h3>
           <div class="sub">Real historical average by hour × day of week.</div>{heatmap_html}</div>
         <div class="card"><h3>📈 24-Hour Forecast</h3>
           <div class="sub">Ridge model prediction for the next 24 hours.</div>{chart_html}</div>
-        <div class="card"><h3>⏰ Peak Hour Ratings — Tomorrow</h3>{peaks_html}</div>"""
+        <div class="grid-2">
+          <div>
+            <div class="card"><h3>🚨 Anomaly Alerts</h3>{alerts_html}{ALERT_LEGEND}</div>
+            <div class="card"><h3>⏰ Peak Hour Ratings — Tomorrow</h3>{peaks_html}</div>
+          </div>
+          <div>
+            <div class="card"><h3>📐 Model Performance</h3>{render_model_performance(selected["slug"])}</div>
+            <div class="card"><h3>🚕 Taxi Forecast</h3>{render_forecast_trio(data.get("forecast") or {})}</div>
+          </div>
+        </div>"""
 
 
 def build_map_and_prices_html(extra: dict) -> str:
@@ -1099,7 +1191,7 @@ with tab_overview:
     st.markdown(build_overview_html(selected, data, extra), unsafe_allow_html=True)
 
 with tab_forecast:
-    st.markdown(build_forecast_html(selected, extra), unsafe_allow_html=True)
+    st.markdown(build_forecast_html(selected, data, extra), unsafe_allow_html=True)
 
 with tab_compare:
     st.markdown(f'<div class="card">{render_coming_soon("Side-by-side district comparison, coming after this tab is fully wired.")}</div>',
