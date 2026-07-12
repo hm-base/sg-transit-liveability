@@ -240,6 +240,10 @@
 const API_BASE   = window.location.origin.startsWith("http")
   ? window.location.origin
   : "http://127.0.0.1:8000";
+// When embedded by Streamlit, the host inlines planning_areas.geojson here so
+// district borders render even with the pipeline offline. Served standalone,
+// this stays null and the loader falls back to fetching it from the API.
+let INLINE_GEOJSON = null; /*__INLINE_GEOJSON__*/
 const ONEMAP_URL = "https://www.onemap.gov.sg/api/common/elastic/search";
 
 // MRT line colors
@@ -464,24 +468,24 @@ async function loadDistricts() {
     console.error("Unexpected error loading /rank:", e);
   }
 
-  // 2. Try real polygon boundaries first
+  // 2. Try real polygon boundaries first — inline copy (always available when
+  // embedded) before falling back to the API fetch (standalone serving).
   try {
-    const geoResp = await fetch(`${API_BASE}/planning_areas.geojson`).catch(e => { console.error("GET /planning_areas.geojson failed:", e); return null; });
-    if (geoResp && geoResp.ok) {
-      const geojson = await geoResp.json();
-      if (geojson && Array.isArray(geojson.features) && geojson.features.length > 0) {
-        let drawn = 0, failed = 0;
-        geojson.features.forEach(feature => {
-          try { drawDistrictPolygon(feature); drawn++; }
-          catch (e) { failed++; console.error("Failed to draw polygon for a feature:", e); }
-        });
-        console.log(`Real district polygons: ${drawn} drawn, ${failed} failed.`);
-        return;  // success — don't fall through to rectangles
-      }
-      console.error("/planning_areas.geojson returned no features, falling back to rectangles.");
-    } else {
-      console.error("/planning_areas.geojson responded with", geoResp ? geoResp.status : "no response", "— falling back to rectangles.");
+    let geojson = INLINE_GEOJSON;
+    if (!geojson) {
+      const geoResp = await fetch(`${API_BASE}/planning_areas.geojson`).catch(e => { console.error("GET /planning_areas.geojson failed:", e); return null; });
+      if (geoResp && geoResp.ok) geojson = await geoResp.json();
     }
+    if (geojson && Array.isArray(geojson.features) && geojson.features.length > 0) {
+      let drawn = 0, failed = 0;
+      geojson.features.forEach(feature => {
+        try { drawDistrictPolygon(feature); drawn++; }
+        catch (e) { failed++; console.error("Failed to draw polygon for a feature:", e); }
+      });
+      console.log(`Real district polygons: ${drawn} drawn, ${failed} failed.`);
+      return;  // success — don't fall through to rectangles
+    }
+    console.error("No usable planning-area geojson (inline or API) — falling back to rectangles.");
   } catch (e) {
     console.error("Unexpected error loading planning_areas.geojson — falling back to rectangles.", e);
   }

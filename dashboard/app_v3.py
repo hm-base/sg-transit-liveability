@@ -753,8 +753,11 @@ topnav_html, floatcard_html, kpis_html, baseline = build_chrome_and_kpis(selecte
 st.markdown(topnav_html, unsafe_allow_html=True)
 
 # Top-of-page live map strip + floating connectivity card (mockup layout).
-_map_src = Path(__file__).parent / "sg_map.html"
-MAP_HTML = _map_src.read_text(encoding="utf-8") if _map_src.exists() else None
+# load_map_html inlines the local planning-area polygons so district borders
+# render even when the FastAPI pipeline is offline.
+from dashboard.map_embed import load_map_html
+MAP_HTML = load_map_html(Path(__file__).parent / "sg_map.html",
+                         Path(__file__).parent / "planning_areas.geojson")
 map_col, card_col = st.columns([2.9, 1.1], gap="small")
 with map_col:
     if MAP_HTML:
