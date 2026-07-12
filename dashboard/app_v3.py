@@ -562,6 +562,94 @@ def build_history_card(selected: dict, extra: dict) -> str:
             f'{body}{flux_block}</div>')
 
 
+@st.cache_data(ttl=3600)
+def _onemap_local_context(slug: str, lat: float, lng: float) -> dict:
+    """Nearest MRT + CBD commute for a district centroid. Cached hard —
+    these are slow external calls and centroids don't move."""
+    out = {"mrt": None, "cbd": None}
+    try:
+        from hdb.onemap_services import get_nearest_mrt_summary, get_pt_commute_time
+        try:
+            out["mrt"] = get_nearest_mrt_summary(lat, lng)
+        except Exception:
+            pass
+        try:
+            out["cbd"] = get_pt_commute_time(lat, lng)
+        except Exception:
+            pass
+    except Exception:
+        pass
+    return out
+
+
+def _peak_chip(p: dict) -> str:
+    rating = str(p.get("rating", ""))
+    label = str(p.get("time_label", "")).replace(":00", "").lower()
+    if "good" in rating.lower():
+        return f'<span class="chip ok" title="{p.get("advice", "")}">{label} ✓</span>'
+    if "mod" in rating.lower():
+        return f'<span class="chip mid" title="{p.get("advice", "")}">{label} ~</span>'
+    return f'<span class="chip bad" title="{p.get("advice", "")}">{label} ✗</span>'
+
+
+def build_local_snapshot(selected: dict, data: dict, extra: dict) -> str:
+    """Mockup's Local Snapshot rows: MRT / Bus / Taxi + peak chips / CBD.
+    Every row degrades to an em-dash independently — the card never dies."""
+    is_average = selected["slug"] == "average"
+    ctx = {"mrt": None, "cbd": None}
+    if not is_average and selected.get("bbox"):
+        b = selected["bbox"]  # (min_lon, max_lon, min_lat, max_lat)
+        ctx = _onemap_local_context(selected["slug"], (b[2] + b[3]) / 2, (b[0] + b[1]) / 2)
+
+    if is_average:
+        mrt_sub, mrt_badge, mrt_cls = "6 lines · 134 stations citywide", "—", "good"
+    elif ctx["mrt"]:
+        m = ctx["mrt"]
+        mrt_sub = f'{m.get("name", "?")} · {m.get("distance_label", "")} · ~{m.get("walking_min", "?")} min walk'
+        walk = m.get("walking_min") or 99
+        mrt_badge, mrt_cls = ("Near", "good") if walk <= 10 else ("Far", "mod")
+    else:
+        mrt_sub, mrt_badge, mrt_cls = "needs OneMap (token / network)", "—", "mod"
+
+    bus = data.get("bus")
+    if bus:
+        bus_sub = f'{bus["stops_in_bbox"]} stops · every ~{bus["avg_bus_headway_min"]:.0f} min · {bus["num_unique_routes"]} routes'
+        bscore = bus["bus_frequency_score"]
+        bus_badge = f"{bscore:.0f}/100"
+        bus_cls = "good" if bscore >= 75 else "mod"
+    else:
+        bus_sub, bus_badge, bus_cls = "needs the live pipeline (python main.py)", "—", "mod"
+
+    fw, _ = friction_word(data["friction"])
+    taxi_sub = f'{data["live_taxis"]} nearby · friction {data["friction"]:.3f}'
+    taxi_badge, taxi_cls = (fw, "good" if fw == "Easy" else "mod")
+
+    peaks = extra.get("peaks") or []
+    chips = ("".join(_peak_chip(p) for p in peaks[:6])
+             or '<span class="chip mid" style="opacity:.7;">peak ratings need more history</span>')
+
+    if ctx["cbd"]:
+        mins = ctx["cbd"].get("total_time_min")
+        cbd_sub = f"{mins:.0f} min by public transport" if mins else "—"
+        cbd_badge, cbd_cls = ("OK", "good") if (mins or 99) <= 35 else ("Long", "mod")
+    else:
+        cbd_sub, cbd_badge, cbd_cls = ("—" if is_average else "needs OneMap routing"), "—", "mod"
+
+    def row(icon_cls, icon, title, sub, badge, badge_cls, pad="12px 0"):
+        return (f'<div class="row-card" style="padding:{pad};">'
+                f'<div class="row-icon {icon_cls}">{icon}</div>'
+                f'<div><div class="row-title">{title}</div><div class="row-sub">{sub}</div></div>'
+                f'<div class="row-score {badge_cls}">{badge}</div></div>')
+
+    hr = '<div style="border-top:1px solid var(--border);"></div>'
+    return (row("blue", "🚇", "MRT Network", mrt_sub, mrt_badge, mrt_cls)
+            + hr + row("teal", "🚌", "Bus Coverage", bus_sub, bus_badge, bus_cls)
+            + hr + row("amber", "🚕", "Taxi Availability", taxi_sub, taxi_badge, taxi_cls, pad="12px 0 6px")
+            + f'<div class="chips" style="justify-content:center; margin-top:2px;">{chips}</div>'
+            + '<div style="border-top:1px solid var(--border); margin-top:14px;"></div>'
+            + row("blue", "🏢", "Commute to CBD", cbd_sub, cbd_badge, cbd_cls, pad="12px 0 0"))
+
+
 def build_overview_html(selected: dict, data: dict, extra: dict) -> str:
     selected_label = selected["label"]
     score_txt = data["conn_score"] if data["conn_score"] is not None else "—"
@@ -614,7 +702,8 @@ def build_overview_html(selected: dict, data: dict, extra: dict) -> str:
       </div>
       <div>
         <div class="card"><h3>📍 Local Snapshot</h3>
-          {render_coming_soon("Nearest MRT, bus coverage, and commute time — needs the OneMap lookup wired in next.")}</div>
+          <div class="sub">{'Singapore average — pick a district for local detail' if selected["slug"] == "average" else f'Local context · {selected_label}'}</div>
+          {build_local_snapshot(selected, data, extra)}</div>
         <div class="card"><h3>💰 Price Snapshot</h3>
           <div class="sub">Resale prices · {selected_label}</div>{price_table_html}</div>
         <div class="card"><h3>🚨 Anomaly Alerts</h3>{alerts_html}</div>
