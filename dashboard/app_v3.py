@@ -206,6 +206,16 @@ def get_taxi_forecast(slug: str) -> dict:
         return {}
 
 
+def _alerts_24h(slug: str | None) -> list[dict]:
+    """Alerts scoped to the last 24 hours (timestamps stored in SGT)."""
+    cutoff = (datetime.now(SGT) - timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        rows = fetch_alerts(slug, limit=200)
+    except Exception:
+        return []
+    return [a for a in rows if str(a.get("triggered_at", "")) >= cutoff]
+
+
 def get_scope_snapshot(slug: str, bbox) -> dict:
     """Assemble every real number needed for the whole page, for one district
     or the citywide average when slug == 'average'."""
@@ -218,7 +228,7 @@ def get_scope_snapshot(slug: str, bbox) -> dict:
             snaps = fetch_snapshots(s, minutes=5)
             if snaps:
                 latest_counts.append(snaps[-1]["taxi_count"])
-        alerts = fetch_alerts(None, limit=200)
+        alerts = _alerts_24h(None)
         live_taxis = sum(latest_counts) if latest_counts else 0
         avg_taxi = (sum(latest_counts) / len(latest_counts)) if latest_counts else 0.0
         rank = call_rank_cached()
@@ -229,13 +239,13 @@ def get_scope_snapshot(slug: str, bbox) -> dict:
             verdict = "MODERATE" if conn_score and conn_score < 80 else "GOOD"
         return dict(
             live_taxis=live_taxis, avg_taxi=round(avg_taxi, 1), friction=0.0,
-            alerts=len(alerts), alerts_list=alerts[:6], conn_score=conn_score, verdict=verdict,
+            alerts=len(alerts), alerts_list=alerts[:8], conn_score=conn_score, verdict=verdict,
             price=get_avg_price(None), live=bool(rank), bus=None, forecast={},
             bus_stops="\u2014", bus_headway="\u2014",
         )
 
     snaps = fetch_snapshots(slug, minutes=60)
-    alerts = fetch_alerts(slug, limit=50)
+    alerts = _alerts_24h(slug)
     live_taxis = snaps[-1]["taxi_count"] if snaps else 0
     avg_taxi = (sum(s["taxi_count"] for s in snaps) / len(snaps)) if snaps else 0.0
     friction = snaps[-1].get("friction", 0.0) if snaps else 0.0
@@ -252,7 +262,7 @@ def get_scope_snapshot(slug: str, bbox) -> dict:
 
     return dict(
         live_taxis=live_taxis, avg_taxi=round(avg_taxi, 1), friction=friction,
-        alerts=len(alerts), alerts_list=alerts[:6], conn_score=conn_score, verdict=verdict,
+        alerts=len(alerts), alerts_list=alerts[:8], conn_score=conn_score, verdict=verdict,
         price=get_avg_price(slug), live=bool(evaluated), bus=evaluated,
         forecast=get_taxi_forecast(slug),
     )
@@ -403,10 +413,24 @@ def render_price_trend_chart(df: pd.DataFrame) -> str:
       </div>"""
 
 
-def render_alerts(alerts: list) -> str:
+def render_alerts(alerts: list, total: int | None = None) -> str:
     if not alerts:
-        return '<div class="chip ok" style="display:block; text-align:center; padding:10px;">\u2705 No alerts \u2014 all clear</div>'
-    return "".join(f'<div class="chip warn" style="display:block; margin-bottom:6px;">\u26A0\uFE0F {a["alert_type"]} \u00b7 {a["message"]}</div>' for a in alerts)
+        return '<div class="chip ok" style="display:block; text-align:center; padding:10px;">\u2705 No alerts in the last 24h \u2014 all clear</div>'
+    rows = ""
+    for a in alerts[:8]:
+        atype = a.get("alert_type", "")
+        chip = "bad" if atype == "LOW_TAXI" else "mid"
+        dot = "\U0001F534" if chip == "bad" else "\U0001F7E1"
+        stamp = str(a.get("triggered_at", ""))[11:16]
+        district = str(a.get("district", "")).replace("_", " ").title()
+        rows += (f'<div class="chip {chip}" style="display:block; margin-bottom:6px;">'
+                 f'{dot} <b>{atype}</b> \u00b7 {district} \u00b7 {a.get("message", "")} '
+                 f'<span style="opacity:.65;">{stamp} SGT</span></div>')
+    n = total if total is not None else len(alerts)
+    if n > 8:
+        rows += (f'<div style="font-size:10px; color:#6B7686; font-family:\'JetBrains Mono\',monospace; '
+                 f'text-align:center; padding-top:4px;">\u2026and {n - 8} more in the last 24h</div>')
+    return rows
 
 
 def render_forecast_col(forecast: dict) -> str:
@@ -650,6 +674,41 @@ def build_local_snapshot(selected: dict, data: dict, extra: dict) -> str:
             + row("blue", "🏢", "Commute to CBD", cbd_sub, cbd_badge, cbd_cls, pad="12px 0 0"))
 
 
+def build_price_snapshot(selected: dict, extra: dict) -> str:
+    """Mockup Price Snapshot: 3 tiles + Top-5 value-for-money list."""
+    ts = extra.get("town_summary")
+    if ts is None or ts.empty:
+        return render_coming_soon("No price data available.")
+    match = ts[ts["town"].str.lower().str.replace(" ", "_") == selected["slug"]]
+    if not match.empty:
+        row = match.iloc[0]
+        avg, med, txn = row["avg_price"], row.get("median_price"), int(row["num_transactions"])
+    else:
+        avg = ts["avg_price"].mean()
+        med = ts["median_price"].median() if "median_price" in ts else None
+        txn = int(ts["num_transactions"].sum())
+    med_txt = f"S${med:,.0f}" if med is not None and not pd.isna(med) else "—"
+    tiles = (f'<div class="price-tiles">'
+             f'<div class="price-tile"><div class="l">AVG PRICE</div><div class="v">S${avg:,.0f}</div></div>'
+             f'<div class="price-tile"><div class="l">MEDIAN</div><div class="v">{med_txt}</div></div>'
+             f'<div class="price-tile"><div class="l">TXNS</div><div class="v">{txn:,}</div></div></div>')
+
+    vfm = extra.get("vfm")
+    if vfm is not None and not vfm.empty:
+        rows = ""
+        for i, (_, r) in enumerate(vfm.head(5).iterrows(), 1):
+            price = f'S${r["avg_price"]:,.0f}' if "avg_price" in r else ""
+            rows += (f'<div class="vfm-row"><span style="color:#0F172A;"><span class="vfm-rank">{i}</span>'
+                     f'{str(r["town"]).title()}</span><span style="color:#10B981; font-weight:700;">'
+                     f'{r["vfm_score"]:.1f} <span style="color:#6B7686; font-weight:400;">{price}</span></span></div>')
+        vfm_html = (f'<div style="font-size:10px; font-family:\'JetBrains Mono\',monospace; color:#6B7686; '
+                    f'margin-bottom:6px;">TOP 5 VALUE-FOR-MONEY</div><div class="vfm-list">{rows}</div>')
+    else:
+        vfm_html = ('<div style="font-size:10.5px; color:#6B7686; text-align:center; padding:6px;">'
+                    'Value-for-money ranking needs the live pipeline running.</div>')
+    return tiles + vfm_html
+
+
 def build_overview_html(selected: dict, data: dict, extra: dict) -> str:
     selected_label = selected["label"]
     score_txt = data["conn_score"] if data["conn_score"] is not None else "—"
@@ -684,8 +743,9 @@ def build_overview_html(selected: dict, data: dict, extra: dict) -> str:
                                              "(python main.py) running. Taxi numbers above are still real.")
 
     leaderboard_html = render_leaderboard(extra.get("rank") or [], highlight_district=None if selected["slug"]=="average" else selected_label)
-    price_table_html = render_price_table(extra.get("town_summary"), n=8) if HDB_AVAILABLE else render_coming_soon("hdb.duckdb not found.")
-    alerts_html = render_alerts(data.get("alerts_list", []))
+    price_snapshot_html = (build_price_snapshot(selected, extra) if HDB_AVAILABLE
+                           else render_coming_soon("hdb.duckdb not found."))
+    alerts_html = render_alerts(data.get("alerts_list", []), data.get("alerts"))
 
     history_card = build_history_card(selected, extra)
 
@@ -705,7 +765,7 @@ def build_overview_html(selected: dict, data: dict, extra: dict) -> str:
           <div class="sub">{'Singapore average — pick a district for local detail' if selected["slug"] == "average" else f'Local context · {selected_label}'}</div>
           {build_local_snapshot(selected, data, extra)}</div>
         <div class="card"><h3>💰 Price Snapshot</h3>
-          <div class="sub">Resale prices · {selected_label}</div>{price_table_html}</div>
+          <div class="sub">Resale prices · {selected_label}</div>{price_snapshot_html}</div>
         <div class="card"><h3>🚨 Anomaly Alerts</h3>{alerts_html}</div>
       </div>
     </div>"""
