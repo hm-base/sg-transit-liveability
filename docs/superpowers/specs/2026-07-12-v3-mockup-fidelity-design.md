@@ -53,15 +53,46 @@ score-weights JS widget and the `sg_map.html` embed.
   selectors; feeds the taxi history + flux charts (§3).
 - **Refresh control:** mono caption `Last refresh HH:MM SGT` + a small
   "↻ Refresh" button (`st.rerun`). No new dependencies.
+- **Streamlit header stays visible** (user decision): only the footer is
+  hidden; the header is transparent with forced dark-ink icons so the ⋮ menu
+  (theme switcher) is always reachable. The sticky `.topnav` gets a top offset
+  so it doesn't slide under the Streamlit header when scrolling.
+- **Offline banner:** when `call_api("/health")` fails, one clear banner under
+  the topnav — "🔌 Live pipeline offline — showing stored data only" — instead
+  of relying solely on scattered per-card fallbacks (which remain).
+- **First-load spinner:** `st.spinner("Scoring 55 districts…")` around the
+  first uncached `/rank` call.
 
-### 2. Score Weights popover
+### 2. Score Weights popover — REACTIVE (updated per user)
 
 `st.popover("⚖ Score Weights")` in a narrow right-aligned column on its own
 row directly above the tab bar (Streamlit cannot inject widgets into the
-native tab strip — this is the closest layout to the mockup's tabbar button). Contents: the existing `components.html` JS calculator (unchanged),
-plus a footer row with the **Retrain model** button calling
-`TaxiForecaster(district).train(lookback_min=1440)` with a spinner and
-result caption. The expander is removed.
+native tab strip — this is the closest layout to the mockup's tabbar button).
+
+Adjusting the weights re-scores **the whole page for the selected district**,
+not just a sandbox number. Design:
+
+- **Native controls replace the JS iframe** (one less iframe): 3 preset
+  buttons (Bus-reliant 75/25, Balanced 50/50 default, Taxi-reliant 25/75) +
+  two sliders (Bus share %, Stability share % within the taxi term), stored in
+  `st.session_state["weights"]`. Semantics match the old JS: `score =
+  bus_share·bus_score + taxi_share·(stab_share·stability −
+  fric_share·friction·100)`, clamped 0–100.
+- One helper `apply_weights(components: dict, weights) -> float` used by EVERY
+  score display: KPI tile, float-card ring, leaderboard bars + table verdicts,
+  Compare tab, VFM ranking input. Verdict labels re-derive from the
+  re-weighted score.
+- **API extension:** `RankEntry` gains `bus_frequency_score`,
+  `taxi_stability_score`, `friction_ratio` so all 55 districts re-weight
+  client-side from the cached `/rank` (no extra calls). Backward compatible.
+- The mockup's "live formula" block renders as static v3 HTML for the selected
+  district (values recompute on every rerun — no JS needed).
+- **Custom-weights indicator:** when weights ≠ default, a `CUSTOM WEIGHTS`
+  chip appears beside the connectivity score KPI and float-card ring, and the
+  popover shows a "Reset to default" button. Prevents silently misread scores.
+- Footer row: **Retrain model** button calling
+  `TaxiForecaster(district).train(lookback_min=1440)` with spinner + result
+  caption. The expander is removed.
 
 ### 3. Overview tab
 
@@ -144,6 +175,13 @@ to "—" independently; whole tab never crashes offline.
   `st.slider` + Fetch `st.button` (dark-ink style). Results as v3 card:
   nearest-stop `.stat-line`s, nearby HDB avg price tile, connectivity chip.
   Same backend as v1 (`onemap_services`, geocoder). Coming-soon if no token.
+
+### 6b. Cross-cutting UX rules (user-approved)
+
+- **Honest alert colors:** ALERTS KPI value is teal at 0, amber 1–5, red 6+.
+- **Plain-English tooltips:** every KPI label, mini-col title, and stat label
+  gets a `title="…"` hover tooltip reusing v1's help texts (e.g. "Friction =
+  how hard it is to get a taxi (0=easy, 1=very hard)").
 
 ### 7. Ground rules (inherited from parity doc §4, restated)
 
