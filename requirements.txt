@@ -36,3 +36,6 @@ plotly>=5.20.0
 
 # Airflow (install separately via Docker)
 # apache-airflow>=2.9.0
+
+# Dev / test only
+pytest
