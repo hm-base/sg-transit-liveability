@@ -45,6 +45,7 @@ import streamlit.components.v1 as components
 
 from dashboard.scoring import (DEFAULT_WEIGHTS, apply_weights, verdict_for,
                                alert_kpi_color, is_custom)
+from dashboard.v3_charts import render_history_chart, render_flux_chart
 
 from config import cfg
 from storage.database import init_db, fetch_snapshots, fetch_alerts, fetch_latest_metrics
@@ -521,6 +522,46 @@ def build_chrome_and_kpis(selected: dict, data: dict, sel_day: str = "",
     return topnav_html, floatcard_html, kpis_html, baseline
 
 
+@st.cache_data(ttl=60)
+def fetch_average_history(minutes: int) -> list[dict]:
+    """Citywide taxi history: sum per-minute counts across all districts."""
+    bucket: dict[str, int] = {}
+    for o in get_district_options():
+        if o["slug"] == "average":
+            continue
+        for s in fetch_snapshots(o["slug"], minutes=minutes):
+            key = str(s["fetched_at"])[:16]  # minute bucket
+            bucket[key] = bucket.get(key, 0) + int(s["taxi_count"])
+    return [{"fetched_at": k + ":00", "taxi_count": v, "flux": None}
+            for k, v in sorted(bucket.items())]
+
+
+def build_history_card(selected: dict, extra: dict) -> str:
+    """Full-width taxi history ±2σ + forecast diamonds + flux bars (parity
+    3.1/3.2 + rubric predicted-vs-actual overlay)."""
+    history_min = extra.get("history_min", 60)
+    try:
+        if selected["slug"] == "average":
+            snaps = fetch_average_history(history_min)
+            preds = []
+        else:
+            snaps = fetch_snapshots(selected["slug"], minutes=history_min)
+            preds = fetch_predictions(selected["slug"], limit=50)
+        hist_svg = render_history_chart(snaps, preds)
+        flux_svg = render_flux_chart(snaps)
+    except Exception:
+        hist_svg, flux_svg = "", ""
+    body = hist_svg or render_coming_soon(
+        "Needs at least 2 taxi snapshots in the selected window — run the "
+        "pipeline (python main.py) or widen the history slider.")
+    flux_block = (f'<h4 style="font-size:12.5px; margin-top:14px; color:#0F172A;">Taxi flux (inflow / outflow)</h4>'
+                  f'{flux_svg}') if flux_svg else ""
+    return (f'<div class="card"><h3>📈 Taxi availability — history &amp; forecast</h3>'
+            f'<div class="sub">Shaded band = normal range (±2σ) · ◆ filled = upcoming ML forecasts · '
+            f'◇ hollow = earlier predictions vs what actually happened · window {history_min} min</div>'
+            f'{body}{flux_block}</div>')
+
+
 def build_overview_html(selected: dict, data: dict, extra: dict) -> str:
     selected_label = selected["label"]
     score_txt = data["conn_score"] if data["conn_score"] is not None else "—"
@@ -558,7 +599,10 @@ def build_overview_html(selected: dict, data: dict, extra: dict) -> str:
     price_table_html = render_price_table(extra.get("town_summary"), n=8) if HDB_AVAILABLE else render_coming_soon("hdb.duckdb not found.")
     alerts_html = render_alerts(data.get("alerts_list", []))
 
+    history_card = build_history_card(selected, extra)
+
     return f"""
+    {history_card}
     <div class="grid-2">
       <div>
         <div class="card"><h3>⏱ Transport Timeliness</h3>
