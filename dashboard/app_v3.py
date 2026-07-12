@@ -290,11 +290,11 @@ def render_vfm_table(df: pd.DataFrame, n: int = 10) -> str:
 
 
 def _verdict_class(score):
-    return "g" if score >= 80 else ("a" if score >= 65 else "r")
+    return "g" if score >= 75 else ("a" if score >= 50 else "r")
 
 
 def _verdict_label(score):
-    return "Well connected" if score >= 80 else ("Moderate" if score >= 65 else "Poor")
+    return "Well connected" if score >= 75 else ("Moderate" if score >= 50 else "Poor")
 
 
 def render_leaderboard(rank_list: list, highlight_district: str | None = None) -> str:
@@ -307,7 +307,7 @@ def render_leaderboard(rank_list: list, highlight_district: str | None = None) -
     for r in ranked[:10]:
         pct = round((r["score"] / max_score) * 100, 1)
         is_sel = r["district"] == highlight_district
-        color = "#EA8C1D" if is_sel else ("#10B981" if r["score"] >= 80 else ("#F5A524" if r["score"] >= 65 else "#EF4444"))
+        color = "#EA8C1D" if is_sel else ("#10B981" if r["score"] >= 75 else ("#F5A524" if r["score"] >= 50 else "#EF4444"))
         val_color = "#D97706" if is_sel else "#111"
         bars += (f'<div class="sg-bar-col"><div class="sg-bar-val" style="color:{val_color}">{r["score"]:.0f}</div>'
                   f'<div class="sg-bar" style="height:{pct}%; background:{color};"></div>'
@@ -422,77 +422,34 @@ def render_forecast_col(forecast: dict) -> str:
 CSS_TEXT = "\n  :root{\n    --bg:#F3F6FA;\n    --card:#FFFFFF;\n    --border:#E4E9F0;\n    --border-strong:#D3DBE5;\n    --text:#0F172A;\n    --muted:#6B7686;\n    --muted-2:#8B95A5;\n    --blue:#2F7DED;\n    --blue-dark:#1A5FC4;\n    --blue-pale:#EAF2FE;\n    --teal:#10B981;\n    --teal-pale:#E6F9F1;\n    --amber:#F5A524;\n    --amber-pale:#FEF3DE;\n    --red:#EF4444;\n    --red-pale:#FDEAEA;\n    --shadow: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.04);\n    --radius: 14px;\n  }\n  *{box-sizing:border-box;}\n  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);\n    font-family:'Inter',system-ui,sans-serif;}\n  .mono{font-family:'JetBrains Mono',monospace;}\n  h1,h2,h3,h4{font-family:'JetBrains Mono',monospace; margin:0;}\n  a{color:inherit;text-decoration:none;}\n  button{font-family:inherit;cursor:pointer;}\n\n  \n  \n  header.topnav{\n    background:#fff; border-bottom:1px solid var(--border);\n    display:flex; align-items:center; gap:16px; padding:12px 24px; position:sticky; top:0; z-index:40;\n  }\n  .brand{display:flex; align-items:center; gap:10px; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:15px;}\n  .brand .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#3EA6FF,#2F7DED);\n    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;}\n  .search{\n    flex:1; max-width:340px; background:var(--bg); border:1px solid var(--border);\n    border-radius:10px; padding:9px 14px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted-2);\n  }\n  .nav-right{display:flex; align-items:center; gap:10px; margin-left:auto;}\n  .pill-select{\n    background:var(--bg); border:1px solid var(--border); border-radius:10px;\n    padding:8px 14px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600;\n    display:inline-flex; align-items:center; gap:7px; color:var(--text);\n    white-space:nowrap; line-height:1; height:34px; flex-shrink:0;\n  }\n  .pill-select .dotmark{width:7px;height:7px;min-width:7px;border-radius:50%;background:var(--teal);display:inline-block;}\n  .pill-select .dotmark.blue{background:var(--blue);}\n  .nav-item-wrap{position:relative; display:inline-block;}\n\n  /* Floating connectivity summary card — now scoped to the map container, not the page */\n  .map-container{display:flex; align-items:flex-start; gap:14px; margin-bottom:6px;}\n  .map-container .map-strip{flex:1; min-width:0; margin-bottom:0;}\n  .float-card{\n    width:250px; flex-shrink:0; background:#fff;\n    border:1px solid var(--border-strong); border-radius:var(--radius); box-shadow:0 6px 20px rgba(16,24,40,.08);\n    padding:16px; z-index:20;\n  }\n  .map-hint{text-align:center; font-size:10.5px; color:var(--muted-2); font-family:'JetBrains Mono',monospace; margin:0 0 16px;}\n  .float-card .fc-head{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--muted); letter-spacing:.5px; margin-bottom:10px;}\n  .ring{width:76px;height:76px;border-radius:50%;border:6px solid var(--amber);\n    display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace;\n    font-weight:800; font-size:24px; color:var(--amber); margin:0 auto 6px;}\n  .fc-verdict{text-align:center; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px; color:var(--amber); margin-bottom:2px;}\n  .fc-verdict-sub{text-align:center; font-size:10.5px; color:var(--muted); margin-bottom:14px;}\n  .fc-row{display:flex; justify-content:space-between; font-size:11.5px; padding:5px 0; border-top:1px dashed var(--border);}\n  .fc-row span:first-child{color:var(--muted);}\n  .fc-row span:last-child{font-weight:700; font-family:'JetBrains Mono',monospace;}\n  .fc-services{display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 12px;}\n  .svc-chip{background:var(--blue-pale); color:var(--blue-dark); font-family:'JetBrains Mono',monospace;\n    font-size:10.5px; font-weight:700; padding:4px 8px; border-radius:6px;}\n  .deep-dive{width:100%; background:var(--text); color:#fff; border:none; padding:10px; border-radius:9px;\n    font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:700;}\n\n  main{padding:22px 24px 60px; max-width:1500px; margin:0 auto;}\n\n  /* map placeholder strip */\n  .map-strip{height:180px; border-radius:var(--radius); border:1px solid var(--border);\n    background:\n      linear-gradient(135deg, rgba(47,125,237,.10), rgba(47,125,237,.03)),\n      repeating-linear-gradient(0deg, rgba(47,125,237,.05) 0 1px, transparent 1px 26px),\n      repeating-linear-gradient(90deg, rgba(47,125,237,.05) 0 1px, transparent 1px 26px);\n    margin-bottom:16px; position:relative; overflow:hidden;\n    transition: height .28s ease;\n  }\n  .map-strip.expanded{height:80vh;}\n  .map-tools{position:absolute; left:14px; bottom:14px; display:flex; gap:8px; z-index:2;}\n  .map-btn{background:#fff; border:1px solid var(--border-strong); font-family:'JetBrains Mono',monospace;\n    font-size:11px; font-weight:600; padding:7px 12px; border-radius:8px; color:var(--muted);}\n  .map-btn.active{background:var(--blue); color:#fff; border-color:var(--blue);}\n  .map-legend{position:absolute; right:14px; bottom:14px; background:rgba(255,255,255,.9); border:1px solid var(--border);\n    border-radius:8px; padding:6px 10px; font-family:'JetBrains Mono',monospace; font-size:10px; display:flex; gap:10px; z-index:2;}\n  .map-expand-btn{position:absolute; top:14px; right:14px; z-index:2; background:#fff; border:1px solid var(--border-strong);\n    font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; padding:8px 13px; border-radius:8px;\n    color:var(--blue-dark); display:flex; align-items:center; gap:6px; box-shadow:var(--shadow);}\n  .map-expand-btn:hover{background:var(--blue-pale);}\n  .hotspot{position:absolute; width:12px; height:12px; border-radius:50%; background:var(--blue);\n    border:2px solid #fff; box-shadow:0 0 0 3px rgba(47,125,237,.25); cursor:pointer; z-index:3; transition:transform .15s;}\n  .hotspot:hover{transform:scale(1.35);}\n  .hotspot.active{background:var(--amber); box-shadow:0 0 0 4px rgba(245,165,36,.3);}\n\n  /* KPI context label */\n  .kpi-context{display:flex; align-items:center; gap:8px; margin-bottom:10px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted);}\n  .kpi-context b{color:var(--blue-dark); font-weight:700;}\n  .kpi-context .scope-chip{background:var(--blue-pale); color:var(--blue-dark); padding:3px 9px; border-radius:6px; font-weight:700;}\n  .map-expand-btn{position:absolute; top:12px; right:12px; background:#fff; border:1px solid var(--border-strong);\n    border-radius:8px; padding:7px 12px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600;\n    color:var(--muted); display:flex; align-items:center; gap:6px; box-shadow:var(--shadow); z-index:5;}\n  .map-strip.expanded{height:80vh; position:relative; z-index:90;}\n  .map-overlay-close{display:none; position:fixed; inset:0; background:rgba(15,23,42,.5); z-index:80;}\n  .map-overlay-close.open{display:block;}\n  .scope-badge{display:inline-flex; align-items:center; gap:7px; background:var(--blue-pale); color:var(--blue-dark);\n    border:1px solid #C7DEFB; border-radius:9px; padding:6px 12px; font-family:'JetBrains Mono',monospace;\n    font-size:11.5px; font-weight:700; margin-bottom:12px;}\n  .scope-badge .sb-sub{font-weight:500; color:var(--blue); opacity:.8; font-size:10.5px;}\n  .dot-ind{width:7px;height:7px;border-radius:50%;display:inline-block; flex-shrink:0;}\n  .dot-ind.teal{background:var(--teal);}\n  .dot-ind.blue{background:var(--blue);}\n\n  /* KPI row */\n  .kpi-row{display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:20px;}\n  .kpi{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; box-shadow:var(--shadow);}\n  .kpi.highlight{border-color:var(--amber); background:var(--amber-pale);}\n  .kpi-label{font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--muted); letter-spacing:.4px; margin-bottom:8px; display:flex; justify-content:space-between;}\n  .kpi-val{font-family:'JetBrains Mono',monospace; font-size:26px; font-weight:800;}\n  .kpi-sub{font-size:10.5px; color:var(--muted); margin-top:4px; font-family:'JetBrains Mono',monospace;}\n  .kpi-sub.up{color:var(--teal);}\n  .kpi-sub.down{color:var(--red);}\n  .kpi.highlight .kpi-val{color:var(--amber); display:flex; align-items:center; gap:8px;}\n  .badge-mod{font-size:10px; background:var(--amber); color:#fff; padding:2px 7px; border-radius:6px; font-weight:700;}\n\n  /* Tabs */\n  .tabbar{display:flex; align-items:center; border-bottom:1px solid var(--border); margin-bottom:20px;}\n  .tab{padding:10px 4px; margin-right:26px; font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600;\n    color:var(--muted); border-bottom:2px solid transparent; background:none; border-top:none;border-left:none;border-right:none;}\n  .tab.active{color:var(--blue); border-bottom-color:var(--blue);}\n  .tab-right{margin-left:auto; display:flex; gap:16px;}\n  .tab-right .tab{margin-right:0; color:var(--muted-2);}\n\n  /* Cards / grid helpers */\n  .grid-2{display:grid; grid-template-columns:2fr 1fr; gap:16px;}\n  .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}\n  .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); margin-bottom:16px;}\n  .card h3{font-size:14.5px; display:flex; align-items:center; gap:8px;}\n  .card .sub{font-size:11.5px; color:var(--muted); margin:4px 0 14px;}\n\n  .mini-grid{display:grid; grid-template-columns:1.15fr 0.85fr 1.15fr 1fr; gap:0; border:1px solid var(--border); border-radius:10px; overflow:hidden;}\n  .mini-col{padding:14px; border-right:1px solid var(--border);}\n  .mini-col:last-child{border-right:none;}\n  .mini-col-title{font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--muted); margin-bottom:10px; display:flex; align-items:center; gap:6px;}\n  .stat-line{display:flex; justify-content:space-between; align-items:baseline; padding:6px 0;}\n  .stat-line .l{font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace;}\n  .stat-line .v{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:16px;}\n  .conn-center{display:flex; flex-direction:column; align-items:center; justify-content:center; padding:14px; background:var(--amber-pale);}\n  .conn-center .ring{width:64px;height:64px; border-width:5px;}\n\n  .row-card{display:flex; align-items:center; gap:14px; padding:16px; margin-bottom:10px;}\n  .row-icon{width:38px;height:38px;border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0;}\n  .row-icon.blue{background:var(--blue-pale);}\n  .row-icon.teal{background:var(--teal-pale);}\n  .row-icon.amber{background:var(--amber-pale);}\n  .row-title{font-weight:700; font-size:13px;}\n  .row-sub{font-size:11px; color:var(--muted);}\n  .row-score{margin-left:auto; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px;\n    padding:5px 10px; border-radius:8px; border:1px solid var(--border-strong);}\n  .row-score.good{color:var(--teal); border-color:var(--teal); background:var(--teal-pale);}\n  .row-score.mod{color:var(--amber); border-color:var(--amber); background:var(--amber-pale);}\n\n  .chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:12px;}\n  .chip{font-family:'JetBrains Mono',monospace; font-size:10.5px; padding:5px 9px; border-radius:7px; font-weight:600;}\n  .chip.ok{background:var(--teal-pale); color:#0C8457;}\n  .chip.bad{background:var(--red-pale); color:#C13232;}\n  .chip.mid{background:var(--amber-pale); color:#B4790F;}\n\n  .forecast-trio{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;}\n  .fc-box{background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px; text-align:center;}\n  .fc-box .h{font-size:9.5px; color:var(--muted); font-family:'JetBrains Mono',monospace;}\n  .fc-box .n{font-family:'JetBrains Mono',monospace; font-weight:800; font-size:20px; margin:4px 0;}\n  .fc-box .u{font-size:9.5px; color:var(--muted); font-family:'JetBrains Mono',monospace;}\n  .fc-box.g .n{color:var(--teal);} .fc-box.a .n{color:var(--amber);} .fc-box.r .n{color:var(--red);}\n\n  /* leaderboard bars */\n  .bars{display:flex; align-items:flex-end; gap:10px; height:130px; margin:14px 0 6px; padding:0 4px;}\n  .bar-col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;}\n  .bar-val{font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; margin-bottom:4px;}\n  .bar{width:100%; border-radius:5px 5px 0 0;}\n  .bar-lbl{font-size:9px; color:var(--muted); margin-top:6px; font-family:'JetBrains Mono',monospace; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60px;}\n  table{width:100%; border-collapse:collapse; font-size:12px;}\n  th{text-align:left; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); font-weight:600; padding:8px 6px; border-bottom:1px solid var(--border);}\n  td{padding:9px 6px; border-bottom:1px solid var(--border); font-family:'JetBrains Mono',monospace; font-size:12px;}\n  tr.selected td{background:var(--blue-pale);}\n  .verdict{display:flex; align-items:center; gap:6px; font-weight:600;}\n  .dot{width:7px;height:7px;border-radius:50%;display:inline-block;}\n  .dot.g{background:var(--teal);} .dot.a{background:var(--amber);} .dot.r{background:var(--red);}\n\n  .price-tiles{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:14px;}\n  .price-tile{background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px; text-align:center;}\n  .price-tile .l{font-size:9px; color:var(--muted); font-family:'JetBrains Mono',monospace;}\n  .price-tile .v{font-family:'JetBrains Mono',monospace; font-weight:800; font-size:15px; margin-top:4px;}\n  .vfm-list .vfm-row{display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px dashed var(--border); font-size:11.5px;}\n  .vfm-rank{color:var(--muted); font-family:'JetBrains Mono',monospace; margin-right:6px;}\n\n  /* heatmap */\n  .heatmap{display:grid; grid-template-columns:34px repeat(24,1fr); gap:3px; font-family:'JetBrains Mono',monospace;}\n  .heatmap .hlabel{font-size:9px; color:var(--muted); display:flex; align-items:center;}\n  .heatmap .hcell{height:16px; border-radius:2px;}\n  .heatmap .hhead{font-size:8px; color:var(--muted-2); text-align:center;}\n\n  /* line chart (svg) */\n  .chart-wrap{width:100%; overflow-x:auto;}\n\n  /* score weights modal */\n  .modal-overlay{display:none; position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:100; align-items:center; justify-content:center;}\n  .modal-overlay.open{display:flex;}\n  .modal{background:#fff; border-radius:16px; width:480px; max-width:90vw; padding:26px; box-shadow:0 30px 60px rgba(0,0,0,.25);}\n  .modal-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;}\n  .modal-head h3{font-size:15px;}\n  .close-x{background:none;border:none;font-size:18px;color:var(--muted);}\n  .formula{display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:20px; font-family:'JetBrains Mono',monospace;}\n  .formula .big-ring{width:64px;height:64px;border-radius:50%;border:5px solid var(--amber); display:flex;align-items:center;justify-content:center; font-weight:800; font-size:22px; color:var(--amber);}\n  .formula .term{text-align:center;}\n  .formula .term .n{font-size:20px; font-weight:800;}\n  .formula .term.blue .n{color:var(--blue);} .formula .term.teal .n{color:var(--teal);} .formula .term.red .n{color:var(--red);}\n  .formula .term .l{font-size:9px; color:var(--muted);}\n  .presets{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:20px;}\n  .preset{border:1px solid var(--border-strong); border-radius:10px; padding:10px; font-size:11px; font-family:'JetBrains Mono',monospace; background:#fff;}\n  .preset.active{border-color:var(--blue); background:var(--blue-pale); color:var(--blue-dark);}\n  .preset b{display:block; font-size:11.5px; margin-bottom:2px;}\n  .slider-row{margin-bottom:16px;}\n  .slider-row .sl-head{display:flex; justify-content:space-between; font-size:11.5px; font-weight:600; margin-bottom:6px;}\n  input[type=range]{width:100%; accent-color:var(--blue);}\n  .apply-btn{width:100%; background:var(--blue); color:#fff; border:none; padding:13px; border-radius:10px; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12.5px;}\n\n  /* glossary */\n  .acc{border:1px solid var(--border); border-radius:10px; margin-bottom:8px; overflow:hidden;}\n  .acc-head{padding:12px 14px; display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:600; background:var(--bg);}\n  .acc-body{display:none; padding:14px; font-size:12.5px; line-height:1.7; color:#374151;}\n  .acc.open .acc-body{display:block;}\n  .acc.open .acc-head{color:var(--blue-dark);}\n\n  .footer-note{text-align:center; font-size:11px; color:var(--muted-2); font-family:'JetBrains Mono',monospace; margin-top:30px;}\n\n  .info-i{width:14px;height:14px; border-radius:50%; border:1px solid var(--muted-2); color:var(--muted-2); font-size:9px; display:inline-flex; align-items:center; justify-content:center;}\n  .flex-between{display:flex; justify-content:space-between; align-items:center;}\n"
 
 
-JS_BLOCK = r"""
-function setPreset(bus, stab, el){
-  document.getElementById('busSlider').value=bus;
-  document.getElementById('stabSlider').value=stab;
-  document.querySelectorAll('.preset').forEach(p=>p.classList.remove('active'));
-  if(el) el.classList.add('active');
-  recalc();
-}
-function recalc(){
-  const bus = +document.getElementById('busSlider').value;
-  const taxi = 100 - bus;
-  const stabShare = +document.getElementById('stabSlider').value;
-  const fricShare = 100 - stabShare;
-  document.getElementById('busPct').innerText = bus + '%';
-  document.getElementById('taxiPctTop').innerText = taxi + '%';
-  document.getElementById('stabPct').innerText = stabShare + '%';
-  document.getElementById('fricPctSub').innerText = fricShare + '%';
-  const busTerm = Math.round(bus * BASELINE.bus);
-  const stabTerm = Math.round(taxi * (stabShare/100) * BASELINE.stability);
-  const fricTerm = Math.round(taxi * (fricShare/100) * BASELINE.friction);
-  document.getElementById('busTerm').innerText = busTerm;
-  document.getElementById('taxiTerm').innerText = stabTerm;
-  document.getElementById('fricTerm').innerText = fricTerm;
-  document.getElementById('scoreOut').innerText = Math.max(0, Math.min(100, busTerm + stabTerm - fricTerm));
-}
-recalc();
-"""
-
-
-def build_score_weights_widget(baseline: dict, live: bool) -> str:
-    """Self-contained interactive calculator — the ONE piece that genuinely
-    needs real JavaScript, so it's the only remaining components.html() call
-    besides the real map. No modal/overlay chrome (that doesn't play well
-    inside a fixed-height iframe) — just an always-visible card."""
-    baseline_json = json.dumps(baseline)
-    basis_note = "this district's live evaluation" if live else "illustrative defaults (live pipeline offline)"
+def render_formula_card(comps: dict, weights: dict, live: bool) -> str:
+    """The mockup's live-formula block as plain v3 HTML. No JS: Streamlit
+    reruns on every slider move, so the numbers recompute server-side."""
+    bus = comps.get("bus_frequency_score") or 0.0
+    stab = comps.get("taxi_stability_score") or 0.0
+    fric = comps.get("friction_ratio") or 0.0
+    bus_share = weights["bus"] / 100.0
+    taxi_share = 1.0 - bus_share
+    stab_share = weights["stab"] / 100.0
+    fric_share = 1.0 - stab_share
+    bus_term = round(bus_share * bus)
+    stab_term = round(taxi_share * stab_share * stab)
+    fric_term = round(taxi_share * fric_share * fric * 100.0)
+    score = max(0, min(100, bus_term + stab_term - fric_term))
+    basis = "this district's live evaluation" if live else "illustrative defaults (live pipeline offline)"
     return f"""
-<!DOCTYPE html><html><head><style>{CSS_TEXT}
-body{{ margin:0; background:transparent; }}
-.modal{{ box-shadow:none; padding:4px; width:auto; max-width:none; }}
-</style></head><body>
-<div class="modal">
-  <div style="font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--muted); margin-bottom:10px;">
-    LIVE FORMULA · baseline from {basis_note}</div>
-  <div class="formula" style="flex-wrap:wrap;">
-    <div class="big-ring" id="scoreOut">0</div><span>=</span>
-    <div class="term blue"><div class="n" id="busTerm">0</div><div class="l">Bus</div></div><span>+</span>
-    <span style="font-size:16px; color:var(--muted-2);">(</span>
-    <div class="term teal"><div class="n" id="taxiTerm">0</div><div class="l">Stability</div></div><span>−</span>
-    <div class="term red"><div class="n" id="fricTerm">0</div><div class="l">Friction</div></div>
-    <span style="font-size:16px; color:var(--muted-2);">)</span>
-  </div>
-  <div style="font-size:10.5px; text-align:center; color:var(--muted); font-family:'JetBrains Mono',monospace; margin:-8px 0 16px;">
-    Score = Bus + Taxi · Taxi = Stability − Friction</div>
-  <div class="presets">
-    <div class="preset" onclick="setPreset(75,100,this)"><b>Bus-reliant</b>Bus 75% · Taxi 25%</div>
-    <div class="preset active" onclick="setPreset(50,70,this)"><b>Balanced</b>Bus 50% · Taxi 50%</div>
-    <div class="preset" onclick="setPreset(25,60,this)"><b>Taxi-reliant</b>Bus 25% · Taxi 75%</div>
-  </div>
-  <div class="slider-row"><div class="sl-head"><span>🚌 Bus</span><span id="busPct">50%</span></div>
-    <input type="range" id="busSlider" min="0" max="100" value="50" oninput="recalc()">
-    <div class="sl-head" style="margin-top:2px;"><span style="color:var(--muted-2); font-weight:500;">🚕 Taxi (auto-balances)</span><span id="taxiPctTop" style="color:var(--muted-2); font-weight:500;">50%</span></div></div>
-  <div class="slider-row"><div class="sl-head"><span>Taxi Stability (reward)</span><span id="stabPct">70%</span></div>
-    <input type="range" id="stabSlider" min="0" max="100" value="70" oninput="recalc()">
-    <div class="sl-head" style="margin-top:2px;"><span style="color:var(--muted-2); font-weight:500;">Friction (auto-balances)</span><span id="fricPctSub" style="color:var(--muted-2); font-weight:500;">30%</span></div></div>
+<div style="font-size:10px; font-family:'JetBrains Mono',monospace; color:#6B7686; margin-bottom:8px;">
+  LIVE FORMULA · baseline from {basis}</div>
+<div class="formula" style="flex-wrap:wrap;">
+  <div class="big-ring">{score}</div><span style="color:#0F172A;">=</span>
+  <div class="term blue"><div class="n">{bus_term}</div><div class="l">Bus</div></div><span style="color:#0F172A;">+</span>
+  <span style="font-size:16px; color:#8B95A5;">(</span>
+  <div class="term teal"><div class="n">{stab_term}</div><div class="l">Stability</div></div><span style="color:#0F172A;">−</span>
+  <div class="term red"><div class="n">{fric_term}</div><div class="l">Friction</div></div>
+  <span style="font-size:16px; color:#8B95A5;">)</span>
 </div>
-<script>
-const BASELINE = {baseline_json};
-{JS_BLOCK}
-</script>
-</body></html>"""
+<div style="font-size:10.5px; text-align:center; color:#6B7686; font-family:'JetBrains Mono',monospace; margin:-6px 0 4px;">
+  Score = Bus + Taxi · Taxi = Stability − Friction</div>"""
 
 
 
@@ -713,6 +670,13 @@ table.sg-table tr.selected td{{ background:var(--blue-pale); }}
 
 st.caption("Select a district — the whole dashboard below updates with real data for it.")
 
+# Score weights live in session state so the popover (rendered further down)
+# re-scores everything on this run — widget state is applied before rerun.
+st.session_state.setdefault("w_bus", DEFAULT_WEIGHTS["bus"])
+st.session_state.setdefault("w_stab", DEFAULT_WEIGHTS["stab"])
+weights = {"bus": st.session_state["w_bus"], "stab": st.session_state["w_stab"]}
+weights_custom = is_custom(weights)
+
 options = get_district_options()
 
 # Rank early: powers scored selector labels + re-weighted leaderboard. First
@@ -724,6 +688,17 @@ if "rank_seen" not in st.session_state:
 else:
     rank = call_rank_cached()
 pipeline_up = bool(rank)
+
+# Re-weight every district's score from its raw components (no-op with the
+# default weights — apply_weights reproduces the server formula).
+if rank:
+    _rw = []
+    for r in rank:
+        s = apply_weights(r, weights)
+        _rw.append({**r, "score": s if s is not None else r["score"]})
+    _rw.sort(key=lambda x: x["score"], reverse=True)
+    rank = _rw
+
 rank_by_name = {r["district"].strip().lower(): r for r in (rank or [])}
 
 def _display_label(o: dict) -> str:
@@ -755,6 +730,16 @@ with c_refresh:
 selected = options[sel_idx]
 
 data = get_scope_snapshot(selected["slug"], selected["bbox"])
+
+# Apply the user's weights to the headline score (KPI, ring, verdict).
+if data.get("bus"):
+    _eff = apply_weights(data["bus"], weights)
+    if _eff is not None:
+        data["conn_score"] = round(_eff)
+elif selected["slug"] == "average" and rank:
+    data["conn_score"] = round(sum(r["score"] for r in rank) / len(rank))
+if data["conn_score"] is not None:
+    data["verdict"] = verdict_for(data["conn_score"])[0]
 
 extra = {"rank": rank, "history_min": history_min,
          "sel_day": sel_day, "sel_hour": sel_hour}
@@ -836,8 +821,54 @@ with card_col:
 
 st.markdown(kpis_html, unsafe_allow_html=True)
 
-with st.expander("⚖ Score Weights — live formula calculator"):
-    components.html(build_score_weights_widget(baseline, data["live"]), height=430, scrolling=False)
+# Score Weights: right-aligned popover on its own row above the tab bar —
+# the closest Streamlit layout to the mockup's tabbar button. Adjusting the
+# sliders reruns the script, which re-scores the whole page (see `weights`).
+_wchip_col, _pop_col = st.columns([5, 1.3])
+with _wchip_col:
+    if weights_custom:
+        st.markdown('<span class="chip mid" title="Scores on this page use your custom weights, '
+                    'not the default 50/30/20 formula">⚖ CUSTOM WEIGHTS ACTIVE</span>',
+                    unsafe_allow_html=True)
+def _set_weights(bus: int, stab: int) -> None:
+    # on_click callbacks run before widgets instantiate on the next run, so
+    # writing widget-keyed session state here is legal.
+    st.session_state["w_bus"] = bus
+    st.session_state["w_stab"] = stab
+
+with _pop_col:
+    with st.popover("⚖ Score Weights", use_container_width=True):
+        _p1, _p2, _p3 = st.columns(3)
+        _p1.button("Bus-reliant", use_container_width=True, help="Bus 75% · Taxi 25%",
+                   on_click=_set_weights, args=(75, DEFAULT_WEIGHTS["stab"]))
+        _p2.button("Balanced", use_container_width=True, help="Bus 50% · Taxi 50% (default)",
+                   on_click=_set_weights, args=(DEFAULT_WEIGHTS["bus"], DEFAULT_WEIGHTS["stab"]))
+        _p3.button("Taxi-reliant", use_container_width=True, help="Bus 25% · Taxi 75%",
+                   on_click=_set_weights, args=(25, DEFAULT_WEIGHTS["stab"]))
+        st.slider("🚌 Bus share %", 0, 100, key="w_bus")
+        st.caption(f"🚕 Taxi auto-balances: {100 - st.session_state['w_bus']}%")
+        st.slider("Taxi stability share %", 0, 100, key="w_stab",
+                  help="Within the taxi term: reward for stable supply vs friction penalty")
+        st.caption(f"Friction auto-balances: {100 - st.session_state['w_stab']}%")
+        _formula_comps = data.get("bus") or {"bus_frequency_score": 73.0,
+                                             "taxi_stability_score": 87.0,
+                                             "friction_ratio": 0.68}
+        st.markdown(render_formula_card(_formula_comps, weights, bool(data.get("bus"))),
+                    unsafe_allow_html=True)
+        if weights_custom:
+            st.button("↺ Reset to default weights", use_container_width=True,
+                      on_click=_set_weights,
+                      args=(DEFAULT_WEIGHTS["bus"], DEFAULT_WEIGHTS["stab"]))
+        st.divider()
+        if selected["slug"] != "average" and FORECASTER_AVAILABLE:
+            if st.button("🔁 Retrain forecast model", use_container_width=True,
+                         help="Retrains this district's Ridge model on the last 24h of snapshots"):
+                with st.spinner("Training…"):
+                    try:
+                        _res = TaxiForecaster(selected["slug"]).train(lookback_min=1440)
+                    except Exception as e:
+                        _res = f"failed: {e}"
+                st.caption(f"Done: {_res or 'insufficient data'}")
 
 tab_overview, tab_forecast, tab_compare, tab_map, tab_glossary = st.tabs(
     ["Overview", "24H Forecast", "Compare", "🗺 Map & Housing Prices", "Glossary"]
