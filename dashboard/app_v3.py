@@ -43,6 +43,9 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
+from dashboard.scoring import (DEFAULT_WEIGHTS, apply_weights, verdict_for,
+                               alert_kpi_color, is_custom)
+
 from config import cfg
 from storage.database import init_db, fetch_snapshots, fetch_alerts, fetch_latest_metrics
 from hdb.planning_areas import load_all_planning_areas
@@ -497,7 +500,9 @@ const BASELINE = {baseline_json};
 # Chrome + per-tab HTML fragments — all plain HTML rendered via st.markdown,
 # no iframe needed for any of it (nothing here requires real JavaScript).
 # ─────────────────────────────────────────────────────────────────────────────
-def build_chrome_and_kpis(selected: dict, data: dict) -> tuple[str, dict]:
+def build_chrome_and_kpis(selected: dict, data: dict, sel_day: str = "",
+                          sel_hour: int | None = None,
+                          expected_taxis: float | None = None) -> tuple[str, str, str, dict]:
     selected_label = selected["label"]
     is_average = selected["slug"] == "average"
 
@@ -518,13 +523,17 @@ def build_chrome_and_kpis(selected: dict, data: dict) -> tuple[str, dict]:
   </header>
 """
 
+    fc_time = (f" · {sel_day.upper()} {sel_hour:02d}:00"
+               if sel_day and sel_hour is not None else " · LIVE")
+    expected_txt = f"~{expected_taxis:.0f}" if expected_taxis is not None else "—"
     floatcard_html = f"""
   <div class="float-card" style="width:100%;">
-    <div class="fc-head">{selected_label.upper()} · LIVE</div>
+    <div class="fc-head">{selected_label.upper()}{fc_time}</div>
     <div class="ring" style="border-color:{verdict_color}; color:{verdict_color};">{score_txt}</div>
     <div class="fc-verdict" style="color:{verdict_color};">{verdict_txt}</div>
     <div class="fc-verdict-sub">Connectivity Score · {selected_label}</div>
     <div class="fc-row"><span>🚕 taxis nearby</span><span>{data['live_taxis']}</span></div>
+    <div class="fc-row" title="Historical average taxi count for the selected day + hour"><span>🔮 expected at this time</span><span>{expected_txt}</span></div>
     <div class="fc-row"><span>🚌 bus stops</span><span>{data['bus']['stops_in_bbox'] if data.get('bus') else '—'}</span></div>
     <div class="fc-row"><span>🚨 active alerts</span><span>{data['alerts']}</span></div>
   </div>
@@ -536,14 +545,14 @@ def build_chrome_and_kpis(selected: dict, data: dict) -> tuple[str, dict]:
   <div class="scope-badge">{scope_text}</div>
 
   <div class="kpi-row">
-    <div class="kpi"><div class="kpi-label">LIVE TAXIS</div><div class="kpi-val">{data['live_taxis']}</div><div class="kpi-sub">this minute</div></div>
-    <div class="kpi"><div class="kpi-label">AVERAGE TAXI</div><div class="kpi-val">{data['avg_taxi']}</div><div class="kpi-sub">60-min rolling avg</div></div>
-    <div class="kpi"><div class="kpi-label">GETTING A TAXI</div><div class="kpi-val" style="color:{fw_color}">{fw}</div><div class="kpi-sub">friction {data['friction']:.3f}</div></div>
-    <div class="kpi"><div class="kpi-label">ALERTS</div><div class="kpi-val" style="color:var(--teal)">{data['alerts']}</div><div class="kpi-sub">recent anomaly events</div></div>
-    <div class="kpi highlight"><div class="kpi-label">CONNECTIVITY SCORE</div>
+    <div class="kpi" title="Number of taxis available in this district right now — LTA data, updated every 60 seconds"><div class="kpi-label">LIVE TAXIS ⓘ</div><div class="kpi-val">{data['live_taxis']}</div><div class="kpi-sub">this minute</div></div>
+    <div class="kpi" title="Average taxi count over the last 60 minutes"><div class="kpi-label">AVERAGE TAXI ⓘ</div><div class="kpi-val">{data['avg_taxi']}</div><div class="kpi-sub">60-min rolling avg</div></div>
+    <div class="kpi" title="Friction = how much demand is eating into taxi supply (0 = easy, 1 = very hard to get a taxi)"><div class="kpi-label">GETTING A TAXI ⓘ</div><div class="kpi-val" style="color:{fw_color}">{fw}</div><div class="kpi-sub">friction {data['friction']:.3f}</div></div>
+    <div class="kpi" title="Anomaly alerts triggered in the last 24 hours (LOW_TAXI / HIGH_FLUX / BUS_GAP)"><div class="kpi-label">ALERTS ⓘ</div><div class="kpi-val" style="color:{alert_kpi_color(data['alerts'])}">{data['alerts']}</div><div class="kpi-sub">last 24h</div></div>
+    <div class="kpi highlight" title="Bus frequency ×50% + taxi stability ×30% − friction ×20% (adjustable in Score Weights)"><div class="kpi-label">CONNECTIVITY SCORE ⓘ</div>
       <div class="kpi-val">{score_txt} <span class="badge-mod" style="background:{verdict_color}">{verdict_txt}</span></div>
       <div class="kpi-sub">/100</div></div>
-    <div class="kpi"><div class="kpi-label">AVG HDB PRICE</div><div class="kpi-val">{price_txt}</div><div class="kpi-sub">last 12mo · 4 ROOM</div></div>
+    <div class="kpi" title="Average resale price, last 12 months, 4 ROOM flats"><div class="kpi-label">AVG HDB PRICE ⓘ</div><div class="kpi-val">{price_txt}</div><div class="kpi-sub">last 12mo · 4 ROOM</div></div>
   </div>
 """
     if data["live"] and data.get("bus"):
@@ -705,13 +714,50 @@ table.sg-table tr.selected td{{ background:var(--blue-pale); }}
 st.caption("Select a district — the whole dashboard below updates with real data for it.")
 
 options = get_district_options()
-labels = [o["label"] for o in options]
-selected_label = st.selectbox("District", labels, index=0, label_visibility="collapsed")
-selected = next(o for o in options if o["label"] == selected_label)
+
+# Rank early: powers scored selector labels + re-weighted leaderboard. First
+# uncached call genuinely takes a few seconds (evaluates 55 districts).
+if "rank_seen" not in st.session_state:
+    with st.spinner("Scoring 55 districts…"):
+        rank = call_rank_cached()
+    st.session_state["rank_seen"] = True
+else:
+    rank = call_rank_cached()
+pipeline_up = bool(rank)
+rank_by_name = {r["district"].strip().lower(): r for r in (rank or [])}
+
+def _display_label(o: dict) -> str:
+    r = rank_by_name.get(o["label"].lower())
+    return f'{o["label"]} · {r["score"]:.0f}' if r else o["label"]
+
+DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+DAY_FULL = {"Mon": "Monday", "Tue": "Tuesday", "Wed": "Wednesday",
+            "Thu": "Thursday", "Fri": "Friday", "Sat": "Saturday", "Sun": "Sunday"}
+_now_sgt = datetime.now(SGT)
+
+c_district, c_day, c_hour, c_hist, c_refresh = st.columns([3, 1, 1, 1.9, 1.1])
+with c_district:
+    sel_idx = st.selectbox("District", list(range(len(options))), index=0,
+                           format_func=lambda i: _display_label(options[i]))
+with c_day:
+    sel_day = st.selectbox("Day", DAYS, index=_now_sgt.weekday())
+with c_hour:
+    sel_hour = st.selectbox("Time", list(range(24)), index=_now_sgt.hour,
+                            format_func=lambda h: f"{h:02d}:00")
+with c_hist:
+    history_min = st.slider("History (minutes)", 30, 360, 60, step=15)
+with c_refresh:
+    if st.button("↻ Refresh", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
+    st.caption(f"Last refresh {_now_sgt.strftime('%H:%M')} SGT")
+
+selected = options[sel_idx]
 
 data = get_scope_snapshot(selected["slug"], selected["bbox"])
 
-extra = {"rank": call_rank_cached()}
+extra = {"rank": rank, "history_min": history_min,
+         "sel_day": sel_day, "sel_hour": sel_hour}
 
 if HDB_AVAILABLE:
     try:
@@ -749,8 +795,28 @@ if EXTENDED_FORECASTER_AVAILABLE and selected["slug"] != "average":
     except Exception:
         extra["peaks"] = []
 
-topnav_html, floatcard_html, kpis_html, baseline = build_chrome_and_kpis(selected, data)
+# Expected taxi count at the chosen day/hour from the historical pattern.
+expected_taxis = None
+_patt = extra.get("pattern")
+if _patt is not None and not _patt.empty:
+    try:
+        _m = _patt[(_patt["day_name"] == DAY_FULL[sel_day]) & (_patt["hour"] == sel_hour)]
+        if not _m.empty:
+            expected_taxis = float(_m["avg_count"].iloc[0])
+    except Exception:
+        expected_taxis = None
+
+topnav_html, floatcard_html, kpis_html, baseline = build_chrome_and_kpis(
+    selected, data, sel_day=sel_day, sel_hour=sel_hour, expected_taxis=expected_taxis)
 st.markdown(topnav_html, unsafe_allow_html=True)
+
+if not pipeline_up:
+    st.markdown(
+        '<div style="background:#FEF3DE; border:1px solid #F5A524; border-radius:10px; '
+        "padding:10px 14px; margin:6px 0 10px; font-family:'JetBrains Mono',monospace; "
+        'font-size:11.5px; color:#B4790F;">🔌 Live pipeline offline — showing stored data '
+        'only. Run <b>python main.py</b> for live scores and the district leaderboard.</div>',
+        unsafe_allow_html=True)
 
 # Top-of-page live map strip + floating connectivity card (mockup layout).
 # load_map_html inlines the local planning-area polygons so district borders
@@ -769,9 +835,6 @@ with card_col:
     st.markdown(floatcard_html, unsafe_allow_html=True)
 
 st.markdown(kpis_html, unsafe_allow_html=True)
-
-if not data["live"]:
-    st.caption("🔌 Connectivity score / leaderboard need the live pipeline (`python main.py`) running.")
 
 with st.expander("⚖ Score Weights — live formula calculator"):
     components.html(build_score_weights_widget(baseline, data["live"]), height=430, scrolling=False)
