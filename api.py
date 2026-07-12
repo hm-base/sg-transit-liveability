@@ -84,6 +84,11 @@ class RankEntry(BaseModel):
     district: str
     score:    float
     verdict:  str
+    # Raw components so the dashboard can re-weight all districts client-side
+    # (reactive score-weights) without one /evaluate call per district.
+    bus_frequency_score:  float = 0.0
+    taxi_stability_score: float = 0.0
+    friction_ratio:       float = 0.0
 
 
 def evaluate_district(bbox: BBox, store: DataStore) -> DistrictMetrics:
@@ -129,6 +134,9 @@ def rank_districts(store: DataStore) -> list[dict]:
             "district": name,
             "score":    m.connectivity_score,
             "verdict":  m.verdict,
+            "bus_frequency_score":  m.bus_frequency_score,
+            "taxi_stability_score": m.taxi_stability_score,
+            "friction_ratio":       m.friction_ratio,
         })
     store.set_monitored_stops(all_stops_seen)
     results.sort(key=lambda x: x["score"], reverse=True)
