@@ -157,6 +157,10 @@ div[data-testid="stPopoverBody"] { background: #FFFFFF !important; border: 1px s
 /* Text inputs (postal code) */
 div[data-baseweb="input"], div[data-baseweb="input"] > div { background: #FFFFFF !important; }
 div[data-baseweb="input"] input { background: #FFFFFF !important; color: #0F172A !important; }
+
+/* Hidden helper button the embedded map clicks to trigger a rerun after it
+   writes ?district=… into the URL (its sandbox can't navigate the page). */
+.st-key-map_sync { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1206,15 +1210,25 @@ DAY_FULL = {"Mon": "Monday", "Tue": "Tuesday", "Wed": "Wednesday",
             "Thu": "Thursday", "Fri": "Friday", "Sat": "Saturday", "Sun": "Sunday"}
 _now_sgt = datetime.now(SGT)
 
-# Map clicks land here: the embedded map sets ?district=<slug> on the host
-# URL, which reloads the page with that district pre-selected.
+# Map clicks land here: the embedded map writes ?district=<slug> into the
+# URL (history API — the sandbox blocks real navigation) and clicks the
+# hidden sync button below to trigger this rerun. Apply each query-param
+# value once, so the dropdown still works normally afterwards.
 _qp_slug = st.query_params.get("district")
 _default_idx = next((i for i, o in enumerate(options) if o["slug"] == _qp_slug), 0)
+if _qp_slug and st.session_state.get("_applied_qp_district") != _qp_slug:
+    _qp_idx = next((i for i, o in enumerate(options) if o["slug"] == _qp_slug), None)
+    if _qp_idx is not None:
+        st.session_state["district_sel"] = _qp_idx
+    st.session_state["_applied_qp_district"] = _qp_slug
 
 c_district, c_day, c_hour, c_refresh = st.columns([3.4, 1, 1, 1.2])
 with c_district:
     sel_idx = st.selectbox("District", list(range(len(options))), index=_default_idx,
+                           key="district_sel",
                            format_func=lambda i: _display_label(options[i]))
+# Invisible rerun trigger for the map (see .st-key-map_sync CSS rule).
+st.button("sync", key="map_sync")
 with c_day:
     sel_day = st.selectbox("Day", DAYS, index=_now_sgt.weekday())
 with c_hour:

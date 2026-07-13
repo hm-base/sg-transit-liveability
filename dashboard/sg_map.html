@@ -419,12 +419,20 @@ else _expandBtn.style.display = "none";
 function selectDistrictInHost(rawName) {
   const slug = String(rawName).toLowerCase().replace(/\//g, "_").replace(/ /g, "_");
   try {
-    const url = new URL(window.top.location.href);
+    const top = window.top;
+    const url = new URL(top.location.href);
     url.searchParams.set("district", slug);
-    window.top.location.href = url.toString();
+    // The component sandbox blocks top-navigation, so we can't just set
+    // location.href. history.replaceState IS allowed — update the URL, then
+    // click the host page's hidden sync button to make Streamlit rerun and
+    // pick the district up from the query param.
+    top.history.replaceState(null, "", url.toString());
+    const btn = top.document.querySelector(".st-key-map_sync button");
+    if (btn) { btn.click(); return true; }
+    top.location.href = url.toString();  // non-sandboxed fallback
     return true;
   } catch (e) {
-    console.warn("Could not update host URL:", e);
+    console.warn("Could not select district in host:", e);
     return false;
   }
 }
