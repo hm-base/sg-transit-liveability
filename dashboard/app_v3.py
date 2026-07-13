@@ -669,15 +669,6 @@ def build_history_card(selected: dict, history_min: int) -> str:
         else:
             snaps = fetch_snapshots(selected["slug"], minutes=history_min)
             preds = fetch_predictions(selected["slug"], limit=50)
-        # fetch_snapshots cuts against UTC 'now' while rows are stored in SGT,
-        # so the SQL window is ~8h too wide — trim precisely against the
-        # newest row so 3h really means 3h. (Datetime compare, not string:
-        # stored formats are mixed 'T'+offset / plain.)
-        _latest = _parse_ts(snaps[-1]["fetched_at"]) if snaps else None
-        if _latest is not None:
-            _cut = _latest - timedelta(minutes=history_min)
-            snaps = [s for s in snaps
-                     if (_parse_ts(s["fetched_at"]) or _cut) >= _cut]
         # Older snapshots stored flux as 0 — derive it from consecutive
         # taxi-count deltas so the inflow/outflow chart shows real movement.
         if snaps and all(not s.get("flux") for s in snaps):

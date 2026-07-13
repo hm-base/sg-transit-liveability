@@ -74,8 +74,12 @@ def main() -> None:
         batch_jobs.job_train_all()
         batch_jobs.job_evaluate_all()
 
-    # Prune so the published DB stays a few MB, not gigabytes.
-    cutoff = (now_sgt - timedelta(days=RETENTION_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
+    # Prune so the published DB stays a few MB, not gigabytes. Rows mix
+    # 'T'+offset and legacy plain space-separated timestamp formats, so a raw
+    # SQL string comparison against the cutoff silently keeps rows it should
+    # drop. Delete by rowid after parsing each candidate to a real datetime
+    # (mirrors storage.database._parse_ts) instead.
+    cutoff = now_sgt.replace(tzinfo=None) - timedelta(days=RETENTION_DAYS)
     con = sqlite3.connect(DB_PATH)
     for table, col in [("taxi_snapshots", "fetched_at"),
                        ("predictions", "created_at"),
@@ -83,10 +87,23 @@ def main() -> None:
                        ("bus_arrivals", "fetched_at"),
                        ("model_metrics", "evaluated_at")]:
         try:
-            cur = con.execute(f"DELETE FROM {table} WHERE {col} < ?", (cutoff,))
-            print(f"pruned {cur.rowcount} rows from {table}")
+            rows = con.execute(f"SELECT rowid, {col} FROM {table}").fetchall()
         except sqlite3.OperationalError as e:
             print(f"skip prune {table}: {e}")
+            continue
+        stale_ids = []
+        for rowid, ts in rows:
+            try:
+                dt = datetime.fromisoformat(str(ts))
+            except (ValueError, TypeError):
+                continue
+            if dt.tzinfo is not None:
+                dt = dt.astimezone(SGT).replace(tzinfo=None)
+            if dt < cutoff:
+                stale_ids.append(rowid)
+        if stale_ids:
+            con.executemany(f"DELETE FROM {table} WHERE rowid=?", [(i,) for i in stale_ids])
+        print(f"pruned {len(stale_ids)} rows from {table}")
     con.commit()
     con.execute("VACUUM")
     con.close()

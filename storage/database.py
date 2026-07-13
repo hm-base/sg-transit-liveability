@@ -171,16 +171,46 @@ def save_monitored_stops(codes: set[str], db_path: Path = DB_PATH) -> None:
 
 # ── Read ───────────────────────────────────────────────────────────────────────
 
+def _parse_ts(s) -> datetime | None:
+    """Rows are stored as datetime.now(SGT).isoformat(), but older rows used
+    a plain space-separated format with no offset — parse both to a naive
+    SGT datetime so callers can compare correctly regardless of format."""
+    try:
+        dt = datetime.fromisoformat(str(s))
+    except (ValueError, TypeError):
+        return None
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(SGT).replace(tzinfo=None)
+    return dt
+
+
+def _window_cutoff(minutes: int) -> tuple[datetime, str]:
+    """Real cutoff for exact filtering, plus a cheap date-only SQL prefilter
+    that's a safe superset regardless of stored timestamp format (mixed
+    'T'+offset / plain space-separated) — a bare "YYYY-MM-DD" string sorts
+    before any timestamp on that date in either format. The 1-day buffer
+    covers the max SGT/UTC skew (8h) plus the date boundary itself."""
+    cutoff = datetime.now(SGT).replace(tzinfo=None) - timedelta(minutes=minutes)
+    sql_floor = (cutoff - timedelta(days=1)).strftime("%Y-%m-%d")
+    return cutoff, sql_floor
+
+
 def fetch_snapshots(district: str, minutes: int = 120,
                     db_path: Path = DB_PATH) -> list[dict]:
+    cutoff, sql_floor = _window_cutoff(minutes)
     with _connect(db_path) as conn:
         rows = conn.execute(
             "SELECT fetched_at,taxi_count,flux,friction FROM taxi_snapshots "
-            "WHERE district=? AND fetched_at >= datetime('now',? || ' minutes') "
+            "WHERE district=? AND fetched_at >= ? "
             "ORDER BY fetched_at ASC",
-            (district, f"-{minutes}"),
+            (district, sql_floor),
         ).fetchall()
-    return [dict(r) for r in rows]
+    out = []
+    for r in rows:
+        t = _parse_ts(r["fetched_at"])
+        if t is not None and t >= cutoff:
+            out.append(dict(r))
+    return out
 
 
 def fetch_predictions(district: str, limit: int = 50,
@@ -223,14 +253,20 @@ def fetch_latest_metrics(db_path: Path = DB_PATH) -> list[dict]:
 def fetch_bus_arrivals(stop_code: str, minutes: int = 60,
                        db_path: Path = DB_PATH) -> list[dict]:
     """Real persisted history for one stop — didn't exist before this change."""
+    cutoff, sql_floor = _window_cutoff(minutes)
     with _connect(db_path) as conn:
         rows = conn.execute(
             "SELECT fetched_at, services_json FROM bus_arrivals "
-            "WHERE stop_code=? AND fetched_at >= datetime('now', ? || ' minutes') "
+            "WHERE stop_code=? AND fetched_at >= ? "
             "ORDER BY fetched_at DESC",
-            (stop_code, f"-{minutes}"),
+            (stop_code, sql_floor),
         ).fetchall()
-    return [{"fetched_at": r["fetched_at"], "services": json.loads(r["services_json"])} for r in rows]
+    out = []
+    for r in rows:
+        t = _parse_ts(r["fetched_at"])
+        if t is not None and t >= cutoff:
+            out.append({"fetched_at": r["fetched_at"], "services": json.loads(r["services_json"])})
+    return out
 
 
 def load_monitored_stops(db_path: Path = DB_PATH) -> set[str]:
