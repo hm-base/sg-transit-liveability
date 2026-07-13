@@ -236,14 +236,32 @@ def get_taxi_forecast(slug: str) -> dict:
         return {}
 
 
+def _parse_ts(s) -> datetime | None:
+    """DB timestamps come in mixed shapes ('2026-07-13T00:00:25+08:00',
+    '2026-07-13 00:00:00') — normalise to naive SGT for comparisons.
+    String comparison is NOT safe across these formats."""
+    try:
+        dt = datetime.fromisoformat(str(s))
+    except (ValueError, TypeError):
+        return None
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(SGT).replace(tzinfo=None)
+    return dt
+
+
 def _alerts_24h(slug: str | None) -> list[dict]:
     """Alerts scoped to the last 24 hours (timestamps stored in SGT)."""
-    cutoff = (datetime.now(SGT) - timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
+    cutoff = datetime.now(SGT).replace(tzinfo=None) - timedelta(hours=24)
     try:
         rows = fetch_alerts(slug, limit=200)
     except Exception:
         return []
-    return [a for a in rows if str(a.get("triggered_at", "")) >= cutoff]
+    out = []
+    for a in rows:
+        ts = _parse_ts(a.get("triggered_at"))
+        if ts is not None and ts >= cutoff:
+            out.append(a)
+    return out
 
 
 def get_scope_snapshot(slug: str, bbox) -> dict:
@@ -468,10 +486,22 @@ def render_price_trend_chart(df: pd.DataFrame) -> str:
     change = vals[-1] - vals[0]
     pct = (change / vals[0] * 100) if vals[0] else 0
     total_txn = int(df["num_transactions"].sum())
-    return f"""<svg width="100%" height="200" viewBox="0 0 900 200" preserveAspectRatio="none">
+    def _fmt_price(v: float) -> str:
+        return f"S${v / 1e6:.2f}M" if v >= 1e6 else f"S${v / 1e3:.0f}k"
+
+    def _ylab(top_px: int, v: float) -> str:
+        return (f'<div style="position:absolute; left:2px; top:{top_px}px; font-size:9px; '
+                f"font-family:'JetBrains Mono',monospace; color:#6B7686; "
+                f'background:rgba(255,255,255,.85); padding:0 3px; border-radius:3px;">{_fmt_price(v)}</div>')
+
+    y_labels = _ylab(24, hi) + _ylab(98, (hi + lo) / 2) + _ylab(166, lo)
+    return f"""<div style="position:relative;">
+      <svg width="100%" height="200" viewBox="0 0 900 200" preserveAspectRatio="none">
+      <line x1="30" y1="30" x2="870" y2="30" stroke="#EFF3F8"/>
+      <line x1="30" y1="105" x2="870" y2="105" stroke="#EFF3F8"/>
       <polyline fill="none" stroke="#2F7DED" stroke-width="2" points="{polyline}"/>
       {hover_dots}
-      <line x1="30" y1="180" x2="870" y2="180" stroke="#E4E9F0"/></svg>
+      <line x1="30" y1="180" x2="870" y2="180" stroke="#E4E9F0"/></svg>{y_labels}</div>
       <div style="display:flex; justify-content:space-between; font-size:9.5px; color:var(--muted);
                   font-family:'JetBrains Mono',monospace; padding:0 30px;">
         <span>{first_year}</span><span>{last_year}</span></div>
@@ -639,6 +669,15 @@ def build_history_card(selected: dict, history_min: int) -> str:
         else:
             snaps = fetch_snapshots(selected["slug"], minutes=history_min)
             preds = fetch_predictions(selected["slug"], limit=50)
+        # fetch_snapshots cuts against UTC 'now' while rows are stored in SGT,
+        # so the SQL window is ~8h too wide — trim precisely against the
+        # newest row so 3h really means 3h. (Datetime compare, not string:
+        # stored formats are mixed 'T'+offset / plain.)
+        _latest = _parse_ts(snaps[-1]["fetched_at"]) if snaps else None
+        if _latest is not None:
+            _cut = _latest - timedelta(minutes=history_min)
+            snaps = [s for s in snaps
+                     if (_parse_ts(s["fetched_at"]) or _cut) >= _cut]
         # Older snapshots stored flux as 0 — derive it from consecutive
         # taxi-count deltas so the inflow/outflow chart shows real movement.
         if snaps and all(not s.get("flux") for s in snaps):
@@ -1415,10 +1454,14 @@ tab_overview, tab_forecast, tab_compare, tab_map, tab_glossary = st.tabs(
 with tab_overview:
     # Window picker for the history chart — the control lives right where it
     # applies, instead of a detached slider in the top bar.
-    _win_col, _ = st.columns([1, 5])
+    _win_col, _cap_col = st.columns([1, 5])
     with _win_col:
         _win_label = st.selectbox("Chart window", ["3h", "6h", "12h", "24h", "48h"], index=2,
                                   help="How far back the taxi availability chart looks")
+    with _cap_col:
+        st.markdown("<div style=\"margin-top:38px; font-family:'JetBrains Mono',monospace; "
+                    'font-size:10.5px; color:#8B95A5;">│&nbsp; sets the rolling window of the '
+                    "Taxi availability chart below</div>", unsafe_allow_html=True)
     _win_minutes = {"3h": 180, "6h": 360, "12h": 720, "24h": 1440, "48h": 2880}[_win_label]
     st.markdown(build_history_card(selected, _win_minutes), unsafe_allow_html=True)
     st.markdown(build_overview_html(selected, data, extra), unsafe_allow_html=True)

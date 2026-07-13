@@ -125,6 +125,23 @@ def render_history_chart(snaps: list[dict], preds: list[dict]) -> str:
         f'<line x1="{L}" y1="{gy}" x2="{R}" y2="{gy}" stroke="{GRID}" stroke-width="1"/>'
         for gy in (T + i * (B - T) / 4 for i in range(5)))
 
+    # Hover targets: invisible fat dots with native tooltips (sampled so the
+    # HTML stays light on long windows).
+    step = max(1, len(pts) // 150)
+    hover_dots = "".join(
+        f'<circle cx="{x(t)}" cy="{y(v)}" r="7" fill="transparent">'
+        f'<title>{t.strftime("%H:%M")} · {v:.0f} taxis</title></circle>'
+        for t, v in pts[::step])
+
+    # Y-axis labels as an HTML overlay — text inside the stretched SVG would
+    # distort with preserveAspectRatio="none".
+    def _ylab(top_px: float, val: float) -> str:
+        return (f'<div style="position:absolute; left:2px; top:{top_px:.0f}px; font-size:9px; '
+                f"{_MONO} color:{MUTED}; background:rgba(255,255,255,.85); padding:0 3px; "
+                f'border-radius:3px;">{val:.0f}</div>')
+    y_labels = (_ylab(T - 4, y_max) + _ylab((T + B) / 2 - 7, (y_max + y_min) / 2)
+                + _ylab(B - 12, y_min))
+
     legend = (
         f'<div style="display:flex; gap:14px; flex-wrap:wrap; font-size:9.5px; {_MONO} color:{MUTED}; padding:4px 30px 0;">'
         f'<span style="color:{BLUE};">━ Actual taxis</span>'
@@ -137,13 +154,14 @@ def render_history_chart(snaps: list[dict], preds: list[dict]) -> str:
               f'color:{MUTED}; {_MONO} padding:0 30px;">'
               f'<span>{t0.strftime("%H:%M")}</span><span>{t1.strftime("%H:%M")}</span></div>')
 
-    return (f'<div class="chart-wrap"><svg width="100%" height="220" viewBox="0 0 {W} {H}" '
+    return (f'<div class="chart-wrap" style="position:relative;">'
+            f'<svg width="100%" height="220" viewBox="0 0 {W} {H}" '
             f'preserveAspectRatio="none">{gridlines}'
             f'<polygon points="{band_pts}" fill="{BAND_FILL}" stroke="none"/>'
             f'<polyline fill="none" stroke="{BLUE}" stroke-width="2" points="{line_pts}"/>'
-            f'{marks}'
+            f'{marks}{hover_dots}'
             f'<line x1="{L}" y1="{B}" x2="{R}" y2="{B}" stroke="{GRID}"/></svg>'
-            f'{labels}{legend}</div>')
+            f'{y_labels}{labels}{legend}</div>')
 
 
 def render_flux_chart(snaps: list[dict], last_n: int = 30) -> str:

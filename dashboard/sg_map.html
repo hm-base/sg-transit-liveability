@@ -541,7 +541,7 @@ function drawDistrictPolygon(feature) {
   const bounds = layer.getBounds();
   // Label = "Name · live connectivity score". Clickable, same as the shape.
   const label = L.divIcon({
-    html: `<div class="district-label" title="Click to open ${toTitleCase(name)} in the dashboard">${toTitleCase(name)}${scoreInfo ? ` <span class="lbl-score">· ${scoreInfo.score.toFixed(0)}</span>` : ""}</div>`,
+    html: `<div class="district-label" title="${toTitleCase(name)} — connectivity score ${scoreInfo ? scoreInfo.score.toFixed(0) : "n/a"}/100 · click to open in the dashboard">${toTitleCase(name)}${scoreInfo ? ` <span class="lbl-score">· ${scoreInfo.score.toFixed(0)}/100</span>` : ""}</div>`,
     className: "",
     iconAnchor: [0, 0],
   });
