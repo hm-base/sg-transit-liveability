@@ -178,6 +178,26 @@ python main.py
 streamlit run dashboard/app.py
 ```
 
+### Option 3 — Cloud batch (no machine needed)
+
+`.github/workflows/pipeline-batch.yml` runs the pipeline on GitHub Actions
+every 30 minutes: it polls LTA taxi availability (3 samples, 60s apart),
+runs ML predictions + anomaly checks for all 55 districts, does the daily
+train/evaluate at 08:00 SGT, and publishes the pruned (14-day) SQLite DB +
+model files to the single-commit **`pipeline-data`** branch — main's history
+stays clean.
+
+Setup (one-time): repo **Settings → Secrets and variables → Actions → New
+repository secret** → name `LTA_API_KEY`, value = your DataMall key. Then
+trigger the first run from the Actions tab (**pipeline-batch → Run
+workflow**). To use the cloud-collected data locally (⚠ overwrites your
+local `data/transport.db`):
+
+```bash
+git fetch origin pipeline-data
+git checkout origin/pipeline-data -- data
+```
+
 ---
 
 ## 📁 Project Structure

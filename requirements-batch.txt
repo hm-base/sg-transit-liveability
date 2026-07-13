@@ -1,0 +1,9 @@
+# Slim dependency set for the GitHub Actions pipeline batch
+# (scripts/batch_collect.py). The full requirements.txt drags in Streamlit,
+# Plotly, DuckDB and Prophet, none of which the batch needs — this keeps the
+# scheduled runs fast.
+requests>=2.31.0
+pandas>=2.2.0
+numpy>=1.26.0
+geopandas>=0.14.0
+scikit-learn>=1.4.0
