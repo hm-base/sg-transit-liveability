@@ -345,17 +345,31 @@ function setFrameHeight(px) {
   if (!fe) return false;
   fe.style.height = px + "px";
   fe.setAttribute("height", px);
-  // Streamlit pins the iframe's wrapper elements to the original height, so
-  // the grown iframe would just paint over the content below — relax the
-  // ancestors so the page reflows instead.
-  let el = fe.parentElement, hops = 0;
-  while (el && hops < 5 && !(el.dataset && el.dataset.testid === "stVerticalBlock")) {
-    if (el.style) { el.style.height = "auto"; el.style.minHeight = "0"; }
-    el = el.parentElement;
-    hops++;
-  }
+  // Streamlit pins the iframe's wrapper chain (element container, vertical
+  // block, column) via emotion CSS that outranks plain inline styles — the
+  // overrides must be inline !important or the page won't reflow and the
+  // grown iframe just paints over the content below.
+  try {
+    // The wrapper is a flex item in a column-direction block whose
+    // flex-basis (330px) — not its height — pins the layout. Only this one
+    // element needs overriding; ancestors are content-sized, and touching
+    // their flex-basis would corrupt column WIDTHS (row-direction basis).
+    const wrap = fe.parentElement;
+    if (wrap && wrap.style) {
+      wrap.style.setProperty("height", px + "px", "important");
+      wrap.style.setProperty("flex-basis", px + "px", "important");
+    }
+  } catch (e) { console.warn("reflow failed:", e); }
   setTimeout(() => map.invalidateSize(), 80);
   return true;
+}
+
+// Streamlit's page scrolls inside section[data-testid="stMain"], not on the
+// window — that's where the auto-collapse listener has to live.
+function hostScroller() {
+  try {
+    return window.parent.document.querySelector('section[data-testid="stMain"]');
+  } catch (e) { return null; }
 }
 
 function collapseMap() {
@@ -376,7 +390,8 @@ function toggleExpand() {
     const target = Math.round((window.top.innerHeight || 800) * 0.8);
     if (setFrameHeight(target)) {
       mapExpanded = true;
-      expandScrollY = window.top.scrollY || 0;
+      const sc = hostScroller();
+      expandScrollY = sc ? sc.scrollTop : 0;
       document.getElementById("btn-expand").textContent = "⤡ Collapse map";
     }
   } catch (e) { console.warn("Expand unavailable in this embed:", e); }
@@ -384,9 +399,12 @@ function toggleExpand() {
 
 // Scrolling down past the expanded map returns it to its normal size.
 try {
-  window.top.addEventListener("scroll", () => {
-    if (mapExpanded && (window.top.scrollY || 0) > expandScrollY + 150) collapseMap();
-  }, { passive: true });
+  const _sc = hostScroller();
+  if (_sc) {
+    _sc.addEventListener("scroll", () => {
+      if (mapExpanded && _sc.scrollTop > expandScrollY + 150) collapseMap();
+    }, { passive: true });
+  }
 } catch (e) { /* standalone or sandboxed — no auto-collapse */ }
 
 document.getElementById("btn-recenter").addEventListener("click",
