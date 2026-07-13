@@ -444,15 +444,24 @@ def render_price_trend_chart(df: pd.DataFrame) -> str:
     if df is None or df.empty:
         return render_coming_soon("No transaction history for this town/flat-type combination.")
     vals = df["avg_price"].tolist()
+    months = df["sale_month"].tolist()
     lo, hi = min(vals), max(vals)
     span = (hi - lo) or 1
     n = len(vals)
-    pts = []
+    pts, dots = [], []
     for i, v in enumerate(vals):
         x = 30 + (i / (n - 1)) * 840 if n > 1 else 30
         y = 180 - ((v - lo) / span) * 150
         pts.append(f"{x:.0f},{y:.0f}")
+        try:
+            m_lbl = months[i].strftime("%b %Y")
+        except Exception:
+            m_lbl = str(months[i])[:7]
+        # hover target: generous invisible hit-area + native tooltip
+        dots.append(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="7" fill="transparent" stroke="none">'
+                    f'<title>{m_lbl} · S${v:,.0f}</title></circle>')
     polyline = " ".join(pts)
+    hover_dots = "".join(dots)
     first_year = df["sale_month"].iloc[0].strftime("%Y")
     last_year = df["sale_month"].iloc[-1].strftime("%Y")
     latest_price = vals[-1]
@@ -461,6 +470,7 @@ def render_price_trend_chart(df: pd.DataFrame) -> str:
     total_txn = int(df["num_transactions"].sum())
     return f"""<svg width="100%" height="200" viewBox="0 0 900 200" preserveAspectRatio="none">
       <polyline fill="none" stroke="#2F7DED" stroke-width="2" points="{polyline}"/>
+      {hover_dots}
       <line x1="30" y1="180" x2="870" y2="180" stroke="#E4E9F0"/></svg>
       <div style="display:flex; justify-content:space-between; font-size:9.5px; color:var(--muted);
                   font-family:'JetBrains Mono',monospace; padding:0 30px;">
@@ -518,10 +528,12 @@ def render_formula_card(comps: dict, weights: dict, basis: str) -> str:
     taxi_share = 1.0 - bus_share
     stab_share = weights["stab"] / 100.0
     fric_share = 1.0 - stab_share
-    bus_term = round(bus_share * bus)
-    stab_term = round(taxi_share * stab_share * stab)
-    fric_term = round(taxi_share * fric_share * fric * 100.0)
-    score = max(0, min(100, bus_term + stab_term - fric_term))
+    # Same function the KPI/ring/leaderboard use — the numbers must agree.
+    _s = apply_weights(comps, weights)
+    score = round(_s) if _s is not None else 0
+    bus_term = round(bus_share * bus, 1)
+    stab_term = round(taxi_share * stab_share * stab, 1)
+    fric_term = round(taxi_share * fric_share * fric * 100.0, 1)
     return f"""
 <div style="font-size:10px; font-family:'JetBrains Mono',monospace; color:#6B7686; margin-bottom:8px;">
   LIVE FORMULA · baseline from {basis}</div>
@@ -542,9 +554,7 @@ def render_formula_card(comps: dict, weights: dict, basis: str) -> str:
 # Chrome + per-tab HTML fragments — all plain HTML rendered via st.markdown,
 # no iframe needed for any of it (nothing here requires real JavaScript).
 # ─────────────────────────────────────────────────────────────────────────────
-def build_chrome_and_kpis(selected: dict, data: dict, sel_day: str = "",
-                          sel_hour: int | None = None,
-                          expected_taxis: float | None = None,
+def build_chrome_and_kpis(selected: dict, data: dict,
                           custom_weights: bool = False) -> tuple[str, str, str, dict]:
     selected_label = selected["label"]
     is_average = selected["slug"] == "average"
@@ -557,26 +567,24 @@ def build_chrome_and_kpis(selected: dict, data: dict, sel_day: str = "",
     scope_text = ("🇸🇬 Singapore Average · across 55 planning areas" if is_average
                   else f"📍 {selected_label} · district detail")
 
+    _stamp = datetime.now(SGT).strftime("%H:%M SGT")
     topnav_html = f"""
   <header class="topnav">
     <div class="brand"><div class="mark">A</div>SG Liveability</div>
     <div class="nav-right" style="margin-left:auto;">
+      <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#8B95A5;">updated {_stamp}</span>
       <div class="pill-select"><span class="dotmark"></span>{selected_label}</div>
     </div>
   </header>
 """
 
-    fc_time = (f" · {sel_day.upper()} {sel_hour:02d}:00"
-               if sel_day and sel_hour is not None else " · LIVE")
-    expected_txt = f"~{expected_taxis:.0f}" if expected_taxis is not None else "—"
     floatcard_html = f"""
   <div class="float-card" style="width:100%;">
-    <div class="fc-head">{selected_label.upper()}{fc_time}</div>
+    <div class="fc-head">{selected_label.upper()} · LIVE</div>
     <div class="ring" style="border-color:{verdict_color}; color:{verdict_color};">{score_txt}</div>
     <div class="fc-verdict" style="color:{verdict_color};">{verdict_txt}</div>
     <div class="fc-verdict-sub">Connectivity Score · {selected_label}</div>
     <div class="fc-row"><span>🚕 taxis nearby</span><span>{data['live_taxis']}</span></div>
-    <div class="fc-row" title="Historical average taxi count for the selected day + hour"><span>🔮 expected at this time</span><span>{expected_txt}</span></div>
     <div class="fc-row"><span>🚌 bus stops</span><span>{data['bus']['stops_in_bbox'] if data.get('bus') else '—'}</span></div>
     <div class="fc-row"><span>🚨 active alerts</span><span>{data['alerts']}</span></div>
   </div>
@@ -631,6 +639,13 @@ def build_history_card(selected: dict, history_min: int) -> str:
         else:
             snaps = fetch_snapshots(selected["slug"], minutes=history_min)
             preds = fetch_predictions(selected["slug"], limit=50)
+        # Older snapshots stored flux as 0 — derive it from consecutive
+        # taxi-count deltas so the inflow/outflow chart shows real movement.
+        if snaps and all(not s.get("flux") for s in snaps):
+            _prev = None
+            for s in snaps:
+                s["flux"] = (s["taxi_count"] - _prev) if _prev is not None else 0
+                _prev = s["taxi_count"]
         hist_svg = render_history_chart(snaps, preds)
         flux_svg = render_flux_chart(snaps)
     except Exception:
@@ -670,7 +685,14 @@ def _onemap_local_context(slug: str, lat: float, lng: float) -> dict:
 
 def _peak_chip(p: dict) -> str:
     rating = str(p.get("rating", ""))
-    label = str(p.get("time_label", "")).replace(":00", "").lower()
+    raw = str(p.get("time_label", ""))
+    try:  # "07:00" / "17" / "7am" → "7am" / "5pm"
+        h = int("".join(ch for ch in raw.split(":")[0] if ch.isdigit()))
+        if "pm" in raw.lower() and h < 12:
+            h += 12
+        label = f"{h % 12 or 12}{'am' if h < 12 else 'pm'}"
+    except ValueError:
+        label = raw.lower()
     if "good" in rating.lower():
         return f'<span class="chip ok" title="{p.get("advice", "")}">{label} ✓</span>'
     if "mod" in rating.lower():
@@ -1056,13 +1078,28 @@ def _price_trend_cached(town: str, flat_type: str) -> pd.DataFrame | None:
         return None
 
 
-def build_map_and_prices_html(extra: dict, trend_town: str, flat_type: str,
-                              months: int, transport_weight: int) -> str:
-    if not HDB_AVAILABLE:
-        return render_coming_soon("hdb/analytics.py could not be imported — check hdb.duckdb exists in data/.")
-    summary = _town_summary_cached(flat_type, months)
+def build_price_trend_card(trend_town: str, flat_type: str) -> str:
     trend_html = render_price_trend_chart(_price_trend_cached(trend_town, flat_type))
-    town_table_html = render_price_table(summary, n=len(summary) if summary is not None else 8)
+    return (f'<div class="card"><h3>📈 Price Trend · {trend_town.title()} · {flat_type}</h3>'
+            f'<div class="sub">Hover the line for each month\'s average price.</div>{trend_html}</div>')
+
+
+def build_price_by_town_card(summary: pd.DataFrame | None, sort_by: str,
+                             flat_type: str, months: int) -> str:
+    df = summary
+    if df is not None and not df.empty:
+        if sort_by.startswith("Transactions"):
+            df = df.sort_values("num_transactions", ascending=False)
+        elif sort_by.startswith("Town"):
+            df = df.sort_values("town")
+        else:
+            df = df.sort_values("avg_price", ascending=False)
+    town_table_html = render_price_table(df, n=len(df) if df is not None else 8)
+    return (f'<div class="card"><h3>💰 Price by Town</h3>'
+            f'<div class="sub">Average {flat_type} resale price, last {months} months</div>{town_table_html}</div>')
+
+
+def build_vfm_card(extra: dict, summary: pd.DataFrame | None, transport_weight: int) -> str:
     vfm_html = render_coming_soon("VFM combines live connectivity score with price — needs the live pipeline running.")
     if extra.get("rank") and summary is not None and not summary.empty:
         try:
@@ -1072,14 +1109,8 @@ def build_map_and_prices_html(extra: dict, trend_town: str, flat_type: str,
                                                             transport_weight=w, price_weight=1.0 - w))
         except Exception:
             pass
-    return f"""
-        <div class="card"><h3>📈 Price Trend · {trend_town.title()} · {flat_type}</h3>{trend_html}</div>
-        <div class="grid-2">
-          <div class="card"><h3>💰 Price by Town</h3>
-            <div class="sub">Average {flat_type} resale price, last {months} months</div>{town_table_html}</div>
-          <div class="card"><h3>🏆 Value-for-Money Ranking</h3>
-            <div class="sub">Transport {transport_weight}% · Affordability {100 - transport_weight}%</div>{vfm_html}</div>
-        </div>"""
+    return (f'<div class="card"><h3>🏆 Value-for-Money Ranking</h3>'
+            f'<div class="sub">Transport {transport_weight}% · Affordability {100 - transport_weight}%</div>{vfm_html}</div>')
 
 
 def render_block_profile(profile: dict) -> str:
@@ -1205,9 +1236,6 @@ def _display_label(o: dict) -> str:
     r = rank_by_name.get(o["label"].lower())
     return f'{o["label"]} · {r["score"]:.0f}' if r else o["label"]
 
-DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-DAY_FULL = {"Mon": "Monday", "Tue": "Tuesday", "Wed": "Wednesday",
-            "Thu": "Thursday", "Fri": "Friday", "Sat": "Saturday", "Sun": "Sunday"}
 _now_sgt = datetime.now(SGT)
 
 # Map clicks land here: the embedded map writes ?district=<slug> into the
@@ -1222,23 +1250,18 @@ if _qp_slug and st.session_state.get("_applied_qp_district") != _qp_slug:
         st.session_state["district_sel"] = _qp_idx
     st.session_state["_applied_qp_district"] = _qp_slug
 
-c_district, c_day, c_hour, c_refresh = st.columns([3.4, 1, 1, 1.2])
+c_district, c_refresh = st.columns([4.6, 1.2])
 with c_district:
     sel_idx = st.selectbox("District", list(range(len(options))), index=_default_idx,
                            key="district_sel",
                            format_func=lambda i: _display_label(options[i]))
 # Invisible rerun trigger for the map (see .st-key-map_sync CSS rule).
 st.button("sync", key="map_sync")
-with c_day:
-    sel_day = st.selectbox("Day", DAYS, index=_now_sgt.weekday())
-with c_hour:
-    sel_hour = st.selectbox("Time", list(range(24)), index=_now_sgt.hour,
-                            format_func=lambda h: f"{h:02d}:00")
 with c_refresh:
+    st.markdown('<div style="height:27px;"></div>', unsafe_allow_html=True)
     if st.button("↻ Refresh", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
-    st.caption(f"Last refresh {_now_sgt.strftime('%H:%M')} SGT")
 
 selected = options[sel_idx]
 
@@ -1254,7 +1277,7 @@ elif selected["slug"] == "average" and rank:
 if data["conn_score"] is not None:
     data["verdict"] = verdict_for(data["conn_score"])[0]
 
-extra = {"rank": rank, "sel_day": sel_day, "sel_hour": sel_hour}
+extra = {"rank": rank}
 
 if HDB_AVAILABLE:
     try:
@@ -1292,20 +1315,8 @@ if EXTENDED_FORECASTER_AVAILABLE and selected["slug"] != "average":
     except Exception:
         extra["peaks"] = []
 
-# Expected taxi count at the chosen day/hour from the historical pattern.
-expected_taxis = None
-_patt = extra.get("pattern")
-if _patt is not None and not _patt.empty:
-    try:
-        _m = _patt[(_patt["day_name"] == DAY_FULL[sel_day]) & (_patt["hour"] == sel_hour)]
-        if not _m.empty:
-            expected_taxis = float(_m["avg_count"].iloc[0])
-    except Exception:
-        expected_taxis = None
-
 topnav_html, floatcard_html, kpis_html, baseline = build_chrome_and_kpis(
-    selected, data, sel_day=sel_day, sel_hour=sel_hour, expected_taxis=expected_taxis,
-    custom_weights=weights_custom)
+    selected, data, custom_weights=weights_custom)
 st.markdown(topnav_html, unsafe_allow_html=True)
 
 if not pipeline_up:
@@ -1454,19 +1465,38 @@ with tab_map:
             _towns = get_available_towns()
         except Exception:
             _towns = []
-        _mc1, _mc2, _mc3, _mc4 = st.columns([1.2, 1.6, 1.4, 1.6])
+
+        # Selecting a district (dropdown or map) also retargets the price
+        # trend to the matching HDB town, applied once per district change.
+        _town_match = selected["label"].upper()
+        if (_towns and _town_match in _towns
+                and st.session_state.get("_trend_town_for") != selected["slug"]):
+            st.session_state["trend_town_sel"] = _town_match
+            st.session_state["_trend_town_for"] = selected["slug"]
+
+        _mc1, _mc2, _mc3 = st.columns([1.2, 1.6, 1.8])
         with _mc1:
             _flat = st.selectbox("Flat type", _flat_types,
                                  index=_flat_types.index("4 ROOM") if "4 ROOM" in _flat_types else 0)
         with _mc2:
             _months = st.slider("Months of data", 1, 24, 12)
         with _mc3:
+            _trend_town = st.selectbox("Town for price trend", _towns or ["—"],
+                                       key="trend_town_sel")
+
+        st.markdown(build_price_trend_card(_trend_town, _flat), unsafe_allow_html=True)
+
+        _summary = _town_summary_cached(_flat, _months)
+        _tcol, _vcol = st.columns(2)
+        with _tcol:
+            _sort_by = st.selectbox("Sort towns by",
+                                    ["Avg price (high → low)", "Transactions (high → low)", "Town A–Z"])
+            st.markdown(build_price_by_town_card(_summary, _sort_by, _flat, _months),
+                        unsafe_allow_html=True)
+        with _vcol:
             _tw = st.slider("Transport importance %", 0, 100, 50,
-                            help="Weight of transport connectivity vs affordability in the VFM ranking")
-        with _mc4:
-            _trend_town = st.selectbox("Town for price trend", _towns or ["—"])
-        st.markdown(build_map_and_prices_html(extra, _trend_town, _flat, _months, _tw),
-                    unsafe_allow_html=True)
+                            help="Weight of transport connectivity vs affordability in the VFM ranking below")
+            st.markdown(build_vfm_card(extra, _summary, _tw), unsafe_allow_html=True)
     else:
         st.markdown(render_coming_soon("hdb/analytics.py could not be imported — check hdb.duckdb exists in data/."),
                     unsafe_allow_html=True)

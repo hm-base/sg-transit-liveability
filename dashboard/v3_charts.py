@@ -74,8 +74,17 @@ def render_history_chart(snaps: list[dict], preds: list[dict]) -> str:
         if target > times[-1]:
             if h in HORIZON_COLORS and h not in future:  # preds are DESC → first wins
                 future[h] = (target, float(p["predicted_count"]))
-        elif target >= times[0]:
+        elif target >= times[0] and h == 30:
+            # Past overlay uses only the +30min horizon — plotting every
+            # horizon of every 5-min prediction run buries the chart.
             past.append((target, float(p["predicted_count"]), h))
+    past.sort(key=lambda t: t[0])
+    thinned, _last = [], None
+    for t, v, h in past:
+        if _last is None or (t - _last).total_seconds() >= 600:  # ≥10 min apart
+            thinned.append((t, v, h))
+            _last = t
+    past = thinned[-12:]
 
     t0 = times[0]
     t1 = max([times[-1]] + [t for t, _ in future.values()])
@@ -108,7 +117,7 @@ def render_history_chart(snaps: list[dict], preds: list[dict]) -> str:
     marks = ""
     for h, (t, v) in sorted(future.items()):
         marks += diamond(x(t), y(v), HORIZON_COLORS[h], False, f"Forecast +{h}min: {v:.0f} taxis")
-    for t, v, h in past[:40]:
+    for t, v, h in past:
         marks += diamond(x(t), y(v), HORIZON_COLORS.get(h, MUTED), True,
                          f"Predicted {v:.0f} at {t.strftime('%H:%M')} (+{h}min horizon)")
 

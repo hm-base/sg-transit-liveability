@@ -192,13 +192,15 @@
     background: none;
     border: none;
     padding: 0;
-    color: #1A365D;
+    color: #1D4ED8;
     font-size: 10.5px;
     font-weight: 700;
     white-space: nowrap;
     text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 6px #fff, 0 1px 2px rgba(255,255,255,.95);
-    pointer-events: none;
+    cursor: pointer;
   }
+  .district-label:hover { text-decoration: underline; color: #1E40AF; }
+  .district-label .lbl-score { color: #334155; font-weight: 600; }
 
   .mapctl-btn {
     background: rgba(26,29,39,0.95);
@@ -537,20 +539,23 @@ function drawDistrictPolygon(feature) {
   }).addTo(map);
 
   const bounds = layer.getBounds();
+  // Label = "Name · live connectivity score". Clickable, same as the shape.
   const label = L.divIcon({
-    html: `<div class="district-label">${toTitleCase(name)}${scoreInfo ? ` · ${scoreInfo.score.toFixed(0)}` : ""}</div>`,
+    html: `<div class="district-label" title="Click to open ${toTitleCase(name)} in the dashboard">${toTitleCase(name)}${scoreInfo ? ` <span class="lbl-score">· ${scoreInfo.score.toFixed(0)}</span>` : ""}</div>`,
     className: "",
     iconAnchor: [0, 0],
   });
-  const labelMarker = L.marker(bounds.getCenter(), {icon: label, interactive: false}).addTo(map);
+  const labelMarker = L.marker(bounds.getCenter(), {icon: label, interactive: true}).addTo(map);
 
   // Embedded: clicking selects the district in the host dashboard (the
   // right-hand card + everything else updates). Standalone: live popup.
-  layer.on("click", () => {
+  const onSelect = () => {
     if (!EMBEDDED || !selectDistrictInHost(name)) {
       evaluateAndShowPopup(layer, toTitleCase(name), bounds);
     }
-  });
+  };
+  layer.on("click", onSelect);
+  labelMarker.on("click", onSelect);
   layer.on("mouseover", () => layer.setStyle({fillOpacity: 0.32}));
   layer.on("mouseout", () => layer.setStyle({fillOpacity: 0.12}));
 
@@ -792,7 +797,11 @@ function updateHeatmap(points) {
 }
 
 // ── Click on map → search postal ───────────────────────────────────────────
+// Embedded: district polygons handle selection and the side card shows the
+// detail, so the free-click coordinate popup would just be noise. Standalone
+// keeps it (no side card there).
 map.on("click", async (e) => {
+  if (EMBEDDED) return;
   const {lat, lng} = e.latlng;
   document.getElementById("loading").style.display = "block";
 
