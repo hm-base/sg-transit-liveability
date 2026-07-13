@@ -186,17 +186,32 @@
     flex-shrink: 0;
   }
 
-  /* District label */
+  /* District label — box-free text with a white halo so full names stay
+     readable on any tile background without clipped dark boxes. */
   .district-label {
-    background: rgba(26, 29, 39, 0.9);
-    border: 1px solid #63b3ed;
-    border-radius: 4px;
-    padding: 2px 6px;
-    color: #63b3ed;
-    font-size: 11px;
+    background: none;
+    border: none;
+    padding: 0;
+    color: #1A365D;
+    font-size: 10.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 6px #fff, 0 1px 2px rgba(255,255,255,.95);
+    pointer-events: none;
+  }
+
+  .mapctl-btn {
+    background: rgba(26,29,39,0.95);
+    border: 1px solid #2d3748;
+    border-radius: 8px;
+    color: #fafafa;
+    font-size: 12px;
     font-weight: 600;
+    padding: 7px 12px;
+    cursor: pointer;
     white-space: nowrap;
   }
+  .mapctl-btn:hover { border-color: #63b3ed; color: #63b3ed; }
 
   /* Loading overlay */
   #loading {
@@ -228,6 +243,11 @@
     <button id="postal-search-btn"
       style="background:#2b6cb0; color:white; border:none; border-radius:6px; padding:6px 14px;
              font-size:13px; font-weight:600; cursor:pointer;">Search</button>
+  </div>
+  <div id="map-ctl" style="position:absolute; top:10px; right:10px; z-index:1000;
+       display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
+    <button id="btn-expand" class="mapctl-btn" title="Grow the map to 80% of the window — scroll down to collapse it back">⤢ Expand map</button>
+    <button id="btn-recenter" class="mapctl-btn" title="Reset to the default Singapore view">⌖ Recenter</button>
   </div>
 </div>
 
@@ -304,11 +324,83 @@ let DISTRICTS = {};
 let DISTRICT_SCORES = {};  // name -> {score, verdict} from /rank, for color-coding
 
 // ── Map init ───────────────────────────────────────────────────────────────
+const HOME_VIEW = { center: [1.3521, 103.8198], zoom: 12 };
 const map = L.map("map", {
-  center: [1.3521, 103.8198],
-  zoom: 12,
+  center: HOME_VIEW.center,
+  zoom: HOME_VIEW.zoom,
   zoomControl: true,
 });
+
+// Embedded inside Streamlit? (srcdoc iframes share the parent's origin, so
+// frameElement/top access works; standalone serving has no frame.)
+const EMBEDDED = (() => {
+  try { return window.frameElement !== null; } catch (e) { return false; }
+})();
+
+// ── Host-page integration: expand/collapse + recenter + click-to-select ────
+let mapExpanded = false, baseHeight = null, expandScrollY = 0;
+
+function setFrameHeight(px) {
+  const fe = window.frameElement;
+  if (!fe) return false;
+  fe.style.height = px + "px";
+  fe.setAttribute("height", px);
+  setTimeout(() => map.invalidateSize(), 80);
+  return true;
+}
+
+function collapseMap() {
+  try {
+    if (mapExpanded && baseHeight) setFrameHeight(baseHeight);
+  } catch (e) { /* host access lost — nothing to restore */ }
+  mapExpanded = false;
+  const b = document.getElementById("btn-expand");
+  if (b) b.textContent = "⤢ Expand map";
+}
+
+function toggleExpand() {
+  try {
+    const fe = window.frameElement;
+    if (!fe) return;
+    if (mapExpanded) { collapseMap(); return; }
+    if (baseHeight === null) baseHeight = Math.round(fe.getBoundingClientRect().height);
+    const target = Math.round((window.top.innerHeight || 800) * 0.8);
+    if (setFrameHeight(target)) {
+      mapExpanded = true;
+      expandScrollY = window.top.scrollY || 0;
+      document.getElementById("btn-expand").textContent = "⤡ Collapse map";
+    }
+  } catch (e) { console.warn("Expand unavailable in this embed:", e); }
+}
+
+// Scrolling down past the expanded map returns it to its normal size.
+try {
+  window.top.addEventListener("scroll", () => {
+    if (mapExpanded && (window.top.scrollY || 0) > expandScrollY + 150) collapseMap();
+  }, { passive: true });
+} catch (e) { /* standalone or sandboxed — no auto-collapse */ }
+
+document.getElementById("btn-recenter").addEventListener("click",
+  () => map.setView(HOME_VIEW.center, HOME_VIEW.zoom));
+const _expandBtn = document.getElementById("btn-expand");
+if (EMBEDDED) _expandBtn.addEventListener("click", toggleExpand);
+else _expandBtn.style.display = "none";
+
+// Clicking a district selects it in the host dashboard (URL param → the
+// Streamlit page reloads with that district active). Standalone keeps the
+// old live-score popup instead.
+function selectDistrictInHost(rawName) {
+  const slug = String(rawName).toLowerCase().replace(/\//g, "_").replace(/ /g, "_");
+  try {
+    const url = new URL(window.top.location.href);
+    url.searchParams.set("district", slug);
+    window.top.location.href = url.toString();
+    return true;
+  } catch (e) {
+    console.warn("Could not update host URL:", e);
+    return false;
+  }
+}
 
 // OneMap tiles (Singapore official basemap)
 L.tileLayer(
@@ -406,7 +498,7 @@ function drawDistrictPolygon(feature) {
   const color = scoreInfo ? scoreColor(scoreInfo.score) : "#00BCD4";
 
   const layer = L.geoJSON(feature, {
-    style: {color, weight: 1.5, fillColor: color, fillOpacity: 0.15},
+    style: {color, weight: 1.5, fillColor: color, fillOpacity: 0.22},
   }).addTo(map);
 
   const bounds = layer.getBounds();
@@ -417,9 +509,15 @@ function drawDistrictPolygon(feature) {
   });
   const labelMarker = L.marker(bounds.getCenter(), {icon: label, interactive: false}).addTo(map);
 
-  layer.on("click", () => evaluateAndShowPopup(layer, toTitleCase(name), bounds));
-  layer.on("mouseover", () => layer.setStyle({fillOpacity: 0.35}));
-  layer.on("mouseout", () => layer.setStyle({fillOpacity: 0.15}));
+  // Embedded: clicking selects the district in the host dashboard (the
+  // right-hand card + everything else updates). Standalone: live popup.
+  layer.on("click", () => {
+    if (!EMBEDDED || !selectDistrictInHost(name)) {
+      evaluateAndShowPopup(layer, toTitleCase(name), bounds);
+    }
+  });
+  layer.on("mouseover", () => layer.setStyle({fillOpacity: 0.4}));
+  layer.on("mouseout", () => layer.setStyle({fillOpacity: 0.22}));
 
   districtLayers[name] = {layer, label: labelMarker};
 }
@@ -441,7 +539,11 @@ function drawDistrictBoxFallback(name, [minLat, minLon, maxLat, maxLon]) {
     className: "", iconAnchor: [0, 0],
   });
   L.marker([(minLat + maxLat) / 2, (minLon + maxLon) / 2], {icon: label, interactive: false}).addTo(map);
-  rect.on("click", () => evaluateAndShowPopup(rect, name, rect.getBounds()));
+  rect.on("click", () => {
+    if (!EMBEDDED || !selectDistrictInHost(name)) {
+      evaluateAndShowPopup(rect, name, rect.getBounds());
+    }
+  });
   districtLayers[name] = {layer: rect};
 }
 
@@ -521,7 +623,7 @@ legendDiv.innerHTML = `
   <div class="legend-item"><div class="legend-dot" style="background:#48BB78"></div>Good ≥75</div>
   <div class="legend-item"><div class="legend-dot" style="background:#F6AD55"></div>Moderate 50–74</div>
   <div class="legend-item"><div class="legend-dot" style="background:#FC8181"></div>Poor &lt;50</div>
-  <div style="font-size:10px;color:#718096;margin-top:6px;">Click any box for a live score</div>
+  <div style="font-size:10px;color:#718096;margin-top:6px;">Click a district to select it</div>
 `;
 map.getContainer().appendChild(legendDiv);
 
