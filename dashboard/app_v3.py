@@ -504,7 +504,7 @@ def render_forecast_col(forecast: dict) -> str:
 CSS_TEXT = "\n  :root{\n    --bg:#F3F6FA;\n    --card:#FFFFFF;\n    --border:#E4E9F0;\n    --border-strong:#D3DBE5;\n    --text:#0F172A;\n    --muted:#6B7686;\n    --muted-2:#8B95A5;\n    --blue:#2F7DED;\n    --blue-dark:#1A5FC4;\n    --blue-pale:#EAF2FE;\n    --teal:#10B981;\n    --teal-pale:#E6F9F1;\n    --amber:#F5A524;\n    --amber-pale:#FEF3DE;\n    --red:#EF4444;\n    --red-pale:#FDEAEA;\n    --shadow: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.04);\n    --radius: 14px;\n  }\n  *{box-sizing:border-box;}\n  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);\n    font-family:'Inter',system-ui,sans-serif;}\n  .mono{font-family:'JetBrains Mono',monospace;}\n  h1,h2,h3,h4{font-family:'JetBrains Mono',monospace; margin:0;}\n  a{color:inherit;text-decoration:none;}\n  button{font-family:inherit;cursor:pointer;}\n\n  \n  \n  header.topnav{\n    background:#fff; border-bottom:1px solid var(--border);\n    display:flex; align-items:center; gap:16px; padding:12px 24px; position:sticky; top:0; z-index:40;\n  }\n  .brand{display:flex; align-items:center; gap:10px; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:15px;}\n  .brand .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#3EA6FF,#2F7DED);\n    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;}\n  .search{\n    flex:1; max-width:340px; background:var(--bg); border:1px solid var(--border);\n    border-radius:10px; padding:9px 14px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted-2);\n  }\n  .nav-right{display:flex; align-items:center; gap:10px; margin-left:auto;}\n  .pill-select{\n    background:var(--bg); border:1px solid var(--border); border-radius:10px;\n    padding:8px 14px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600;\n    display:inline-flex; align-items:center; gap:7px; color:var(--text);\n    white-space:nowrap; line-height:1; height:34px; flex-shrink:0;\n  }\n  .pill-select .dotmark{width:7px;height:7px;min-width:7px;border-radius:50%;background:var(--teal);display:inline-block;}\n  .pill-select .dotmark.blue{background:var(--blue);}\n  .nav-item-wrap{position:relative; display:inline-block;}\n\n  /* Floating connectivity summary card — now scoped to the map container, not the page */\n  .map-container{display:flex; align-items:flex-start; gap:14px; margin-bottom:6px;}\n  .map-container .map-strip{flex:1; min-width:0; margin-bottom:0;}\n  .float-card{\n    width:250px; flex-shrink:0; background:#fff;\n    border:1px solid var(--border-strong); border-radius:var(--radius); box-shadow:0 6px 20px rgba(16,24,40,.08);\n    padding:16px; z-index:20;\n  }\n  .map-hint{text-align:center; font-size:10.5px; color:var(--muted-2); font-family:'JetBrains Mono',monospace; margin:0 0 16px;}\n  .float-card .fc-head{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--muted); letter-spacing:.5px; margin-bottom:10px;}\n  .ring{width:76px;height:76px;border-radius:50%;border:6px solid var(--amber);\n    display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace;\n    font-weight:800; font-size:24px; color:var(--amber); margin:0 auto 6px;}\n  .fc-verdict{text-align:center; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px; color:var(--amber); margin-bottom:2px;}\n  .fc-verdict-sub{text-align:center; font-size:10.5px; color:var(--muted); margin-bottom:14px;}\n  .fc-row{display:flex; justify-content:space-between; font-size:11.5px; padding:5px 0; border-top:1px dashed var(--border);}\n  .fc-row span:first-child{color:var(--muted);}\n  .fc-row span:last-child{font-weight:700; font-family:'JetBrains Mono',monospace;}\n  .fc-services{display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 12px;}\n  .svc-chip{background:var(--blue-pale); color:var(--blue-dark); font-family:'JetBrains Mono',monospace;\n    font-size:10.5px; font-weight:700; padding:4px 8px; border-radius:6px;}\n  .deep-dive{width:100%; background:var(--text); color:#fff; border:none; padding:10px; border-radius:9px;\n    font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:700;}\n\n  main{padding:22px 24px 60px; max-width:1500px; margin:0 auto;}\n\n  /* map placeholder strip */\n  .map-strip{height:180px; border-radius:var(--radius); border:1px solid var(--border);\n    background:\n      linear-gradient(135deg, rgba(47,125,237,.10), rgba(47,125,237,.03)),\n      repeating-linear-gradient(0deg, rgba(47,125,237,.05) 0 1px, transparent 1px 26px),\n      repeating-linear-gradient(90deg, rgba(47,125,237,.05) 0 1px, transparent 1px 26px);\n    margin-bottom:16px; position:relative; overflow:hidden;\n    transition: height .28s ease;\n  }\n  .map-strip.expanded{height:80vh;}\n  .map-tools{position:absolute; left:14px; bottom:14px; display:flex; gap:8px; z-index:2;}\n  .map-btn{background:#fff; border:1px solid var(--border-strong); font-family:'JetBrains Mono',monospace;\n    font-size:11px; font-weight:600; padding:7px 12px; border-radius:8px; color:var(--muted);}\n  .map-btn.active{background:var(--blue); color:#fff; border-color:var(--blue);}\n  .map-legend{position:absolute; right:14px; bottom:14px; background:rgba(255,255,255,.9); border:1px solid var(--border);\n    border-radius:8px; padding:6px 10px; font-family:'JetBrains Mono',monospace; font-size:10px; display:flex; gap:10px; z-index:2;}\n  .map-expand-btn{position:absolute; top:14px; right:14px; z-index:2; background:#fff; border:1px solid var(--border-strong);\n    font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; padding:8px 13px; border-radius:8px;\n    color:var(--blue-dark); display:flex; align-items:center; gap:6px; box-shadow:var(--shadow);}\n  .map-expand-btn:hover{background:var(--blue-pale);}\n  .hotspot{position:absolute; width:12px; height:12px; border-radius:50%; background:var(--blue);\n    border:2px solid #fff; box-shadow:0 0 0 3px rgba(47,125,237,.25); cursor:pointer; z-index:3; transition:transform .15s;}\n  .hotspot:hover{transform:scale(1.35);}\n  .hotspot.active{background:var(--amber); box-shadow:0 0 0 4px rgba(245,165,36,.3);}\n\n  /* KPI context label */\n  .kpi-context{display:flex; align-items:center; gap:8px; margin-bottom:10px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted);}\n  .kpi-context b{color:var(--blue-dark); font-weight:700;}\n  .kpi-context .scope-chip{background:var(--blue-pale); color:var(--blue-dark); padding:3px 9px; border-radius:6px; font-weight:700;}\n  .map-expand-btn{position:absolute; top:12px; right:12px; background:#fff; border:1px solid var(--border-strong);\n    border-radius:8px; padding:7px 12px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600;\n    color:var(--muted); display:flex; align-items:center; gap:6px; box-shadow:var(--shadow); z-index:5;}\n  .map-strip.expanded{height:80vh; position:relative; z-index:90;}\n  .map-overlay-close{display:none; position:fixed; inset:0; background:rgba(15,23,42,.5); z-index:80;}\n  .map-overlay-close.open{display:block;}\n  .scope-badge{display:inline-flex; align-items:center; gap:7px; background:var(--blue-pale); color:var(--blue-dark);\n    border:1px solid #C7DEFB; border-radius:9px; padding:6px 12px; font-family:'JetBrains Mono',monospace;\n    font-size:11.5px; font-weight:700; margin-bottom:12px;}\n  .scope-badge .sb-sub{font-weight:500; color:var(--blue); opacity:.8; font-size:10.5px;}\n  .dot-ind{width:7px;height:7px;border-radius:50%;display:inline-block; flex-shrink:0;}\n  .dot-ind.teal{background:var(--teal);}\n  .dot-ind.blue{background:var(--blue);}\n\n  /* KPI row */\n  .kpi-row{display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:20px;}\n  .kpi{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; box-shadow:var(--shadow);}\n  .kpi.highlight{border-color:var(--amber); background:var(--amber-pale);}\n  .kpi-label{font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--muted); letter-spacing:.4px; margin-bottom:8px; display:flex; justify-content:space-between;}\n  .kpi-val{font-family:'JetBrains Mono',monospace; font-size:26px; font-weight:800;}\n  .kpi-sub{font-size:10.5px; color:var(--muted); margin-top:4px; font-family:'JetBrains Mono',monospace;}\n  .kpi-sub.up{color:var(--teal);}\n  .kpi-sub.down{color:var(--red);}\n  .kpi.highlight .kpi-val{color:var(--amber); display:flex; align-items:center; gap:8px;}\n  .badge-mod{font-size:10px; background:var(--amber); color:#fff; padding:2px 7px; border-radius:6px; font-weight:700;}\n\n  /* Tabs */\n  .tabbar{display:flex; align-items:center; border-bottom:1px solid var(--border); margin-bottom:20px;}\n  .tab{padding:10px 4px; margin-right:26px; font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600;\n    color:var(--muted); border-bottom:2px solid transparent; background:none; border-top:none;border-left:none;border-right:none;}\n  .tab.active{color:var(--blue); border-bottom-color:var(--blue);}\n  .tab-right{margin-left:auto; display:flex; gap:16px;}\n  .tab-right .tab{margin-right:0; color:var(--muted-2);}\n\n  /* Cards / grid helpers */\n  .grid-2{display:grid; grid-template-columns:2fr 1fr; gap:16px;}\n  .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}\n  .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); margin-bottom:16px;}\n  .card h3{font-size:14.5px; display:flex; align-items:center; gap:8px;}\n  .card .sub{font-size:11.5px; color:var(--muted); margin:4px 0 14px;}\n\n  .mini-grid{display:grid; grid-template-columns:1.15fr 0.85fr 1.15fr 1fr; gap:0; border:1px solid var(--border); border-radius:10px; overflow:hidden;}\n  .mini-col{padding:14px; border-right:1px solid var(--border);}\n  .mini-col:last-child{border-right:none;}\n  .mini-col-title{font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--muted); margin-bottom:10px; display:flex; align-items:center; gap:6px;}\n  .stat-line{display:flex; justify-content:space-between; align-items:baseline; padding:6px 0;}\n  .stat-line .l{font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace;}\n  .stat-line .v{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:16px;}\n  .conn-center{display:flex; flex-direction:column; align-items:center; justify-content:center; padding:14px; background:var(--amber-pale);}\n  .conn-center .ring{width:64px;height:64px; border-width:5px;}\n\n  .row-card{display:flex; align-items:center; gap:14px; padding:16px; margin-bottom:10px;}\n  .row-icon{width:38px;height:38px;border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0;}\n  .row-icon.blue{background:var(--blue-pale);}\n  .row-icon.teal{background:var(--teal-pale);}\n  .row-icon.amber{background:var(--amber-pale);}\n  .row-title{font-weight:700; font-size:13px;}\n  .row-sub{font-size:11px; color:var(--muted);}\n  .row-score{margin-left:auto; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px;\n    padding:5px 10px; border-radius:8px; border:1px solid var(--border-strong);}\n  .row-score.good{color:var(--teal); border-color:var(--teal); background:var(--teal-pale);}\n  .row-score.mod{color:var(--amber); border-color:var(--amber); background:var(--amber-pale);}\n\n  .chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:12px;}\n  .chip{font-family:'JetBrains Mono',monospace; font-size:10.5px; padding:5px 9px; border-radius:7px; font-weight:600;}\n  .chip.ok{background:var(--teal-pale); color:#0C8457;}\n  .chip.bad{background:var(--red-pale); color:#C13232;}\n  .chip.mid{background:var(--amber-pale); color:#B4790F;}\n\n  .forecast-trio{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;}\n  .fc-box{background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px; text-align:center;}\n  .fc-box .h{font-size:9.5px; color:var(--muted); font-family:'JetBrains Mono',monospace;}\n  .fc-box .n{font-family:'JetBrains Mono',monospace; font-weight:800; font-size:20px; margin:4px 0;}\n  .fc-box .u{font-size:9.5px; color:var(--muted); font-family:'JetBrains Mono',monospace;}\n  .fc-box.g .n{color:var(--teal);} .fc-box.a .n{color:var(--amber);} .fc-box.r .n{color:var(--red);}\n\n  /* leaderboard bars */\n  .bars{display:flex; align-items:flex-end; gap:10px; height:130px; margin:14px 0 6px; padding:0 4px;}\n  .bar-col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;}\n  .bar-val{font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; margin-bottom:4px;}\n  .bar{width:100%; border-radius:5px 5px 0 0;}\n  .bar-lbl{font-size:9px; color:var(--muted); margin-top:6px; font-family:'JetBrains Mono',monospace; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60px;}\n  table{width:100%; border-collapse:collapse; font-size:12px;}\n  th{text-align:left; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); font-weight:600; padding:8px 6px; border-bottom:1px solid var(--border);}\n  td{padding:9px 6px; border-bottom:1px solid var(--border); font-family:'JetBrains Mono',monospace; font-size:12px;}\n  tr.selected td{background:var(--blue-pale);}\n  .verdict{display:flex; align-items:center; gap:6px; font-weight:600;}\n  .dot{width:7px;height:7px;border-radius:50%;display:inline-block;}\n  .dot.g{background:var(--teal);} .dot.a{background:var(--amber);} .dot.r{background:var(--red);}\n\n  .price-tiles{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:14px;}\n  .price-tile{background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px; text-align:center;}\n  .price-tile .l{font-size:9px; color:var(--muted); font-family:'JetBrains Mono',monospace;}\n  .price-tile .v{font-family:'JetBrains Mono',monospace; font-weight:800; font-size:15px; margin-top:4px;}\n  .vfm-list .vfm-row{display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px dashed var(--border); font-size:11.5px;}\n  .vfm-rank{color:var(--muted); font-family:'JetBrains Mono',monospace; margin-right:6px;}\n\n  /* heatmap */\n  .heatmap{display:grid; grid-template-columns:34px repeat(24,1fr); gap:3px; font-family:'JetBrains Mono',monospace;}\n  .heatmap .hlabel{font-size:9px; color:var(--muted); display:flex; align-items:center;}\n  .heatmap .hcell{height:16px; border-radius:2px;}\n  .heatmap .hhead{font-size:8px; color:var(--muted-2); text-align:center;}\n\n  /* line chart (svg) */\n  .chart-wrap{width:100%; overflow-x:auto;}\n\n  /* score weights modal */\n  .modal-overlay{display:none; position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:100; align-items:center; justify-content:center;}\n  .modal-overlay.open{display:flex;}\n  .modal{background:#fff; border-radius:16px; width:480px; max-width:90vw; padding:26px; box-shadow:0 30px 60px rgba(0,0,0,.25);}\n  .modal-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;}\n  .modal-head h3{font-size:15px;}\n  .close-x{background:none;border:none;font-size:18px;color:var(--muted);}\n  .formula{display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:20px; font-family:'JetBrains Mono',monospace;}\n  .formula .big-ring{width:64px;height:64px;border-radius:50%;border:5px solid var(--amber); display:flex;align-items:center;justify-content:center; font-weight:800; font-size:22px; color:var(--amber);}\n  .formula .term{text-align:center;}\n  .formula .term .n{font-size:20px; font-weight:800;}\n  .formula .term.blue .n{color:var(--blue);} .formula .term.teal .n{color:var(--teal);} .formula .term.red .n{color:var(--red);}\n  .formula .term .l{font-size:9px; color:var(--muted);}\n  .presets{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:20px;}\n  .preset{border:1px solid var(--border-strong); border-radius:10px; padding:10px; font-size:11px; font-family:'JetBrains Mono',monospace; background:#fff;}\n  .preset.active{border-color:var(--blue); background:var(--blue-pale); color:var(--blue-dark);}\n  .preset b{display:block; font-size:11.5px; margin-bottom:2px;}\n  .slider-row{margin-bottom:16px;}\n  .slider-row .sl-head{display:flex; justify-content:space-between; font-size:11.5px; font-weight:600; margin-bottom:6px;}\n  input[type=range]{width:100%; accent-color:var(--blue);}\n  .apply-btn{width:100%; background:var(--blue); color:#fff; border:none; padding:13px; border-radius:10px; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12.5px;}\n\n  /* glossary */\n  .acc{border:1px solid var(--border); border-radius:10px; margin-bottom:8px; overflow:hidden;}\n  .acc-head{padding:12px 14px; display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:600; background:var(--bg);}\n  .acc-body{display:none; padding:14px; font-size:12.5px; line-height:1.7; color:#374151;}\n  .acc.open .acc-body{display:block;}\n  .acc.open .acc-head{color:var(--blue-dark);}\n\n  .footer-note{text-align:center; font-size:11px; color:var(--muted-2); font-family:'JetBrains Mono',monospace; margin-top:30px;}\n\n  .info-i{width:14px;height:14px; border-radius:50%; border:1px solid var(--muted-2); color:var(--muted-2); font-size:9px; display:inline-flex; align-items:center; justify-content:center;}\n  .flex-between{display:flex; justify-content:space-between; align-items:center;}\n"
 
 
-def render_formula_card(comps: dict, weights: dict, live: bool) -> str:
+def render_formula_card(comps: dict, weights: dict, basis: str) -> str:
     """The mockup's live-formula block as plain v3 HTML. No JS: Streamlit
     reruns on every slider move, so the numbers recompute server-side."""
     bus = comps.get("bus_frequency_score") or 0.0
@@ -518,7 +518,6 @@ def render_formula_card(comps: dict, weights: dict, live: bool) -> str:
     stab_term = round(taxi_share * stab_share * stab)
     fric_term = round(taxi_share * fric_share * fric * 100.0)
     score = max(0, min(100, bus_term + stab_term - fric_term))
-    basis = "this district's live evaluation" if live else "illustrative defaults (live pipeline offline)"
     return f"""
 <div style="font-size:10px; font-family:'JetBrains Mono',monospace; color:#6B7686; margin-bottom:8px;">
   LIVE FORMULA · baseline from {basis}</div>
@@ -541,7 +540,8 @@ def render_formula_card(comps: dict, weights: dict, live: bool) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 def build_chrome_and_kpis(selected: dict, data: dict, sel_day: str = "",
                           sel_hour: int | None = None,
-                          expected_taxis: float | None = None) -> tuple[str, str, str, dict]:
+                          expected_taxis: float | None = None,
+                          custom_weights: bool = False) -> tuple[str, str, str, dict]:
     selected_label = selected["label"]
     is_average = selected["slug"] == "average"
 
@@ -579,7 +579,7 @@ def build_chrome_and_kpis(selected: dict, data: dict, sel_day: str = "",
 """
 
     kpis_html = f"""
-  <div class="map-hint">💡 Click anywhere on the map for a live connectivity score — or search a postal code.</div>
+  <div class="map-hint">💡 Click a district on the map to select it — or search a postal code.{' · Map colors still use the DEFAULT weights.' if custom_weights else ''}</div>
 
   <div class="scope-badge">{scope_text}</div>
 
@@ -617,10 +617,9 @@ def fetch_average_history(minutes: int) -> list[dict]:
             for k, v in sorted(bucket.items())]
 
 
-def build_history_card(selected: dict, extra: dict) -> str:
+def build_history_card(selected: dict, history_min: int) -> str:
     """Full-width taxi history ±2σ + forecast diamonds + flux bars (parity
     3.1/3.2 + rubric predicted-vs-actual overlay)."""
-    history_min = extra.get("history_min", 60)
     try:
         if selected["slug"] == "average":
             snaps = fetch_average_history(history_min)
@@ -634,12 +633,14 @@ def build_history_card(selected: dict, extra: dict) -> str:
         hist_svg, flux_svg = "", ""
     body = hist_svg or render_coming_soon(
         "Needs at least 2 taxi snapshots in the selected window — run the "
-        "pipeline (python main.py) or widen the history slider.")
+        "pipeline (python main.py) or widen the window above.")
     flux_block = (f'<h4 style="font-size:12.5px; margin-top:14px; color:#0F172A;">Taxi flux (inflow / outflow)</h4>'
                   f'{flux_svg}') if flux_svg else ""
+    hours = history_min // 60
+    win_txt = f"{hours}h" if history_min % 60 == 0 else f"{history_min} min"
     return (f'<div class="card"><h3>📈 Taxi availability — history &amp; forecast</h3>'
             f'<div class="sub">Shaded band = normal range (±2σ) · ◆ filled = upcoming ML forecasts · '
-            f'◇ hollow = earlier predictions vs what actually happened · window {history_min} min</div>'
+            f'◇ hollow = earlier predictions vs what actually happened · rolling past {win_txt}</div>'
             f'{body}{flux_block}</div>')
 
 
@@ -759,8 +760,12 @@ def render_score_breakdown_bars(bus: dict, friction: float) -> str:
 
 
 def build_price_snapshot(selected: dict, extra: dict) -> str:
-    """Mockup Price Snapshot: 3 tiles + Top-5 value-for-money list."""
-    ts = extra.get("town_summary")
+    """Mockup Price Snapshot: 3 tiles + Top-5 value-for-money list.
+    Tiles cover the last 3 months with the range spelled out."""
+    SNAPSHOT_MONTHS = 3
+    ts = _town_summary_cached("4 ROOM", SNAPSHOT_MONTHS)
+    if ts is None or ts.empty:
+        ts = extra.get("town_summary")  # fall back to the 12-month set
     if ts is None or ts.empty:
         return render_coming_soon("No price data available.")
     match = ts[ts["town"].str.lower().str.replace(" ", "_") == selected["slug"]]
@@ -772,10 +777,20 @@ def build_price_snapshot(selected: dict, extra: dict) -> str:
         med = ts["median_price"].median() if "median_price" in ts else None
         txn = int(ts["num_transactions"].sum())
     med_txt = f"S${med:,.0f}" if med is not None and not pd.isna(med) else "—"
-    tiles = (f'<div class="price-tiles">'
+
+    _now = datetime.now(SGT)
+    _sm, _sy = _now.month - SNAPSHOT_MONTHS, _now.year
+    if _sm <= 0:
+        _sm += 12
+        _sy -= 1
+    range_txt = f"{datetime(_sy, _sm, 1).strftime('%b')} – {_now.strftime('%b %Y')}"
+
+    tiles = (f'<div style="font-size:10px; font-family:\'JetBrains Mono\',monospace; color:#6B7686; '
+             f'margin-bottom:6px;">LAST {SNAPSHOT_MONTHS} MONTHS · {range_txt.upper()} · 4 ROOM</div>'
+             f'<div class="price-tiles">'
              f'<div class="price-tile"><div class="l">AVG PRICE</div><div class="v">S${avg:,.0f}</div></div>'
              f'<div class="price-tile"><div class="l">MEDIAN</div><div class="v">{med_txt}</div></div>'
-             f'<div class="price-tile"><div class="l">TXNS</div><div class="v">{txn:,}</div></div></div>')
+             f'<div class="price-tile"><div class="l">TRANSACTIONS</div><div class="v">{txn:,}</div></div></div>')
 
     vfm = extra.get("vfm")
     if vfm is not None and not vfm.empty:
@@ -832,10 +847,7 @@ def build_overview_html(selected: dict, data: dict, extra: dict) -> str:
                            else render_coming_soon("hdb.duckdb not found."))
     alerts_html = render_alerts(data.get("alerts_list", []), data.get("alerts"))
 
-    history_card = build_history_card(selected, extra)
-
     return f"""
-    {history_card}
     <div class="grid-2">
       <div>
         <div class="card"><h3>⏱ Transport Timeliness</h3>
@@ -951,9 +963,17 @@ def build_compare_html(a: dict, b: dict, weights: dict) -> str:
         f'<tr><td>Friction</td>{num_cell(A["ev"].get("friction_ratio"), "{:.3f}")}{num_cell(B["ev"].get("friction_ratio"), "{:.3f}")}</tr>'
         f'<tr><td>Live Taxis</td>{num_cell(A["ev"].get("taxi_count"))}{num_cell(B["ev"].get("taxi_count"))}</tr>'
         f'<tr><td>Bus Stops</td>{num_cell(A["ev"].get("stops_in_bbox"))}{num_cell(B["ev"].get("stops_in_bbox"))}</tr>'
-        f'<tr><td>Avg Price (4R, 12mo)</td>{num_cell(A["price"], "S${:,.0f}")}{num_cell(B["price"], "S${:,.0f}")}</tr>'
-        f'<tr><td>Nearest MRT</td>{mrt_cell(A["ctx"])}{mrt_cell(B["ctx"])}</tr>'
-        f'<tr><td>Commute to CBD</td>{cbd_cell(A["ctx"])}{cbd_cell(B["ctx"])}</tr>')
+        f'<tr><td>Avg Price (4R, 12mo)</td>{num_cell(A["price"], "S${:,.0f}")}{num_cell(B["price"], "S${:,.0f}")}</tr>')
+    # Distances are measured from each district's geographic centre — say so,
+    # or "nearest MRT 2km" reads as "this district has no MRT".
+    if A["ctx"].get("mrt") or B["ctx"].get("mrt"):
+        rows += (f'<tr><td>Nearest MRT <span style="color:#8B95A5; font-size:10px;">(from district centre)</span></td>'
+                 f'{mrt_cell(A["ctx"])}{mrt_cell(B["ctx"])}</tr>')
+    _has_cbd = ((A["ctx"].get("cbd") or {}).get("total_time_min")
+                or (B["ctx"].get("cbd") or {}).get("total_time_min"))
+    if _has_cbd:
+        rows += (f'<tr><td>Commute to CBD <span style="color:#8B95A5; font-size:10px;">(from district centre)</span></td>'
+                 f'{cbd_cell(A["ctx"])}{cbd_cell(B["ctx"])}</tr>')
 
     offline_note = ("" if A["ev"] or B["ev"] else
                     '<div class="sub">Live metrics need the pipeline (python main.py) running — showing what\'s available offline.</div>')
@@ -962,13 +982,39 @@ def build_compare_html(a: dict, b: dict, weights: dict) -> str:
             f'<table class="sg-table"><tr><th>Metric</th><th>{a["label"]}</th><th>{b["label"]}</th></tr>{rows}</table></div>')
 
 
+@st.cache_data(ttl=600)
+def citywide_pattern() -> pd.DataFrame:
+    """Weekly availability pattern averaged across every district that has
+    enough history — the citywide view for the 24H tab."""
+    frames = []
+    for o in get_district_options():
+        if o["slug"] == "average":
+            continue
+        try:
+            df = DayPatternAnalyser(o["slug"]).get_pattern()
+            if df is not None and not df.empty:
+                frames.append(df)
+        except Exception:
+            continue
+    if not frames:
+        return pd.DataFrame()
+    merged = pd.concat(frames, ignore_index=True)
+    return merged.groupby(["weekday", "hour"], as_index=False)["relative_pct"].mean()
+
+
 def build_forecast_html(selected: dict, data: dict, extra: dict) -> str:
     selected_label = selected["label"]
-    if selected["slug"] == "average":
-        return render_coming_soon("Pick a specific district above — hourly forecasts and the "
-                                  "weekly pattern are per-district, a citywide average wouldn't mean much here.")
     if not EXTENDED_FORECASTER_AVAILABLE:
         return render_coming_soon("ml/extended_forecaster.py could not be imported.")
+    if selected["slug"] == "average":
+        heatmap_html = render_heatmap(citywide_pattern())
+        return f"""
+        <div class="card"><h3>📅 Weekly Taxi Availability Heatmap · Singapore Average</h3>
+          <div class="sub" style="color:var(--blue-dark); background:var(--blue-pale); padding:8px 10px;
+               border-radius:8px; margin-bottom:10px;">💡 Citywide average pattern across all 55
+               districts. Pick a specific district above for its hourly 24h forecast, peak-hour
+               ratings and model performance.</div>
+          {heatmap_html}</div>"""
     heatmap_html = render_heatmap(extra.get("pattern"))
     chart_html = render_24h_line_chart(extra.get("hourly_forecast"))
     peaks_html = render_peak_ratings(extra.get("peaks") or [])
@@ -1160,17 +1206,20 @@ DAY_FULL = {"Mon": "Monday", "Tue": "Tuesday", "Wed": "Wednesday",
             "Thu": "Thursday", "Fri": "Friday", "Sat": "Saturday", "Sun": "Sunday"}
 _now_sgt = datetime.now(SGT)
 
-c_district, c_day, c_hour, c_hist, c_refresh = st.columns([3, 1, 1, 1.9, 1.1])
+# Map clicks land here: the embedded map sets ?district=<slug> on the host
+# URL, which reloads the page with that district pre-selected.
+_qp_slug = st.query_params.get("district")
+_default_idx = next((i for i, o in enumerate(options) if o["slug"] == _qp_slug), 0)
+
+c_district, c_day, c_hour, c_refresh = st.columns([3.4, 1, 1, 1.2])
 with c_district:
-    sel_idx = st.selectbox("District", list(range(len(options))), index=0,
+    sel_idx = st.selectbox("District", list(range(len(options))), index=_default_idx,
                            format_func=lambda i: _display_label(options[i]))
 with c_day:
     sel_day = st.selectbox("Day", DAYS, index=_now_sgt.weekday())
 with c_hour:
     sel_hour = st.selectbox("Time", list(range(24)), index=_now_sgt.hour,
                             format_func=lambda h: f"{h:02d}:00")
-with c_hist:
-    history_min = st.slider("History (minutes)", 30, 360, 60, step=15)
 with c_refresh:
     if st.button("↻ Refresh", use_container_width=True):
         st.cache_data.clear()
@@ -1191,8 +1240,7 @@ elif selected["slug"] == "average" and rank:
 if data["conn_score"] is not None:
     data["verdict"] = verdict_for(data["conn_score"])[0]
 
-extra = {"rank": rank, "history_min": history_min,
-         "sel_day": sel_day, "sel_hour": sel_hour}
+extra = {"rank": rank, "sel_day": sel_day, "sel_hour": sel_hour}
 
 if HDB_AVAILABLE:
     try:
@@ -1242,7 +1290,8 @@ if _patt is not None and not _patt.empty:
         expected_taxis = None
 
 topnav_html, floatcard_html, kpis_html, baseline = build_chrome_and_kpis(
-    selected, data, sel_day=sel_day, sel_hour=sel_hour, expected_taxis=expected_taxis)
+    selected, data, sel_day=sel_day, sel_hour=sel_hour, expected_taxis=expected_taxis,
+    custom_weights=weights_custom)
 st.markdown(topnav_html, unsafe_allow_html=True)
 
 if not pipeline_up:
@@ -1300,10 +1349,24 @@ with _pop_col:
         st.slider("Taxi stability share %", 0, 100, key="w_stab",
                   help="Within the taxi term: reward for stable supply vs friction penalty")
         st.caption(f"Friction auto-balances: {100 - st.session_state['w_stab']}%")
-        _formula_comps = data.get("bus") or {"bus_frequency_score": 73.0,
-                                             "taxi_stability_score": 87.0,
-                                             "friction_ratio": 0.68}
-        st.markdown(render_formula_card(_formula_comps, weights, bool(data.get("bus"))),
+        # Same components the headline score uses, so the formula card and the
+        # KPI/ring always agree: live /evaluate for a district, mean of all 55
+        # districts' components for Singapore Average.
+        if data.get("bus"):
+            _formula_comps = data["bus"]
+            _formula_basis = "this district's live evaluation"
+        elif rank and any(r.get("bus_frequency_score") for r in rank):
+            _formula_comps = {
+                "bus_frequency_score": sum(r.get("bus_frequency_score", 0.0) for r in rank) / len(rank),
+                "taxi_stability_score": sum(r.get("taxi_stability_score", 0.0) for r in rank) / len(rank),
+                "friction_ratio": sum(r.get("friction_ratio", 0.0) for r in rank) / len(rank),
+            }
+            _formula_basis = "citywide mean of all 55 live evaluations"
+        else:
+            _formula_comps = {"bus_frequency_score": 73.0, "taxi_stability_score": 87.0,
+                              "friction_ratio": 0.68}
+            _formula_basis = "illustrative defaults (live pipeline offline)"
+        st.markdown(render_formula_card(_formula_comps, weights, _formula_basis),
                     unsafe_allow_html=True)
         if weights_custom:
             st.button("↺ Reset to default weights", use_container_width=True,
@@ -1325,6 +1388,14 @@ tab_overview, tab_forecast, tab_compare, tab_map, tab_glossary = st.tabs(
 )
 
 with tab_overview:
+    # Window picker for the history chart — the control lives right where it
+    # applies, instead of a detached slider in the top bar.
+    _win_col, _ = st.columns([1, 5])
+    with _win_col:
+        _win_label = st.selectbox("Chart window", ["3h", "6h", "12h", "24h", "48h"], index=2,
+                                  help="How far back the taxi availability chart looks")
+    _win_minutes = {"3h": 180, "6h": 360, "12h": 720, "24h": 1440, "48h": 2880}[_win_label]
+    st.markdown(build_history_card(selected, _win_minutes), unsafe_allow_html=True)
     st.markdown(build_overview_html(selected, data, extra), unsafe_allow_html=True)
 
 with tab_forecast:
