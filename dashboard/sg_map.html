@@ -345,6 +345,15 @@ function setFrameHeight(px) {
   if (!fe) return false;
   fe.style.height = px + "px";
   fe.setAttribute("height", px);
+  // Streamlit pins the iframe's wrapper elements to the original height, so
+  // the grown iframe would just paint over the content below — relax the
+  // ancestors so the page reflows instead.
+  let el = fe.parentElement, hops = 0;
+  while (el && hops < 5 && !(el.dataset && el.dataset.testid === "stVerticalBlock")) {
+    if (el.style) { el.style.height = "auto"; el.style.minHeight = "0"; }
+    el = el.parentElement;
+    hops++;
+  }
   setTimeout(() => map.invalidateSize(), 80);
   return true;
 }
@@ -498,7 +507,7 @@ function drawDistrictPolygon(feature) {
   const color = scoreInfo ? scoreColor(scoreInfo.score) : "#00BCD4";
 
   const layer = L.geoJSON(feature, {
-    style: {color, weight: 1.5, fillColor: color, fillOpacity: 0.22},
+    style: {color, weight: 1.5, fillColor: color, fillOpacity: 0.12},
   }).addTo(map);
 
   const bounds = layer.getBounds();
@@ -516,8 +525,8 @@ function drawDistrictPolygon(feature) {
       evaluateAndShowPopup(layer, toTitleCase(name), bounds);
     }
   });
-  layer.on("mouseover", () => layer.setStyle({fillOpacity: 0.4}));
-  layer.on("mouseout", () => layer.setStyle({fillOpacity: 0.22}));
+  layer.on("mouseover", () => layer.setStyle({fillOpacity: 0.32}));
+  layer.on("mouseout", () => layer.setStyle({fillOpacity: 0.12}));
 
   districtLayers[name] = {layer, label: labelMarker};
 }
