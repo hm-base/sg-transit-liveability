@@ -271,24 +271,39 @@ def get_scope_snapshot(slug: str, bbox) -> dict:
 
     if slug == "average":
         slugs = [o["slug"] for o in all_options if o["slug"] != "average"]
-        latest_counts = []
+        latest_counts, frictions = [], []
         for s in slugs:
             snaps = fetch_snapshots(s, minutes=5)
             if snaps:
                 latest_counts.append(snaps[-1]["taxi_count"])
+                frictions.append(snaps[-1].get("friction", 0.0))
         alerts = _alerts_24h(None)
         live_taxis = sum(latest_counts) if latest_counts else 0
         avg_taxi = (sum(latest_counts) / len(latest_counts)) if latest_counts else 0.0
+        avg_friction = (sum(frictions) / len(frictions)) if frictions else 0.0
         rank = call_rank_cached()
         conn_score, verdict = None, None
+        bus_avg = None
         if rank:
             scores = [r["score"] for r in rank]
             conn_score = round(sum(scores) / len(scores)) if scores else None
             verdict = "MODERATE" if conn_score and conn_score < 80 else "GOOD"
+            # Citywide average across every district's already-computed bus
+            # metrics (rank_districts ran compute_metrics for all of them) \u2014
+            # real numbers instead of a "needs a district" placeholder.
+            n = len(rank)
+            bus_avg = dict(
+                stops_in_bbox=round(sum(r.get("stops_in_bbox", 0) for r in rank) / n),
+                avg_bus_headway_min=sum(r.get("avg_bus_headway_min", 0.0) for r in rank) / n,
+                bus_frequency_score=sum(r.get("bus_frequency_score", 0.0) for r in rank) / n,
+                bus_redundancy_score=sum(r.get("bus_redundancy_score", 0.0) for r in rank) / n,
+                num_unique_routes=round(sum(r.get("num_unique_routes", 0) for r in rank) / n),
+                taxi_stability_score=sum(r.get("taxi_stability_score", 0.0) for r in rank) / n,
+            )
         return dict(
-            live_taxis=live_taxis, avg_taxi=round(avg_taxi, 1), friction=0.0,
+            live_taxis=live_taxis, avg_taxi=round(avg_taxi, 1), friction=avg_friction,
             alerts=len(alerts), alerts_list=alerts[:8], conn_score=conn_score, verdict=verdict,
-            price=get_avg_price(None), live=bool(rank), bus=None, forecast={},
+            price=get_avg_price(None), live=bool(rank), bus=bus_avg, forecast={},
             bus_stops="\u2014", bus_headway="\u2014",
         )
 
@@ -323,9 +338,12 @@ def esc(v, fallback="\u2014"):
 
 
 def render_coming_soon(message: str) -> str:
+    # Every call site here is a built feature waiting on data (live pipeline,
+    # enough history, an optional file/token) — not an unimplemented one, so
+    # the label says that rather than the misleading "Not built yet".
     return f"""<div style="text-align:center; padding:30px 20px; color:var(--muted); font-size:12.5px;
                 background:var(--bg); border:1px dashed var(--border-strong); border-radius:10px;">
-      \U0001F6A7 <b style="color:var(--text)">Not built yet</b><br>{message}</div>"""
+      ⏳ <b style="color:var(--text)">No live data yet</b><br>{message}</div>"""
 
 
 def render_price_table(df: pd.DataFrame, n: int = 8) -> str:
@@ -750,7 +768,12 @@ def build_local_snapshot(selected: dict, data: dict, extra: dict) -> str:
         mrt_sub, mrt_badge, mrt_cls = "needs OneMap (token / network)", "—", "mod"
 
     bus = data.get("bus")
-    if bus:
+    if bus and is_average:
+        bus_sub = f'~{bus["stops_in_bbox"]} stops/district · every ~{bus["avg_bus_headway_min"]:.0f} min · {bus["num_unique_routes"]} routes (avg)'
+        bscore = bus["bus_frequency_score"]
+        bus_badge = f"{bscore:.0f}/100"
+        bus_cls = "good" if bscore >= 75 else "mod"
+    elif bus:
         bus_sub = f'{bus["stops_in_bbox"]} stops · every ~{bus["avg_bus_headway_min"]:.0f} min · {bus["num_unique_routes"]} routes'
         bscore = bus["bus_frequency_score"]
         bus_badge = f"{bscore:.0f}/100"
@@ -872,9 +895,11 @@ def build_overview_html(selected: dict, data: dict, extra: dict) -> str:
 
     if data["live"] and data.get("bus"):
         b = data["bus"]
+        is_average = selected["slug"] == "average"
+        stops_label = "AVG STOPS/DISTRICT" if is_average else "STOPS IN ZONE"
         timeliness_html = f"""<div class="mini-grid">
           <div class="mini-col"><div class="mini-col-title">🚌 BUS</div>
-            <div class="stat-line"><span class="l">STOPS IN ZONE</span><span class="v">{b['stops_in_bbox']}</span></div>
+            <div class="stat-line"><span class="l">{stops_label}</span><span class="v">{b['stops_in_bbox']}</span></div>
             <div class="stat-line"><span class="l">AVG HEADWAY</span><span class="v">{b['avg_bus_headway_min']:.1f} min</span></div>
             <div class="stat-line"><span class="l">BUS SCORE</span><span class="v" style="color:var(--teal)">{b['bus_frequency_score']:.0f}</span></div>
             <div class="stat-line"><span class="l">REDUNDANCY</span><span class="v" style="color:var(--teal)">{b['bus_redundancy_score']:.0f} <span style="font-size:9px;color:var(--muted);font-weight:400;">({b['num_unique_routes']} routes)</span></span></div>

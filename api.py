@@ -89,6 +89,13 @@ class RankEntry(BaseModel):
     bus_frequency_score:  float = 0.0
     taxi_stability_score: float = 0.0
     friction_ratio:       float = 0.0
+    # Also lets the dashboard build a real citywide-average Bus Coverage /
+    # Transport Timeliness view for "Singapore Average" instead of a
+    # placeholder — compute_metrics() already produces these per district.
+    stops_in_bbox:         int   = 0
+    avg_bus_headway_min:   float = 0.0
+    bus_redundancy_score:  float = 0.0
+    num_unique_routes:     int   = 0
 
 
 def evaluate_district(bbox: BBox, store: DataStore) -> DistrictMetrics:
@@ -137,6 +144,10 @@ def rank_districts(store: DataStore) -> list[dict]:
             "bus_frequency_score":  m.bus_frequency_score,
             "taxi_stability_score": m.taxi_stability_score,
             "friction_ratio":       m.friction_ratio,
+            "stops_in_bbox":        m.stops_in_bbox,
+            "avg_bus_headway_min":  m.avg_bus_headway_min,
+            "bus_redundancy_score": m.bus_redundancy_score,
+            "num_unique_routes":    m.num_unique_routes,
         })
     store.set_monitored_stops(all_stops_seen)
     results.sort(key=lambda x: x["score"], reverse=True)
