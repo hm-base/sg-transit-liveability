@@ -24,6 +24,7 @@ real data, and push access to the target site repo.
 from __future__ import annotations
 
 import argparse
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -35,6 +36,15 @@ import requests
 SGT = timezone(timedelta(hours=8))
 API_BASE = "http://localhost:8000"
 PAGE_SUBPATH = "public/sg-transit/index.html"
+SCREENSHOTS_DIR = Path(__file__).resolve().parent.parent / "docs" / "screenshots"
+SCREENSHOT_SUBDIR = "public/sg-transit/screenshots"
+# (filename, caption) — re-capture these manually when the dashboard's look
+# changes meaningfully; the publish step just copies whatever's here.
+SCREENSHOTS = [
+    ("overview.png", "Overview tab — live KPIs, connectivity gauge, and the district mini-map."),
+    ("24h_forecast.png", "24H Forecast tab — real 24-hour prediction, anomaly alerts, and model MAE/RMSE."),
+    ("map_housing.png", "Map & Housing Prices tab — full Value-for-Money map and ranking table."),
+]
 
 
 def run(cmd: list[str], cwd: Path | None = None, check: bool = True):
@@ -155,6 +165,16 @@ def build_page(rank_data: list[dict], vfm_data: list[dict], generated_at: str) -
 
 <main class="max-w-5xl mx-auto px-5 pb-16 space-y-8">
 
+  <section class="space-y-6">
+    <h2 class="font-bold text-lg">📷 The actual interactive dashboard</h2>
+    <p class="text-sm text-[#0F172A]/50 -mt-4">Real screenshots of the live app (not reproducible here — GitHub Pages
+    has no backend to run it). The tables below this are real live data, updated whenever this snapshot is regenerated.</p>
+    {"".join(f'''<figure class="bg-white rounded-2xl border border-[#DDD6FE]/40 p-3">
+      <img src="screenshots/{fname}" alt="{caption}" class="w-full rounded-xl border border-[#DDD6FE]/30">
+      <figcaption class="text-xs text-[#0F172A]/50 mt-2 px-1">{caption}</figcaption>
+    </figure>''' for fname, caption in SCREENSHOTS)}
+  </section>
+
   <section class="grid grid-cols-3 gap-4">
     <div class="bg-white rounded-2xl border border-[#DDD6FE]/40 p-5 text-center">
       <div class="text-3xl font-extrabold text-violet-500">{n_districts}</div>
@@ -226,7 +246,16 @@ def main() -> None:
         page_path.parent.mkdir(parents=True, exist_ok=True)
         page_path.write_text(html, encoding="utf-8")
 
-        run(["git", "-C", str(clone), "add", PAGE_SUBPATH])
+        shot_dest = clone / SCREENSHOT_SUBDIR
+        shot_dest.mkdir(parents=True, exist_ok=True)
+        for fname, _ in SCREENSHOTS:
+            src = SCREENSHOTS_DIR / fname
+            if src.exists():
+                shutil.copy(src, shot_dest / fname)
+            else:
+                print(f"Warning: {src} missing — re-capture screenshots before publishing for a complete page.")
+
+        run(["git", "-C", str(clone), "add", PAGE_SUBPATH, SCREENSHOT_SUBDIR])
         status = run(["git", "-C", str(clone), "status", "--porcelain"])
         if not status.stdout.strip():
             print("No changes since last snapshot — nothing to publish.")
