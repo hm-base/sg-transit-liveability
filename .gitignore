@@ -4,6 +4,7 @@
 # Databases (too big + personal data)
 data/transport.db
 data/*.db
+data/*.db-journal
 data/*.wal
 
 # EXCEPTION: Allow Git to track hdb.duckdb
