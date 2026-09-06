@@ -174,9 +174,19 @@ uv pip install -r requirements.txt
 python main.py --seed
 python main.py
 
-# Dashboard (new terminal)
-streamlit run dashboard/app.py
+# Dashboard (new terminal) — v3 is the current dashboard (custom HTML/SVG UI,
+# no Plotly). dashboard/app.py (v1, Streamlit-native/Plotly) still exists but
+# is superseded — kept only for reference, not used for demos.
+streamlit run dashboard/app_v3.py --server.port 8502
 ```
+
+> **Windows + antivirus SSL interception**: if live LTA polling fails with
+> `CERTIFICATE_VERIFY_FAILED`, your antivirus (e.g. Norton) may be
+> intercepting HTTPS traffic with its own root CA that Python's bundled
+> `certifi` store doesn't trust (even though Windows/your browser does).
+> Already fixed here via `truststore` (`ingestion/client.py`), which makes
+> Python trust the OS certificate store instead — no action needed unless
+> you see this on a fresh machine without the dependency installed.
 
 ### Option 3 — Cloud batch (no machine needed)
 
@@ -242,7 +252,10 @@ sg-transit-liveability/
 │   └── quality_check.py        ← Data quality report + auto-fix
 │
 ├── dashboard/
-│   └── app.py                  ← 3-page Streamlit dashboard
+│   ├── app_v3.py                ← current dashboard — custom HTML/SVG UI, no Plotly
+│   ├── sg_map.html              ← Leaflet map (dual-mode: VFM or raw connectivity)
+│   ├── map_embed.py             ← inlines GeoJSON + color-mode into sg_map.html
+│   └── app.py                  ← v1, Streamlit-native/Plotly — superseded, kept for reference
 │
 └── airflow/
     └── dags/
@@ -262,6 +275,7 @@ GET /forecast/24h/{district}                        → 24hr hourly forecast
 GET /forecast/peaks/{district}                      → peak hour ratings
 GET /forecast/pattern/{district}                    → day×hour heatmap
 GET /forecast/price/{town}                          → HDB price forecast
+GET /vfm?flat_type=&months=&transport_weight=        → Value-for-Money per HDB town (transit + affordability blend)
 GET /health                                         → liveness check
 ```
 
@@ -281,6 +295,29 @@ Connectivity Score (0–100) =
 | 75–100 | ✅ Well connected |
 | 50–74  | ⚠️ Moderate |
 | 0–49   | ❌ Poor connectivity |
+
+```
+Value-for-Money Score (0–100) =
+  (Connectivity Score  × transport_weight)
++ (Affordability Score × (1 - transport_weight))
+
+Affordability Score = 100 × (1 - (avg_price - min_price) / (max_price - min_price))
+  — relative to whichever towns are currently in view (flat type + months filter),
+    not an absolute affordability threshold.
+```
+
+| VFM Score | Verdict |
+|-----------|---------|
+| 65–100 | 🟢 Great value |
+| 45–64  | 🟡 Moderate value |
+| 0–44   | 🔴 Poor value |
+
+`transport_weight` defaults to 50% and is adjustable via the "Transport importance %"
+slider on the Map & Housing Prices tab — a cheap town can rank "Great value" even
+with mediocre transit if it's weighted toward affordability. The Overview tab's
+mini map stays pure Connectivity Score (matches its adjacent gauge); only the
+Map & Housing Prices tab's full map colors by VFM. Non-HDB areas (Tuas, water
+catchments, etc. — no resale price data) fall back to raw connectivity there.
 
 ---
 

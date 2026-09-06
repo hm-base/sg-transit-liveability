@@ -325,6 +325,16 @@ const MRT_STATIONS = [
 let DISTRICTS = {};
 let DISTRICT_SCORES = {};  // name -> {score, verdict} from /rank, for color-coding
 
+// "vfm" (default) colors by Value-for-Money (transit + affordability) — used
+// on the Map & Housing Prices tab. "connectivity" keeps the map showing raw
+// transit score only — used on the Overview tab's mini map, which pairs with
+// the big Connectivity Score gauge next to it and should match that number,
+// not a blended one. Set by map_embed.py per embed via string substitution.
+let MAP_COLOR_MODE = "vfm"; /*__MAP_COLOR_MODE__*/
+// Matches the "Transport importance %" slider below the map at embed time —
+// re-embedded with a fresh value whenever that slider moves (see map_embed.py).
+let MAP_VFM_WEIGHT = 0.5; /*__MAP_VFM_WEIGHT__*/
+
 // ── Map init ───────────────────────────────────────────────────────────────
 const HOME_VIEW = { center: [1.3521, 103.8198], zoom: 12 };
 const map = L.map("map", {
@@ -478,21 +488,38 @@ MRT_STATIONS.forEach(station => {
 // bounding-box rectangles only if the real GeoJSON can't be loaded. ──
 let districtLayers = {};  // name -> Leaflet layer
 
-function scoreColor(score) {
+function scoreColor(score, isVfm) {
+  // VFM verdict cutoffs (65/45) differ from raw connectivity (75/50) —
+  // see get_value_for_money() in hdb/analytics.py, the single source of truth.
+  if (isVfm) {
+    if (score >= 65) return "#48BB78";
+    if (score >= 45) return "#F6AD55";
+    return "#FC8181";
+  }
   if (score >= 75) return "#48BB78";   // good — green
   if (score >= 50) return "#F6AD55";   // moderate — orange
   return "#FC8181";                     // poor — red
 }
 
 function buildPopup(name, evalData) {
+  const scoreInfo = DISTRICT_SCORES[name] || DISTRICT_SCORES[toTitleCase(name)];
   const score = evalData.connectivity_score?.toFixed(0) ?? "—";
-  return `
-    <div class="popup-card">
-      <div class="popup-header">📍 ${name}</div>
+  const vfmLine = (scoreInfo && scoreInfo.isVfm) ? `
+      <div class="popup-score">
+        <div class="popup-score-value">${scoreInfo.score.toFixed(0)}</div>
+        <div class="popup-score-label">Value-for-Money Score / 100</div>
+      </div>
+      <div style="font-size:11px;text-align:center;margin-bottom:6px;">
+        Transit ${scoreInfo.connectivityScore?.toFixed(0) ?? "—"}/100 · Avg price S$${scoreInfo.avgPrice ? Math.round(scoreInfo.avgPrice).toLocaleString() : "—"}
+      </div>` : `
       <div class="popup-score">
         <div class="popup-score-value">${score}</div>
         <div class="popup-score-label">Connectivity Score / 100</div>
-      </div>
+      </div>`;
+  return `
+    <div class="popup-card">
+      <div class="popup-header">📍 ${name}</div>
+      ${vfmLine}
       <div class="popup-grid">
         <div class="popup-metric">
           <div class="popup-metric-label">🚕 Live Taxis</div>
@@ -511,7 +538,7 @@ function buildPopup(name, evalData) {
           <div class="popup-metric-value">${evalData.stops_in_bbox ?? "—"}</div>
         </div>
       </div>
-      <div style="font-size:11px;color:#68d391;text-align:center;">${evalData.verdict || ""}</div>
+      <div style="font-size:11px;color:#68d391;text-align:center;">${(scoreInfo && scoreInfo.isVfm ? scoreInfo.verdict : evalData.verdict) || ""}</div>
     </div>
   `;
 }
@@ -532,16 +559,18 @@ async function evaluateAndShowPopup(layer, name, bounds) {
 function drawDistrictPolygon(feature) {
   const name = feature.properties.PLN_AREA_N;  // e.g. "BEDOK" — matches your district names exactly
   const scoreInfo = DISTRICT_SCORES[name] || DISTRICT_SCORES[toTitleCase(name)];
-  const color = scoreInfo ? scoreColor(scoreInfo.score) : "#00BCD4";
+  const color = scoreInfo ? scoreColor(scoreInfo.score, scoreInfo.isVfm) : "#00BCD4";
 
   const layer = L.geoJSON(feature, {
-    style: {color, weight: 1.5, fillColor: color, fillOpacity: 0.12},
+    style: {color, weight: 2, fillColor: color, fillOpacity: 0.42},
   }).addTo(map);
 
   const bounds = layer.getBounds();
-  // Label = "Name · live connectivity score". Clickable, same as the shape.
+  // Label = "Name · live VFM score" (falls back to raw connectivity for
+  // non-HDB areas with no VFM entry, e.g. Tuas, Western Islands). Clickable.
+  const labelKind = scoreInfo && scoreInfo.isVfm ? "value-for-money" : "connectivity";
   const label = L.divIcon({
-    html: `<div class="district-label" title="${toTitleCase(name)} — connectivity score ${scoreInfo ? scoreInfo.score.toFixed(0) : "n/a"}/100 · click to open in the dashboard">${toTitleCase(name)}${scoreInfo ? ` <span class="lbl-score">· ${scoreInfo.score.toFixed(0)}/100</span>` : ""}</div>`,
+    html: `<div class="district-label" title="${toTitleCase(name)} — ${labelKind} score ${scoreInfo ? scoreInfo.score.toFixed(0) : "n/a"}/100 · click to open in the dashboard">${toTitleCase(name)}${scoreInfo ? ` <span class="lbl-score">· ${scoreInfo.score.toFixed(0)}/100</span>` : ""}</div>`,
     className: "",
     iconAnchor: [0, 0],
   });
@@ -556,8 +585,8 @@ function drawDistrictPolygon(feature) {
   };
   layer.on("click", onSelect);
   labelMarker.on("click", onSelect);
-  layer.on("mouseover", () => layer.setStyle({fillOpacity: 0.32}));
-  layer.on("mouseout", () => layer.setStyle({fillOpacity: 0.12}));
+  layer.on("mouseover", () => layer.setStyle({fillOpacity: 0.65}));
+  layer.on("mouseout", () => layer.setStyle({fillOpacity: 0.42}));
 
   districtLayers[name] = {layer, label: labelMarker};
 }
@@ -569,10 +598,10 @@ function toTitleCase(s) {
 function drawDistrictBoxFallback(name, [minLat, minLon, maxLat, maxLon]) {
   // Only used if the real GeoJSON polygons can't be loaded at all.
   const scoreInfo = DISTRICT_SCORES[name];
-  const color = scoreInfo ? scoreColor(scoreInfo.score) : "#00BCD4";
+  const color = scoreInfo ? scoreColor(scoreInfo.score, scoreInfo.isVfm) : "#00BCD4";
   const rect = L.rectangle(
     [[minLat, minLon], [maxLat, maxLon]],
-    {color, weight: 1, fillColor: color, fillOpacity: 0.06}
+    {color, weight: 1.5, fillColor: color, fillOpacity: 0.35}
   ).addTo(map);
   const label = L.divIcon({
     html: `<div class="district-label">${name}${scoreInfo ? ` · ${scoreInfo.score.toFixed(0)}` : ""}</div>`,
@@ -594,13 +623,19 @@ const FALLBACK_DISTRICTS = {
 };
 
 async function loadDistricts() {
-  // 1. Get live scores first (used to color whichever shape source we end up with)
+  // 1. Get live scores first (used to color whichever shape source we end up with).
+  // Primary signal is /vfm (transit blended with resale-price affordability) so
+  // the map adds information beyond the plain connectivity leaderboard shown
+  // elsewhere in the dashboard. Areas with no HDB town (e.g. Tuas, Western
+  // Islands) have no VFM entry, so they fall back to raw /rank connectivity.
   try {
     const rankResp = await fetch(`${API_BASE}/rank`).catch(e => { console.error("GET /rank failed:", e); return null; });
     if (rankResp && rankResp.ok) {
       const rankList = await rankResp.json();
       if (Array.isArray(rankList)) {
-        rankList.forEach(r => { DISTRICT_SCORES[r.district] = {score: r.score, verdict: r.verdict}; });
+        rankList.forEach(r => {
+          DISTRICT_SCORES[r.district] = {score: r.score, verdict: r.verdict, isVfm: false};
+        });
         console.log(`Loaded live scores for ${rankList.length} districts from /rank`);
       }
     } else {
@@ -608,6 +643,28 @@ async function loadDistricts() {
     }
   } catch (e) {
     console.error("Unexpected error loading /rank:", e);
+  }
+
+  if (MAP_COLOR_MODE === "vfm") {
+    try {
+      const vfmResp = await fetch(`${API_BASE}/vfm?transport_weight=${MAP_VFM_WEIGHT}`).catch(e => { console.error("GET /vfm failed:", e); return null; });
+      if (vfmResp && vfmResp.ok) {
+        const vfmList = await vfmResp.json();
+        if (Array.isArray(vfmList)) {
+          vfmList.forEach(r => {
+            DISTRICT_SCORES[r.town] = {
+              score: r.vfm_score, verdict: r.vfm_verdict, isVfm: true,
+              connectivityScore: r.connectivity_score, avgPrice: r.avg_price,
+            };
+          });
+          console.log(`Loaded VFM scores for ${vfmList.length} towns from /vfm`);
+        }
+      } else {
+        console.warn("/vfm unavailable — falling back to raw connectivity coloring.");
+      }
+    } catch (e) {
+      console.error("Unexpected error loading /vfm:", e);
+    }
   }
 
   // 2. Try real polygon boundaries first — inline copy (always available when
@@ -659,10 +716,18 @@ legendDiv.innerHTML = `
       ${line}
     </div>
   `).join("")}
+  ${MAP_COLOR_MODE === "vfm" ? `
+  <div style="margin-top:8px;" class="legend-title">Value-for-Money</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#48BB78"></div>Great value ≥65</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#F6AD55"></div>Moderate 45–64</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#FC8181"></div>Poor value &lt;45</div>
+  <div style="font-size:10px;color:#718096;margin-top:4px;">Non-HDB areas (Tuas, water catchments, …) show raw transit connectivity instead.</div>
+  ` : `
   <div style="margin-top:8px;" class="legend-title">District Score</div>
   <div class="legend-item"><div class="legend-dot" style="background:#48BB78"></div>Good ≥75</div>
   <div class="legend-item"><div class="legend-dot" style="background:#F6AD55"></div>Moderate 50–74</div>
   <div class="legend-item"><div class="legend-dot" style="background:#FC8181"></div>Poor &lt;50</div>
+  `}
   <div style="font-size:10px;color:#718096;margin-top:6px;">Click a district to select it</div>
 `;
 map.getContainer().appendChild(legendDiv);

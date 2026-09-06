@@ -20,7 +20,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import Ridge
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -113,7 +113,7 @@ class TaxiForecaster:
         if len(df) < 5:
             return None
         mae  = mean_absolute_error(df.actual_count, df.predicted_count)
-        rmse = mean_squared_error(df.actual_count,  df.predicted_count, squared=False)
+        rmse = root_mean_squared_error(df.actual_count, df.predicted_count)
         insert_model_metrics(self.district, mae, rmse, len(df))
         log.info("[%s] Eval — MAE=%.2f RMSE=%.2f n=%d", self.district, mae, rmse, len(df))
         return {"mae": round(mae, 3), "rmse": round(rmse, 3), "n": len(df)}

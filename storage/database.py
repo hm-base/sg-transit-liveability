@@ -146,6 +146,48 @@ def insert_model_metrics(district: str, mae: float, rmse: float,
         )
 
 
+def backfill_actual_counts(tolerance_min: int = 3, db_path: Path = DB_PATH) -> int:
+    """Fill in actual_count for predictions whose target time (created_at +
+    horizon_minutes) has passed, by matching against the closest real
+    taxi_snapshot for that district within tolerance_min. Without this,
+    predictions.actual_count stays NULL forever and evaluate() can never run."""
+    now = datetime.now(SGT).replace(tzinfo=None)
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT id, created_at, district, horizon_minutes FROM predictions "
+            "WHERE actual_count IS NULL"
+        ).fetchall()
+
+    updated = 0
+    for r in rows:
+        created = _parse_ts(r["created_at"])
+        if created is None:
+            continue
+        target = created + timedelta(minutes=r["horizon_minutes"])
+        if target > now:
+            continue  # horizon hasn't arrived yet
+
+        minutes_back = int((now - target).total_seconds() // 60) + tolerance_min + 1
+        snaps = fetch_snapshots(r["district"], minutes=minutes_back, db_path=db_path)
+        best, best_diff = None, None
+        for s in snaps:
+            t = _parse_ts(s["fetched_at"])
+            if t is None:
+                continue
+            diff = abs((t - target).total_seconds())
+            if diff <= tolerance_min * 60 and (best_diff is None or diff < best_diff):
+                best, best_diff = s, diff
+
+        if best is not None:
+            with _connect(db_path) as conn:
+                conn.execute(
+                    "UPDATE predictions SET actual_count=? WHERE id=?",
+                    (best["taxi_count"], r["id"]),
+                )
+            updated += 1
+    return updated
+
+
 def insert_bus_arrivals(stop_code: str, services: list[dict], db_path: Path = DB_PATH) -> None:
     """Persist a raw bus-arrival snapshot for one stop. Stored as JSON rather
     than parsed into individual columns — LTA's exact field names can vary,

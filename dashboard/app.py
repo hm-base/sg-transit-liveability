@@ -159,7 +159,9 @@ if page == "📊 Dashboard":
                               margin=dict(l=0,r=0,t=10,b=0),
                               legend=dict(orientation="h",y=-0.2),
                               xaxis_title="Time", yaxis_title="Number of taxis")
-            st.plotly_chart(fig, use_container_width=True)
+            fig.update_xaxes(autorange=True)
+            fig.update_yaxes(autorange=True)
+            st.plotly_chart(fig, use_container_width=True, key=f"taxi_history_{district}_{lookback}")
 
         if not snap_df.empty and "flux" in snap_df.columns:
             st.subheader("Taxi flux (inflow / outflow)")

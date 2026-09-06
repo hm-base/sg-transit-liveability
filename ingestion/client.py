@@ -10,6 +10,9 @@ from __future__ import annotations
 import logging
 import time
 
+import truststore
+truststore.inject_into_ssl()
+
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry

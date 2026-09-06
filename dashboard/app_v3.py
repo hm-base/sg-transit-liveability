@@ -362,8 +362,13 @@ def render_vfm_table(df: pd.DataFrame, n: int = 10) -> str:
     rows = ""
     for _, r in df.head(n).iterrows():
         rows += (f"<tr><td>{r['town'].title()}</td><td>{r['vfm_score']:.1f}</td>"
+                 f"<td>{r['connectivity_score']:.0f}</td><td>{r['affordability_score']:.0f}</td>"
                  f"<td>S${r['avg_price']:,.0f}</td><td>{r['vfm_verdict']}</td></tr>")
-    return f'<table class="sg-table"><tr><th>Town</th><th>VFM</th><th>Avg Price</th><th>Verdict</th></tr>{rows}</table>'
+    return (f'<table class="sg-table"><tr><th>Town</th><th>VFM</th><th>Transit</th>'
+            f'<th>Afford.</th><th>Avg Price</th><th>Verdict</th></tr>{rows}</table>'
+            f'<div style="font-size:9.5px; color:var(--muted); font-family:\'JetBrains Mono\',monospace; '
+            f'padding:4px 0 0;">VFM = Transit × weight + Affordability × (1-weight), per the slider above — '
+            f'a cheap town can rank “Great value” even with poor transit.</div>')
 
 
 def _verdict_class(score):
@@ -1164,7 +1169,7 @@ def build_vfm_card(extra: dict, summary: pd.DataFrame | None, transport_weight: 
                                                             transport_weight=w, price_weight=1.0 - w))
         except Exception:
             pass
-    return (f'<div class="card"><h3>🏆 Value-for-Money Ranking</h3>'
+    return (f'<div class="card"><h3>🏆 Value-for-Money Ranking · Top 10</h3>'
             f'<div class="sub">Transport {transport_weight}% · Affordability {100 - transport_weight}%</div>{vfm_html}</div>')
 
 
@@ -1386,12 +1391,17 @@ if not pipeline_up:
 # load_map_html inlines the local planning-area polygons so district borders
 # render even when the FastAPI pipeline is offline.
 from dashboard.map_embed import load_map_html
-MAP_HTML = load_map_html(Path(__file__).parent / "sg_map.html",
-                         Path(__file__).parent / "planning_areas.geojson")
+_MAP_PATH = Path(__file__).parent / "sg_map.html"
+_GEOJSON_PATH = Path(__file__).parent / "planning_areas.geojson"
+# Overview's mini map sits next to the plain Connectivity Score gauge, so it
+# stays connectivity-only. The Map & Housing Prices tab's full map is VFM and
+# is re-embedded further down once the Transport importance slider is known
+# (see _map_slot), so there's no fixed-weight variant built here.
+MAP_HTML_OVERVIEW = load_map_html(_MAP_PATH, _GEOJSON_PATH, color_mode="connectivity")
 map_col, card_col = st.columns([2.9, 1.1], gap="small")
 with map_col:
-    if MAP_HTML:
-        components.html(MAP_HTML, height=330, scrolling=False)
+    if MAP_HTML_OVERVIEW:
+        components.html(MAP_HTML_OVERVIEW, height=330, scrolling=False)
     else:
         st.markdown(render_coming_soon("dashboard/sg_map.html not found next to app_v3.py."),
                     unsafe_allow_html=True)
@@ -1506,14 +1516,11 @@ with tab_compare:
                     unsafe_allow_html=True)
 
 with tab_map:
-    st.markdown('<div class="card"><h3>🗺 Live Interactive Map</h3>'
-                '<div class="sub">Full-size view of the live map — real planning-area polygons, '
-                'click anywhere for a live connectivity score, or search a postal code. '
-                'Dark-themed on purpose (its own design).</div></div>', unsafe_allow_html=True)
-    if MAP_HTML:
-        components.html(MAP_HTML, height=560, scrolling=False)
-    else:
-        st.markdown(render_coming_soon("dashboard/sg_map.html not found next to app_v3.py."), unsafe_allow_html=True)
+    # Filled after _tw (the Transport importance slider, further down) is
+    # known, so the map's VFM colors match it — see map_embed.py: the map is
+    # a static HTML blob with no live link to Streamlit widget state, so it
+    # has to be freshly re-embedded with the current weight baked in.
+    _map_slot = st.container()
 
     if HDB_AVAILABLE:
         try:
@@ -1533,32 +1540,49 @@ with tab_map:
             st.session_state["trend_town_sel"] = _town_match
             st.session_state["_trend_town_for"] = selected["slug"]
 
-        _mc1, _mc2, _mc3 = st.columns([1.2, 1.6, 1.8])
-        with _mc1:
+        # VFM Ranking leads the section (its own full-width slot, filled after
+        # the flat/months selectors below are read) — Price Trend + Price by
+        # Town follow underneath, side by side.
+        _vfm_slot = st.container()
+        _bottom_left, _bottom_right = st.columns([1.6, 1])
+
+        with _bottom_right:
             _flat = st.selectbox("Flat type", _flat_types,
                                  index=_flat_types.index("4 ROOM") if "4 ROOM" in _flat_types else 0)
-        with _mc2:
             _months = st.slider("Months of data", 1, 24, 12)
-        with _mc3:
             _trend_town = st.selectbox("Town for price trend", _towns or ["—"],
                                        key="trend_town_sel")
-
-        st.markdown(build_price_trend_card(_trend_town, _flat), unsafe_allow_html=True)
+            st.markdown(build_price_trend_card(_trend_town, _flat), unsafe_allow_html=True)
 
         _summary = _town_summary_cached(_flat, _months)
-        _tcol, _vcol = st.columns(2)
-        with _tcol:
+
+        with _bottom_left:
             _sort_by = st.selectbox("Sort towns by",
                                     ["Avg price (high → low)", "Transactions (high → low)", "Town A–Z"])
             st.markdown(build_price_by_town_card(_summary, _sort_by, _flat, _months),
                         unsafe_allow_html=True)
-        with _vcol:
+
+        with _vfm_slot:
             _tw = st.slider("Transport importance %", 0, 100, 50,
                             help="Weight of transport connectivity vs affordability in the VFM ranking below")
             st.markdown(build_vfm_card(extra, _summary, _tw), unsafe_allow_html=True)
     else:
+        _tw = 50
         st.markdown(render_coming_soon("hdb/analytics.py could not be imported — check hdb.duckdb exists in data/."),
                     unsafe_allow_html=True)
+
+    with _map_slot:
+        st.markdown('<div class="card"><h3>🗺 Live Interactive Map</h3>'
+                    '<div class="sub">Full-size view of the live map — real planning-area polygons, '
+                    'click anywhere for a live connectivity score, or search a postal code. '
+                    'Colored by Value-for-Money at the transport weight set below. '
+                    'Dark-themed on purpose (its own design).</div></div>', unsafe_allow_html=True)
+        _map_html_weighted = load_map_html(_MAP_PATH, _GEOJSON_PATH,
+                                           color_mode="vfm", vfm_weight=_tw / 100.0)
+        if _map_html_weighted:
+            components.html(_map_html_weighted, height=560, scrolling=False)
+        else:
+            st.markdown(render_coming_soon("dashboard/sg_map.html not found next to app_v3.py."), unsafe_allow_html=True)
 
     # Block Transport Profile (postal code + radius → live OneMap/LTA lookup)
     st.markdown('<div class="card" style="margin-bottom:0;"><h3>📍 Block Transport Profile</h3>'

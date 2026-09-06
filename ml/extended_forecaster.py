@@ -120,14 +120,25 @@ class HourlyForecaster:
         now = datetime.now(SGT)
         records = []
 
+        # Fallback for horizons with no trained model: historical mean taxi_count
+        # by hour-of-day (real data), so un-trained hours vary realistically
+        # instead of all repeating one flat EMA value regardless of horizon.
+        hist = pd.DataFrame(fetch_snapshots(self.district, minutes=20160))  # 14 days
+        hourly_avg: dict[int, float] = {}
+        if not hist.empty:
+            hist["hour"] = pd.to_datetime(hist["fetched_at"]).dt.hour
+            hourly_avg = hist.groupby("hour")["taxi_count"].mean().to_dict()
+        ema_fallback = float(pd.DataFrame(rows)["taxi_count"].ewm(span=10).mean().iloc[-1])
+
         for h in HOURLY_HORIZONS:
+            pred_time = now + timedelta(minutes=h)
             if h in self._models:
                 pred = max(0.0, float(self._models[h].predict(row)[0]))
+            elif pred_time.hour in hourly_avg:
+                pred = float(hourly_avg[pred_time.hour])
             else:
-                # EMA fallback
-                pred = float(pd.DataFrame(rows)["taxi_count"].ewm(span=10).mean().iloc[-1])
+                pred = ema_fallback
 
-            pred_time = now + timedelta(minutes=h)
             hour_ahead = h // 60
 
             records.append({

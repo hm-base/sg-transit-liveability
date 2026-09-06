@@ -361,6 +361,33 @@ def create_app(store: DataStore) -> FastAPI:
         """Return connectivity leaderboard for all known districts."""
         return [RankEntry(**r) for r in rank_districts(store)]
 
+    @app.get("/vfm")
+    def api_vfm(flat_type: str = "4 ROOM", months: int = 12,
+                transport_weight: float = 0.5):
+        """Value-for-Money per HDB town: blends live transit connectivity with
+        relative resale-price affordability. Used by sg_map.html to color the
+        map by VFM instead of raw transit score, so it adds information beyond
+        the plain connectivity leaderboard shown elsewhere in the dashboard."""
+        from hdb.analytics import get_town_summary, get_value_for_money
+        conn_scores = {r["district"]: r["score"] for r in rank_districts(store)}
+        summary = get_town_summary(flat_type=flat_type, months=months)
+        if summary.empty:
+            return []
+        df = get_value_for_money(summary, conn_scores,
+                                  transport_weight=transport_weight,
+                                  price_weight=1 - transport_weight)
+        return [
+            {
+                "town": r["town"].title(),
+                "vfm_score": r["vfm_score"],
+                "vfm_verdict": r["vfm_verdict"],
+                "connectivity_score": r["connectivity_score"],
+                "affordability_score": round(r["affordability_score"], 1),
+                "avg_price": r["avg_price"],
+            }
+            for _, r in df.iterrows()
+        ]
+
     @app.get("/predictions/{district}")
     def api_predictions(district: str, limit: int = 10):
         from storage.database import fetch_predictions

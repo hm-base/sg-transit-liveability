@@ -19,7 +19,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from ml.forecaster import TaxiForecaster
 from ml.extended_forecaster import HourlyForecaster, PeakHourPredictor, DayPatternAnalyser, HDBPriceForecaster
 from ml.anomaly import AnomalyDetector
-from storage.database import fetch_snapshots
+from storage.database import fetch_snapshots, backfill_actual_counts
 
 log = logging.getLogger(__name__)
 
@@ -66,6 +66,12 @@ def job_evaluate_all():
 
 def job_predict_and_check():
     log.info("=== Batch: PREDICT + ANOMALY CHECK (%s) ===", datetime.now(SGT).isoformat())
+    try:
+        n = backfill_actual_counts()
+        if n:
+            log.info("Backfilled actual_count for %d due prediction(s)", n)
+    except Exception as exc:
+        log.exception("Backfill actual_count failed: %s", exc)
     for district in get_districts():
         try:
             preds  = TaxiForecaster(district).predict()
