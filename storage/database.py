@@ -13,11 +13,17 @@ SQLite persistence layer. Tables:
 """
 from __future__ import annotations
 
+import os
 import sqlite3
 import json
 import logging
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
+
+# GitHub Actions sets this env var automatically on every workflow run — lets
+# insert_snapshot() tag provenance without any change at the ingestion call
+# sites (ingestion/workers.py locally, scripts/batch_collect.py in CI).
+DEFAULT_SOURCE = "github_actions" if os.environ.get("GITHUB_ACTIONS") == "true" else "local"
 
 SGT = timezone(timedelta(hours=8))
 from pathlib import Path
@@ -39,7 +45,8 @@ def init_db(db_path: Path = DB_PATH) -> None:
                 district    TEXT    NOT NULL,
                 taxi_count  INTEGER NOT NULL,
                 flux        REAL    DEFAULT 0,
-                friction    REAL    DEFAULT 0
+                friction    REAL    DEFAULT 0,
+                source      TEXT    DEFAULT 'local'
             );
             CREATE TABLE IF NOT EXISTS predictions (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,6 +92,12 @@ def init_db(db_path: Path = DB_PATH) -> None:
             CREATE INDEX IF NOT EXISTS idx_pred ON predictions(district, created_at);
             CREATE INDEX IF NOT EXISTS idx_bus  ON bus_arrivals(stop_code, fetched_at);
         """)
+        # Migration: older databases (incl. ones restored from before this
+        # column existed) won't get it from CREATE TABLE IF NOT EXISTS above.
+        cols = {r["name"] for r in conn.execute("PRAGMA table_info(taxi_snapshots)")}
+        if "source" not in cols:
+            conn.execute("ALTER TABLE taxi_snapshots ADD COLUMN source TEXT DEFAULT 'local'")
+            log.info("Migrated taxi_snapshots: added 'source' column")
     log.info("Database ready at %s", db_path)
 
 
@@ -106,12 +119,13 @@ def _connect(db_path: Path = DB_PATH):
 
 def insert_snapshot(district: str, taxi_count: int,
                     flux: float = 0.0, friction: float = 0.0,
+                    source: str = DEFAULT_SOURCE,
                     db_path: Path = DB_PATH) -> None:
     with _connect(db_path) as conn:
         conn.execute(
-            "INSERT INTO taxi_snapshots (fetched_at,district,taxi_count,flux,friction) "
-            "VALUES (?,?,?,?,?)",
-            (datetime.now(SGT).isoformat(), district, taxi_count, flux, friction),
+            "INSERT INTO taxi_snapshots (fetched_at,district,taxi_count,flux,friction,source) "
+            "VALUES (?,?,?,?,?,?)",
+            (datetime.now(SGT).isoformat(), district, taxi_count, flux, friction, source),
         )
 
 
@@ -242,7 +256,7 @@ def fetch_snapshots(district: str, minutes: int = 120,
     cutoff, sql_floor = _window_cutoff(minutes)
     with _connect(db_path) as conn:
         rows = conn.execute(
-            "SELECT fetched_at,taxi_count,flux,friction FROM taxi_snapshots "
+            "SELECT fetched_at,taxi_count,flux,friction,source FROM taxi_snapshots "
             "WHERE district=? AND fetched_at >= ? "
             "ORDER BY fetched_at ASC",
             (district, sql_floor),
