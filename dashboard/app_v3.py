@@ -299,6 +299,11 @@ def get_scope_snapshot(slug: str, bbox) -> dict:
                 bus_redundancy_score=sum(r.get("bus_redundancy_score", 0.0) for r in rank) / n,
                 num_unique_routes=round(sum(r.get("num_unique_routes", 0) for r in rank) / n),
                 taxi_stability_score=sum(r.get("taxi_stability_score", 0.0) for r in rank) / n,
+                # Without this, apply_weights() sees a missing friction_ratio and
+                # bails out to None -> the Score Weights ring always showed a
+                # fallback "0" for Singapore Average, while the term breakdown
+                # separately masked the same missing value as a fake "0.0".
+                friction_ratio=sum(r.get("friction_ratio", 0.0) for r in rank) / n,
             )
         return dict(
             live_taxis=live_taxis, avg_taxi=round(avg_taxi, 1), friction=avg_friction,
